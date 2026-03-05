@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import pool from '../db.js'
-import { sha1, createToken, requireAuth, COOKIE_NAME } from '../auth.js'
+import { sha1, sha256WithSalt, createToken, requireAuth, COOKIE_NAME } from '../auth.js'
 
 const router = Router()
 
@@ -32,7 +32,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Cuenta expirada' })
     }
 
-    const hash = user.pass_salt ? sha1(user.pass_salt + password) : sha1(password)
+    // Detect algorithm by hash length: 64 chars = SHA-256 (with salt), 40 chars = SHA-1
+    const hash = (user.pass_salt && user.passwd_sha1?.length === 64)
+      ? sha256WithSalt(user.pass_salt, password)
+      : sha1(password)
     if (hash !== user.passwd_sha1) {
       return res.status(401).json({ error: 'Credenciales incorrectas' })
     }

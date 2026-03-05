@@ -5,10 +5,12 @@ import pool from '../db.js'
 const router = Router()
 
 // Max lengths matching DB varchar constraints
+// Use the largest known size across installations (LAPI=120, EG=30 for nombre/apellido)
+// Truncating at 120 is safe for both — EG's 30-char limit is handled by DB itself
 const PACIENTE_MAX_LENGTHS = {
-  nombre: 30, apellido: 30, ci_paciente: 25, telefono: 30,
+  nombre: 120, apellido: 120, ci_paciente: 25, telefono: 30,
   telefono_celular: 30, lugar_nacimiento: 20, nacionalidad: 20,
-  estado_civil: 30, codigo_postal: 10, email: 200, apellido_segundo: 30,
+  estado_civil: 30, codigo_postal: 10, email: 200, apellido_segundo: 120,
   direccion1: 100, direccion2: 100, direccion3: 100, direccion4: 100,
   observaciones: null // text, no limit
 }
@@ -376,9 +378,9 @@ router.post('/', async (req, res) => {
     if (!sexo || !['M', 'F'].includes(sexo)) return res.status(400).json({ error: 'Sexo debe ser M o F' })
 
     // Truncate fields to DB max lengths
-    const tNombre = truncateField(nombre.trim(), 30)
-    const tApellido = truncateField(apellido.trim(), 30)
-    const tApellidoSeg = truncateField(apellido_segundo?.trim(), 30)
+    const tNombre = truncateField(nombre.trim(), PACIENTE_MAX_LENGTHS.nombre)
+    const tApellido = truncateField(apellido.trim(), PACIENTE_MAX_LENGTHS.apellido)
+    const tApellidoSeg = truncateField(apellido_segundo?.trim(), PACIENTE_MAX_LENGTHS.apellido_segundo)
 
     // Resolve CI: auto-generate if blank (matches Java creaCiPaciente)
     let ciResolved = ci_paciente?.trim() || null

@@ -755,7 +755,7 @@ router.get('/users', async (_req, res) => {
     const result = await pool.query(`
       SELECT id, username, nombre, apellido
       FROM usuario
-      WHERE laboratorio_id = 1 AND activo = true
+      WHERE activo = true
       ORDER BY nombre, apellido
     `)
     res.json(result.rows)

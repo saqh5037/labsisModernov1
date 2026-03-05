@@ -3,6 +3,71 @@ import pool from '../db.js'
 const router = Router()
 
 // ═══════════════════════════════════════════════════════
+// SCHEMA DETECTION — Compatible with both EG and LAPI databases
+// Caches which optional columns exist to avoid runtime SQL errors
+// ═══════════════════════════════════════════════════════
+const _schemaCache = {}
+async function hasColumn(table, column) {
+  const key = `${table}.${column}`
+  if (key in _schemaCache) return _schemaCache[key]
+  const r = await pool.query(
+    `SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = $2`,
+    [table, column]
+  )
+  _schemaCache[key] = r.rows.length > 0
+  return _schemaCache[key]
+}
+
+// Detect schema once at startup (called on first request)
+let _schemaDetected = false
+let _schema = {
+  lab_tasa_cambio: false,
+  lab_aplicar_igtf: false,
+  lab_igtf: false,
+  lab_ot_list_ci_paciente: false,
+  lp_moneda_id: false,
+  ot_moneda_id: false,
+  ot_tipo_cambio: false,
+  factura_moneda_base: false,
+  factura_tasa_cambio: false,
+  factura_igtf: false,
+  factura_monto_igtf: false,
+  factura_impuesto_igtf: false,
+  factura_impuesto_tasa_cambio: false,
+  factura_tipo_cambio_inverso: false,
+  factura_centro_atencion_paciente_id: false,
+  muestra_status_id: false, // EG uses status_id, LAPI uses status_muestra_id
+}
+async function detectSchema() {
+  if (_schemaDetected) return _schema
+  const checks = [
+    ['laboratorio', 'tasa_cambio', 'lab_tasa_cambio'],
+    ['laboratorio', 'aplicar_igtf', 'lab_aplicar_igtf'],
+    ['laboratorio', 'igtf', 'lab_igtf'],
+    ['laboratorio', 'ot_list_ci_paciente', 'lab_ot_list_ci_paciente'],
+    ['lista_precios', 'moneda_id', 'lp_moneda_id'],
+    ['orden_trabajo', 'moneda_id', 'ot_moneda_id'],
+    ['orden_trabajo', 'tipo_cambio', 'ot_tipo_cambio'],
+    ['factura', 'moneda_base', 'factura_moneda_base'],
+    ['factura', 'tasa_cambio', 'factura_tasa_cambio'],
+    ['factura', 'igtf', 'factura_igtf'],
+    ['factura', 'monto_igtf', 'factura_monto_igtf'],
+    ['factura', 'impuesto_igtf', 'factura_impuesto_igtf'],
+    ['factura', 'impuesto_tasa_cambio', 'factura_impuesto_tasa_cambio'],
+    ['factura', 'tipo_cambio_inverso', 'factura_tipo_cambio_inverso'],
+    ['factura', 'centro_atencion_paciente_id', 'factura_centro_atencion_paciente_id'],
+    ['muestra', 'status_id', 'muestra_status_id'],
+  ]
+  await Promise.all(checks.map(async ([table, col, key]) => {
+    _schema[key] = await hasColumn(table, col)
+  }))
+  _schemaDetected = true
+  console.log('[Schema] Detected optional columns:', Object.entries(_schema).filter(([,v]) => v).map(([k]) => k).join(', ') || '(none)')
+  console.log('[Schema] Missing optional columns:', Object.entries(_schema).filter(([,v]) => !v).map(([k]) => k).join(', ') || '(none)')
+  return _schema
+}
+
+// ═══════════════════════════════════════════════════════
 // HELPERS — Resolución de servicio y precios
 // ═══════════════════════════════════════════════════════
 
@@ -50,20 +115,36 @@ async function resolveServicio(conn, procedenciaId) {
 
 /**
  * Obtiene datos del servicio: lista_precios_id, abierto, moneda, etc.
+ * Adapts to schema: only JOINs lista_precios.moneda_id if it exists (EG has it, LAPI doesn't)
  */
 async function getServicioInfo(conn, servicioId) {
   if (!servicioId) return null
-  const r = await conn.query(`
-    SELECT s.id, s.descripcion, s.abierto, s.lista_precios_id,
-           s.descuento_activo, s.porcentaje_descuento_activo,
-           s.porcentaje_pago_servicio, s.mostrar_descuentos_factura,
-           lp.moneda_id AS lp_moneda_id, m.nombre AS moneda_nombre
-    FROM servicio s
-    LEFT JOIN lista_precios lp ON s.lista_precios_id = lp.id
-    LEFT JOIN moneda m ON lp.moneda_id = m.id
-    WHERE s.id = $1
-  `, [servicioId])
-  return r.rows[0] || null
+  const schema = await detectSchema()
+  let query, row
+  if (schema.lp_moneda_id) {
+    const r = await conn.query(`
+      SELECT s.id, s.descripcion, s.abierto, s.lista_precios_id,
+             s.descuento_activo, s.porcentaje_descuento_activo,
+             s.porcentaje_pago_servicio, s.mostrar_descuentos_factura,
+             lp.moneda_id AS lp_moneda_id, m.nombre AS moneda_nombre
+      FROM servicio s
+      LEFT JOIN lista_precios lp ON s.lista_precios_id = lp.id
+      LEFT JOIN moneda m ON lp.moneda_id = m.id
+      WHERE s.id = $1
+    `, [servicioId])
+    row = r.rows[0]
+  } else {
+    const r = await conn.query(`
+      SELECT s.id, s.descripcion, s.abierto, s.lista_precios_id,
+             s.descuento_activo, s.porcentaje_descuento_activo,
+             s.porcentaje_pago_servicio, s.mostrar_descuentos_factura
+      FROM servicio s
+      WHERE s.id = $1
+    `, [servicioId])
+    row = r.rows[0]
+    if (row) { row.lp_moneda_id = null; row.moneda_nombre = null }
+  }
+  return row || null
 }
 
 /**
@@ -317,14 +398,16 @@ router.get('/edit/new', async (req, res) => {
       SELECT id, nombre, codigo FROM centro_atencion_paciente WHERE activo = true ORDER BY nombre
     `)
 
-    // 5. Config del laboratorio
-    const labResult = await pool.query(`
-      SELECT id, nombre, rif, moneda_id, tasa_cambio, aplicar_igtf, igtf,
-             procedencia_obligatorio, servicio_med_obligatorio,
-             ot_busqueda_por_servicio_medico, show_stat,
-             is_facturacion_con_divisas
-      FROM laboratorio LIMIT 1
-    `)
+    // 5. Config del laboratorio (adapts to schema — LAPI lacks tasa_cambio/aplicar_igtf/igtf)
+    const schema = await detectSchema()
+    const labCols = ['id', 'nombre', 'rif', 'moneda_id',
+      'procedencia_obligatorio', 'servicio_med_obligatorio',
+      'ot_busqueda_por_servicio_medico', 'show_stat',
+      'is_facturacion_con_divisas']
+    if (schema.lab_tasa_cambio) labCols.push('tasa_cambio')
+    if (schema.lab_aplicar_igtf) labCols.push('aplicar_igtf')
+    if (schema.lab_igtf) labCols.push('igtf')
+    const labResult = await pool.query(`SELECT ${labCols.join(', ')} FROM laboratorio LIMIT 1`)
 
     res.json({
       paciente,
@@ -352,8 +435,13 @@ router.get('/resolve-servicio', async (req, res) => {
     if (!servicioId) return res.json({ servicio: null })
 
     const info = await getServicioInfo(pool, servicioId)
-    // Agregar tasa_cambio + IGTF del laboratorio + IVA
-    const labRow = await pool.query(`SELECT tasa_cambio, is_facturacion_con_divisas, aplicar_igtf, igtf FROM laboratorio LIMIT 1`)
+    // Agregar tasa_cambio + IGTF del laboratorio + IVA (schema-adaptive)
+    const schema = await detectSchema()
+    const labFields = ['is_facturacion_con_divisas']
+    if (schema.lab_tasa_cambio) labFields.push('tasa_cambio')
+    if (schema.lab_aplicar_igtf) labFields.push('aplicar_igtf')
+    if (schema.lab_igtf) labFields.push('igtf')
+    const labRow = await pool.query(`SELECT ${labFields.join(', ')} FROM laboratorio LIMIT 1`)
     const lab = labRow.rows[0] || {}
     const ivaRow = await pool.query(`SELECT valor_iva FROM iva WHERE activo = true LIMIT 1`)
     res.json({
@@ -432,7 +520,7 @@ router.get('/edit/:numero', async (req, res) => {
     // Pruebas de la OT
     const pruebasResult = await pool.query(`
       SELECT po.id, po.prueba_id, po.precio, po.gp_id, po.gp_orden_id, po.area_id,
-             pr.nombre AS prueba, pr.nomenclatura, pr.codigo, a.area AS area_nombre,
+             pr.nombre AS prueba, pr.nomenclatura, pr.codigo_labsis AS codigo, a.area AS area_nombre,
              tm.tipo AS tipo_muestra, tm.id AS tipo_muestra_id,
              tc.tipo AS contenedor, tc.id AS tipo_contenedor_id, tc.color
       FROM prueba_orden po
@@ -469,7 +557,12 @@ router.get('/edit/:numero', async (req, res) => {
     // Catálogos
     const procResult = await pool.query(`SELECT id, nombre, codigo, servicio_id, medico_obligatorio, ingreso_obligatorio FROM procedencia WHERE activo = true ORDER BY nombre`)
     const smResult = await pool.query(`SELECT id, nombre FROM servicio_medico WHERE activo = true ORDER BY nombre`)
-    const labResult = await pool.query(`SELECT id, nombre, rif, moneda_id, tasa_cambio, aplicar_igtf, igtf, procedencia_obligatorio, servicio_med_obligatorio, ot_busqueda_por_servicio_medico, show_stat FROM laboratorio LIMIT 1`)
+    const schema2 = await detectSchema()
+    const labCols2 = ['id', 'nombre', 'rif', 'moneda_id', 'procedencia_obligatorio', 'servicio_med_obligatorio', 'ot_busqueda_por_servicio_medico', 'show_stat']
+    if (schema2.lab_tasa_cambio) labCols2.push('tasa_cambio')
+    if (schema2.lab_aplicar_igtf) labCols2.push('aplicar_igtf')
+    if (schema2.lab_igtf) labCols2.push('igtf')
+    const labResult = await pool.query(`SELECT ${labCols2.join(', ')} FROM laboratorio LIMIT 1`)
 
     res.json({
       orden: otResult.rows[0],
@@ -731,7 +824,7 @@ router.post('/', async (req, res) => {
   try {
     await client.query('BEGIN')
     const { paciente, orden, pruebas = [], grupos = [], facturar = false } = req.body
-    const userId = req.user?.userId || null
+    const userId = req.user?.userId ?? null
 
     // 1. Crear o actualizar paciente
     let pacienteId = paciente.id
@@ -756,8 +849,8 @@ router.post('/', async (req, res) => {
                               generacion_id_auto)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,1,true,$13)
         RETURNING id
-      `, [ciPaciente, paciente.nombre?.substring(0,30), paciente.apellido?.substring(0,30),
-          (paciente.apellido_segundo || null)?.substring?.(0,30) || null, paciente.sexo,
+      `, [ciPaciente, paciente.nombre?.substring(0,120), paciente.apellido?.substring(0,120),
+          (paciente.apellido_segundo || null)?.substring?.(0,120) || null, paciente.sexo,
           paciente.fecha_nacimiento || null, paciente.email || null,
           paciente.telefono || null, paciente.telefono_celular || null,
           paciente.ci_representante || null, paciente.ci_rfc || null,
@@ -784,19 +877,18 @@ router.post('/', async (req, res) => {
           paciente.telefono || null, paciente.telefono_celular || null])
     }
 
-    // 2. Obtener config lab para moneda/tasa
-    const labCfg = await client.query(`
-      SELECT moneda_id, tasa_cambio, is_facturacion_con_divisas
-      FROM laboratorio LIMIT 1
-    `)
+    // 2. Obtener config lab para moneda/tasa (schema-adaptive)
+    const schemaOT = await detectSchema()
+    const labFields2 = ['moneda_id', 'is_facturacion_con_divisas']
+    if (schemaOT.lab_tasa_cambio) labFields2.push('tasa_cambio')
+    const labCfg = await client.query(`SELECT ${labFields2.join(', ')} FROM laboratorio LIMIT 1`)
     const lab = labCfg.rows[0] || {}
     const tasaCambio = parseFloat(lab.tasa_cambio) || 1
     // Determinar moneda de la OT según servicio/procedencia
-    // En EG: servicio tiene moneda_id=2 (USD), lab base es 1 (Bs.S)
     let otMonedaId = null
     let otTipoCambio = null
     let otTipoCambioInverso = null
-    if (lab.is_facturacion_con_divisas && orden.servicio_id) {
+    if (schemaOT.ot_moneda_id && schemaOT.lp_moneda_id && lab.is_facturacion_con_divisas && orden.servicio_id) {
       const svcMoneda = await client.query(
         `SELECT lp.moneda_id FROM servicio s LEFT JOIN lista_precios lp ON s.lista_precios_id = lp.id WHERE s.id = $1`,
         [orden.servicio_id]
@@ -829,56 +921,45 @@ router.post('/', async (req, res) => {
     )
     if (deptResult.rows.length) bioanalistaId = deptResult.rows[0].bioanalista_id
 
-    // Insertar la orden de trabajo
+    // Insertar la orden de trabajo (schema-adaptive: OT moneda columns only if they exist)
     // numero='0' — el trigger lo reemplaza con YYMMDD####
-    const otResult = await client.query(`
-      INSERT INTO orden_trabajo (
-        numero, fecha, paciente_id, status_id, procedencia_id, procedencia,
-        servicio_id, servicio_medico_id, medico_id, medico,
-        habitacion, num_ingreso, num_episodio,
-        observaciones, informacion_clinica, stat,
-        embarazada, semanas_embarazo,
-        usuario_id, departamento_laboratorio_id,
-        centro_atencion_paciente_id, precio,
-        moneda_id, tipo_cambio, tipo_cambio_inverso,
-        descuento_porcentaje, descuento_monto,
-        turno_id, bioanalista_id
-      ) VALUES (
-        '0', NOW(), $1, 1, $2, $3, $4, $5, $6, $7,
-        $8, $9, $10, $11, $12, $13,
-        $14, $15,
-        $16, $17, $18, 0,
-        $19, $20, $21,
-        $22, $23,
-        $24, $25
-      ) RETURNING id, numero
-    `, [
+    const otCols = [
+      'numero', 'fecha', 'paciente_id', 'status_id', 'procedencia_id', 'procedencia',
+      'servicio_id', 'servicio_medico_id', 'medico_id', 'medico',
+      'habitacion', 'num_ingreso', 'num_episodio',
+      'observaciones', 'informacion_clinica', 'stat',
+      'embarazada', 'semanas_embarazo',
+      'usuario_id', 'departamento_laboratorio_id',
+      'centro_atencion_paciente_id', 'precio',
+      'descuento_porcentaje', 'descuento_monto',
+      'turno_id', 'bioanalista_id'
+    ]
+    const otVals = [
       pacienteId,
-      orden.procedencia_id || 1,
-      orden.procedencia_nombre || null,
-      orden.servicio_id || null,
-      orden.servicio_medico_id || null,
-      orden.medico_id || null,
-      orden.medico_nombre || null,
-      orden.habitacion || null,
-      orden.num_ingreso || null,
-      orden.num_episodio || null,
-      orden.observaciones || null,
-      orden.informacion_clinica || null,
-      orden.stat || false,
-      orden.embarazada || false,
-      orden.semanas_embarazo || 0,
-      userId,
-      1, // departamento_laboratorio_id (EG solo tiene 1)
-      orden.centro_atencion_paciente_id || 1,
-      otMonedaId,
-      otTipoCambio,
-      otTipoCambioInverso,
-      descuentoPct,
-      descuentoMonto,
-      turnoId,
-      bioanalistaId
-    ])
+      orden.procedencia_id || 1, orden.procedencia_nombre || null,
+      orden.servicio_id || null, orden.servicio_medico_id || null,
+      orden.medico_id || null, orden.medico_nombre || null,
+      orden.habitacion || null, orden.num_ingreso || null,
+      orden.num_episodio || null, orden.observaciones || null,
+      orden.informacion_clinica || null, orden.stat || false,
+      orden.embarazada || false, orden.semanas_embarazo || 0,
+      userId, 1, orden.centro_atencion_paciente_id || 1,
+      descuentoPct, descuentoMonto, turnoId, bioanalistaId
+    ]
+    if (schemaOT.ot_moneda_id) {
+      otCols.push('moneda_id', 'tipo_cambio', 'tipo_cambio_inverso')
+      otVals.push(otMonedaId, otTipoCambio, otTipoCambioInverso)
+    }
+    // Build parameterized query: some columns use SQL literals, rest use $params
+    let paramIdx = 1
+    const otLiterals = { numero: "'0'", fecha: 'NOW()', status_id: '1', precio: '0' }
+    const otValParts = otCols.map(col => otLiterals[col] || `$${paramIdx++}`)
+    // otVals must NOT include values for literal columns
+    const otResult = await client.query(`
+      INSERT INTO orden_trabajo (${otCols.join(', ')})
+      VALUES (${otValParts.join(', ')})
+      RETURNING id, numero
+    `, otVals)
 
     const otId = otResult.rows[0].id
     // Re-leer para obtener el numero generado por trigger
@@ -937,9 +1018,10 @@ router.post('/', async (req, res) => {
     for (const m of muestraQuery.rows) {
       // Barcode: numero_ot + num_sucesion (sin guión), ej: 260302000101
       const barcode = numero + String(numSucesion).padStart(2, '0')
+      const muestraStatusCol = _schema.muestra_status_id ? 'status_id' : 'status_muestra_id'
       await client.query(`
         INSERT INTO muestra (tipo_muestra_id, tipo_contenedor_id, barcode,
-                             orden_id, correlativo, num_sucesion, cantidad, status_id)
+                             orden_id, correlativo, num_sucesion, cantidad, ${muestraStatusCol})
         VALUES ($1, $2, $3, $4, $5, $6, 1, 1)
       `, [m.tipo_muestra_id, m.tipo_contenedor_id, barcode, otId, numSucesion, numSucesion])
       numSucesion++
@@ -1006,7 +1088,7 @@ router.put('/:numero', async (req, res) => {
     await client.query('BEGIN')
     const { numero } = req.params
     const { orden, pruebas = [], grupos = [] } = req.body
-    const userId = req.user?.userId || null
+    const userId = req.user?.userId ?? null
 
     // 1. Obtener OT existente
     const otResult = await client.query(
@@ -1022,16 +1104,19 @@ router.put('/:numero', async (req, res) => {
       return res.status(400).json({ error: 'Límite de ediciones alcanzado (máximo 3). Contacte al administrador.' })
     }
 
-    // 2. Obtener config lab para moneda/tasa
+    // 2. Obtener config lab para moneda/tasa (schema-adaptive)
+    const schemaEdit = await detectSchema()
+    const labEditFields = ['moneda_id', 'is_facturacion_con_divisas']
+    if (schemaEdit.lab_tasa_cambio) labEditFields.push('tasa_cambio')
     const labCfg = await client.query(
-      `SELECT moneda_id, tasa_cambio, is_facturacion_con_divisas FROM laboratorio LIMIT 1`
+      `SELECT ${labEditFields.join(', ')} FROM laboratorio LIMIT 1`
     )
     const lab = labCfg.rows[0] || {}
     const tasaCambio = parseFloat(lab.tasa_cambio) || 1
 
     // Resolver servicio/moneda
     let otMonedaId = null, otTipoCambio = null, otTipoCambioInverso = null
-    if (lab.is_facturacion_con_divisas && orden.servicio_id) {
+    if (schemaEdit.ot_moneda_id && schemaEdit.lp_moneda_id && lab.is_facturacion_con_divisas && orden.servicio_id) {
       const svcMoneda = await client.query(
         `SELECT lp.moneda_id FROM servicio s LEFT JOIN lista_precios lp ON s.lista_precios_id = lp.id WHERE s.id = $1`,
         [orden.servicio_id]
@@ -1048,21 +1133,17 @@ router.put('/:numero', async (req, res) => {
     const descuentoPct = parseFloat(orden.descuento_porcentaje) || 0
     const descuentoMonto = parseFloat(orden.descuento_monto) || 0
 
-    // 3. Actualizar datos de la OT
-    await client.query(`
-      UPDATE orden_trabajo SET
-        procedencia_id = $1, procedencia = $2,
-        servicio_id = $3, servicio_medico_id = $4,
-        medico_id = $5, medico = $6, habitacion = $7,
-        num_ingreso = $8, num_episodio = $9,
-        observaciones = $10, informacion_clinica = $11,
-        stat = $12, embarazada = $13, semanas_embarazo = $14,
-        centro_atencion_paciente_id = $15,
-        moneda_id = $16, tipo_cambio = $17, tipo_cambio_inverso = $18,
-        contador_edicion = $19,
-        descuento_porcentaje = $21, descuento_monto = $22
-      WHERE id = $20
-    `, [
+    // 3. Actualizar datos de la OT (schema-adaptive: moneda columns only if they exist)
+    const setClauses = [
+      'procedencia_id = $1', 'procedencia = $2',
+      'servicio_id = $3', 'servicio_medico_id = $4',
+      'medico_id = $5', 'medico = $6', 'habitacion = $7',
+      'num_ingreso = $8', 'num_episodio = $9',
+      'observaciones = $10', 'informacion_clinica = $11',
+      'stat = $12', 'embarazada = $13', 'semanas_embarazo = $14',
+      'centro_atencion_paciente_id = $15'
+    ]
+    const setVals = [
       orden.procedencia_id || null, orden.procedencia_nombre || null,
       orden.servicio_id || null,
       orden.servicio_medico_id || null, orden.medico_id || null,
@@ -1070,11 +1151,27 @@ router.put('/:numero', async (req, res) => {
       orden.num_ingreso || null, orden.num_episodio || null,
       orden.observaciones || null, orden.informacion_clinica || null,
       orden.stat || false, orden.embarazada || false,
-      orden.semanas_embarazo || 0, orden.centro_atencion_paciente_id || 1,
-      otMonedaId, otTipoCambio, otTipoCambioInverso,
-      contadorEdicion, ot.id,
-      descuentoPct, descuentoMonto
-    ])
+      orden.semanas_embarazo || 0, orden.centro_atencion_paciente_id || 1
+    ]
+    let paramIdx = 16
+    if (schemaEdit.ot_moneda_id) {
+      setClauses.push(`moneda_id = $${paramIdx}`, `tipo_cambio = $${paramIdx + 1}`, `tipo_cambio_inverso = $${paramIdx + 2}`)
+      setVals.push(otMonedaId, otTipoCambio, otTipoCambioInverso)
+      paramIdx += 3
+    }
+    setClauses.push(`contador_edicion = $${paramIdx}`)
+    setVals.push(contadorEdicion)
+    paramIdx++
+    const otIdIdx = paramIdx
+    setVals.push(ot.id)
+    paramIdx++
+    setClauses.push(`descuento_porcentaje = $${paramIdx}`, `descuento_monto = $${paramIdx + 1}`)
+    setVals.push(descuentoPct, descuentoMonto)
+
+    await client.query(`
+      UPDATE orden_trabajo SET ${setClauses.join(', ')}
+      WHERE id = $${otIdIdx}
+    `, setVals)
 
     // 4. Diff de pruebas — eliminar las que ya no están, agregar las nuevas
     const existingPruebas = await client.query(
@@ -1200,9 +1297,10 @@ router.put('/:numero', async (req, res) => {
     let numSucesion = 1
     for (const m of muestraQuery.rows) {
       const barcode = numero + String(numSucesion).padStart(2, '0')
+      const muestraStatusCol2 = _schema.muestra_status_id ? 'status_id' : 'status_muestra_id'
       await client.query(`
         INSERT INTO muestra (tipo_muestra_id, tipo_contenedor_id, barcode,
-                             orden_id, correlativo, num_sucesion, cantidad, status_id)
+                             orden_id, correlativo, num_sucesion, cantidad, ${muestraStatusCol2})
         VALUES ($1, $2, $3, $4, $5, $6, 1, 1)
       `, [m.tipo_muestra_id, m.tipo_contenedor_id, barcode, ot.id, numSucesion, numSucesion])
       numSucesion++
@@ -1247,15 +1345,17 @@ router.post('/:numero/facturar', async (req, res) => {
     await client.query('BEGIN')
     const { numero } = req.params
     const { cliente_id } = req.body
-    const userId = req.user?.userId || null
+    const userId = req.user?.userId ?? null
 
-    // Obtener OT con moneda info + descuento
+    // Obtener OT con moneda info + descuento (schema-adaptive)
+    const schemaFact = await detectSchema()
+    const otSelCols = ['ot.id', 'ot.precio', 'ot.servicio_id', 'ot.centro_atencion_paciente_id',
+      'ot.descuento_porcentaje', 'ot.descuento_monto', 's.porcentaje_pago_servicio']
+    if (schemaFact.ot_moneda_id) otSelCols.push(
+      'ot.moneda_id AS ot_moneda_id', 'ot.tipo_cambio AS ot_tipo_cambio',
+      'ot.tipo_cambio_inverso AS ot_tipo_cambio_inverso')
     const otResult = await client.query(`
-      SELECT ot.id, ot.precio, ot.servicio_id, ot.centro_atencion_paciente_id,
-             ot.moneda_id AS ot_moneda_id, ot.tipo_cambio AS ot_tipo_cambio,
-             ot.tipo_cambio_inverso AS ot_tipo_cambio_inverso,
-             ot.descuento_porcentaje, ot.descuento_monto,
-             s.porcentaje_pago_servicio
+      SELECT ${otSelCols.join(', ')}
       FROM orden_trabajo ot
       LEFT JOIN servicio s ON ot.servicio_id = s.id
       WHERE ot.numero = $1
@@ -1277,12 +1377,12 @@ router.post('/:numero/facturar', async (req, res) => {
       })
     }
 
-    // Obtener config lab
-    const labResult = await client.query(`
-      SELECT moneda_id, tasa_cambio, aplicar_igtf, igtf, rif, nombre,
-             is_facturacion_con_divisas
-      FROM laboratorio LIMIT 1
-    `)
+    // Obtener config lab (schema-adaptive — LAPI lacks tasa_cambio/aplicar_igtf/igtf)
+    const labFactCols = ['moneda_id', 'rif', 'nombre', 'is_facturacion_con_divisas']
+    if (schemaFact.lab_tasa_cambio) labFactCols.push('tasa_cambio')
+    if (schemaFact.lab_aplicar_igtf) labFactCols.push('aplicar_igtf')
+    if (schemaFact.lab_igtf) labFactCols.push('igtf')
+    const labResult = await client.query(`SELECT ${labFactCols.join(', ')} FROM laboratorio LIMIT 1`)
     const lab = labResult.rows[0]
     const tasaCambio = parseFloat(lab.tasa_cambio) || 1
 
@@ -1422,55 +1522,61 @@ router.post('/:numero/facturar', async (req, res) => {
     )
     const impuestoId = impuestoResult.rows[0]?.id || null
 
-    // Insertar factura
+    // Insertar factura (schema-adaptive — LAPI lacks several columns)
     // IMPORTANT: descuento stores PERCENTAGE (not absolute amount) — matches Java semantics
+    // Build column/value pairs dynamically. Each entry: [col, sqlExprOrNull, paramValue]
+    const factPairs = [
+      ['fecha', 'NOW()', null],
+      ['fecha_modificacion', 'CURRENT_DATE', null],
+      ['fecha_vencimiento', 'CURRENT_DATE', null],
+      ['monto_total', null, montoTotalLocal],
+      ['descuento', null, descPct],
+      ['descuento_rh', '0', null],
+      ['base_imponible', null, baseImponibleLocal],
+      ['iva', null, ivaPct || 0],
+      ['iva_monto', null, ivaMontoLocal],
+      ['total_factura', null, totalFactura],
+      ['cliente_id', null, clienteId],
+      ['status_id', '1', null],
+      ['usuario_id', null, userId],
+      ['servicio_id', null, ot.servicio_id],
+      ['tipo_pago_factura_id', '1', null],
+      ['control', '0', null],
+      ['caja_id', null, cajaId],
+      ['moneda_id', null, factMonedaId],
+      ['conversion_moneda_id', null, conversionMonedaId],
+      ['tipo_cambio', null, factTipoCambio],
+      ['fiscalizar', null, fiscalizarFlag],
+      ['redondeo', '0', null],
+      ['razon_social', null, lab.nombre],
+      ['razon_social_ci_rif', null, lab.rif],
+      ['is_factura_copago', null, isCopago],
+      ['tipo_servicio_id', null, tipoServicioId],
+      ['intervalo_facturacion_id', null, intervaloFacturacionId],
+    ]
+    // Add optional columns based on schema detection
+    if (schemaFact.factura_moneda_base) factPairs.push(['moneda_base', null, lab.moneda_id])
+    if (schemaFact.factura_tipo_cambio_inverso) factPairs.push(['tipo_cambio_inverso', null, factTipoCambioInverso])
+    if (schemaFact.factura_tasa_cambio) factPairs.push(['tasa_cambio', null, tasaCambio])
+    if (schemaFact.factura_igtf) factPairs.push(['igtf', null, igtfPct])
+    if (schemaFact.factura_monto_igtf) factPairs.push(['monto_igtf', null, igtfMontoLocal])
+    if (schemaFact.factura_impuesto_igtf) factPairs.push(['impuesto_igtf', null, impuestoIgtf])
+    if (schemaFact.factura_impuesto_tasa_cambio) factPairs.push(['impuesto_tasa_cambio', null, impuestoTasaCambio])
+    if (schemaFact.factura_centro_atencion_paciente_id) factPairs.push(['centro_atencion_paciente_id', null, ot.centro_atencion_paciente_id || 1])
+
+    const factColNames = factPairs.map(p => p[0]).join(', ')
+    const factPlaceholders = []
+    const factParamVals = []
+    let fIdx = 1
+    for (const [, sqlExpr, paramVal] of factPairs) {
+      if (sqlExpr) { factPlaceholders.push(sqlExpr) }
+      else { factPlaceholders.push(`$${fIdx}`); factParamVals.push(paramVal); fIdx++ }
+    }
     const factResult = await client.query(`
-      INSERT INTO factura (
-        fecha, fecha_modificacion, fecha_vencimiento,
-        monto_total, descuento, descuento_rh,
-        base_imponible, iva, iva_monto, total_factura,
-        cliente_id, status_id, usuario_id, servicio_id,
-        tipo_pago_factura_id, control, caja_id,
-        moneda_id, conversion_moneda_id, moneda_base,
-        tipo_cambio, tipo_cambio_inverso,
-        tasa_cambio, igtf, monto_igtf,
-        impuesto_igtf, impuesto_tasa_cambio,
-        fiscalizar, redondeo,
-        razon_social, razon_social_ci_rif,
-        centro_atencion_paciente_id,
-        is_factura_copago,
-        tipo_servicio_id, intervalo_facturacion_id
-      ) VALUES (
-        NOW(), CURRENT_DATE, CURRENT_DATE,
-        $1, $2, 0,
-        $3, $4, $5, $6,
-        $7, 1, $8, $9,
-        1, 0, $10,
-        $11, $12, $13,
-        $14, $15,
-        $16, $17, $18,
-        $19, $20,
-        $21, 0,
-        $22, $23,
-        $24,
-        $25,
-        $26, $27
-      ) RETURNING id, numero
-    `, [
-      montoTotalLocal,
-      descPct,  // PERCENTAGE, not absolute amount — Java stores % here
-      baseImponibleLocal, ivaPct || 0, ivaMontoLocal, totalFactura,
-      clienteId, userId, ot.servicio_id, cajaId,
-      factMonedaId, conversionMonedaId, lab.moneda_id,
-      factTipoCambio, factTipoCambioInverso,
-      tasaCambio, igtfPct, igtfMontoLocal,
-      impuestoIgtf, impuestoTasaCambio,
-      fiscalizarFlag,
-      lab.nombre, lab.rif,
-      ot.centro_atencion_paciente_id || 1,
-      isCopago,
-      tipoServicioId, intervaloFacturacionId
-    ])
+      INSERT INTO factura (${factColNames})
+      VALUES (${factPlaceholders.join(', ')})
+      RETURNING id, numero
+    `, factParamVals)
     const facturaId = factResult.rows[0].id
     const facturaNumero = factResult.rows[0].numero
 
@@ -1650,7 +1756,13 @@ router.get('/factura/:ref', async (req, res) => {
     `, [facturaId])
 
     const tiposPago = await pool.query(`SELECT * FROM tipo_pago WHERE activo = true ORDER BY id`)
-    const lab = await pool.query(`SELECT aplicar_igtf, igtf, tasa_cambio, moneda_id, nombre, rif FROM laboratorio LIMIT 1`)
+    // Schema-adaptive: LAPI lacks tasa_cambio/aplicar_igtf/igtf in laboratorio
+    const schemaView = await detectSchema()
+    const labViewCols = ['moneda_id', 'nombre', 'rif']
+    if (schemaView.lab_aplicar_igtf) labViewCols.push('aplicar_igtf')
+    if (schemaView.lab_igtf) labViewCols.push('igtf')
+    if (schemaView.lab_tasa_cambio) labViewCols.push('tasa_cambio')
+    const lab = await pool.query(`SELECT ${labViewCols.join(', ')} FROM laboratorio LIMIT 1`)
 
     res.json({
       factura: factResult.rows[0],
@@ -1677,7 +1789,7 @@ router.post('/factura/:id/pago', async (req, res) => {
     await client.query('BEGIN')
     const facturaId = parseInt(req.params.id)
     const { tipo_pago_id, monto, num_documento, monto_recibido } = req.body
-    const userId = req.user?.userId || null
+    const userId = req.user?.userId ?? null
 
     const factCheck = await client.query(
       'SELECT id, total_factura, status_id, moneda_id, cliente_id FROM factura WHERE id = $1',
@@ -1795,7 +1907,7 @@ router.post('/factura/:id/pago/:pagoId/anular', async (req, res) => {
     await client.query('BEGIN')
     const facturaId = parseInt(req.params.id)
     const pagoId = parseInt(req.params.pagoId)
-    const userId = req.user?.userId || null
+    const userId = req.user?.userId ?? null
 
     // Verify pago exists and belongs to factura
     const pagoCheck = await client.query(
@@ -1854,7 +1966,7 @@ router.post('/factura/:id/anular', async (req, res) => {
     await client.query('BEGIN')
     const facturaId = parseInt(req.params.id)
     const { motivo } = req.body
-    const userId = req.user?.userId || null
+    const userId = req.user?.userId ?? null
 
     const factCheck = await client.query('SELECT id, status_id FROM factura WHERE id = $1', [facturaId])
     if (!factCheck.rows.length) return res.status(404).json({ error: 'Factura no encontrada' })
@@ -1891,7 +2003,7 @@ router.post('/factura/:id/nota-credito', async (req, res) => {
     await client.query('BEGIN')
     const facturaId = parseInt(req.params.id)
     const { monto, observaciones } = req.body
-    const userId = req.user?.userId || null
+    const userId = req.user?.userId ?? null
 
     if (!monto || parseFloat(monto) <= 0) {
       return res.status(400).json({ error: 'Monto inválido' })

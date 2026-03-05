@@ -864,14 +864,14 @@ router.get('/:numero/lab', async (req, res) => {
     const selIds = [...new Set(pruebasResult.rows.filter(r => r.tipo_prueba === 'SEL' || r.tipo_prueba === 'AYU').map(r => r.prueba_id))]
     if (selIds.length > 0) {
       const opResult = await pool.query(`
-        SELECT prueba_id, id, opcion, codigo, referencial, orden_posicion
+        SELECT prueba_id, id, opcion, referencial, orden_posicion
         FROM opcion_prueba WHERE prueba_id = ANY($1)
         ORDER BY prueba_id, orden_posicion, opcion
       `, [selIds])
       for (const row of opResult.rows) {
         if (!opciones[row.prueba_id]) opciones[row.prueba_id] = []
         opciones[row.prueba_id].push({
-          id: row.id, opcion: row.opcion, codigo: row.codigo, referencial: row.referencial
+          id: row.id, opcion: row.opcion, referencial: row.referencial
         })
       }
     }
@@ -1225,7 +1225,6 @@ router.put('/:numero/lab/resultados', async (req, res) => {
           await client.query(`
             UPDATE prueba_orden SET status_id = $1, fecha_validacion = $2,
               fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2),
-              fecha_validacion_db = CASE WHEN $2 IS NOT NULL THEN NOW() ELSE fecha_validacion_db END,
               anormal = $3, critico = $4
             WHERE id = $5
           `, [newStatus, fechaVal, isAnormal, isCritico, r.prueba_orden_id])
@@ -1233,8 +1232,7 @@ router.put('/:numero/lab/resultados', async (req, res) => {
           // Alpha types: don't overwrite anormal/critico (may have been set by Labsis)
           await client.query(`
             UPDATE prueba_orden SET status_id = $1, fecha_validacion = $2,
-              fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2),
-              fecha_validacion_db = CASE WHEN $2 IS NOT NULL THEN NOW() ELSE fecha_validacion_db END
+              fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2)
             WHERE id = $3
           `, [newStatus, fechaVal, r.prueba_orden_id])
         }

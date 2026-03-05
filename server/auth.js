@@ -9,6 +9,18 @@ export function sha1(str) {
   return crypto.createHash('sha1').update(str, 'utf8').digest('hex')
 }
 
+/**
+ * SHA-256 with salt — replicates Java PasswordManager.hashWithSalt()
+ * Java: digest.update(salt.getBytes("UTF-8")); digest.digest(password.getBytes("UTF-8"))
+ * The salt stored in DB is byte[].toString() (e.g. "[B@21c24e81") — used as-is as string
+ */
+export function sha256WithSalt(salt, password) {
+  const digest = crypto.createHash('sha256')
+  digest.update(salt, 'utf8')
+  digest.update(password, 'utf8')
+  return digest.digest('hex')
+}
+
 export function createToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY })
 }

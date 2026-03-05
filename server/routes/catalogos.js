@@ -80,23 +80,31 @@ router.get('/pruebas', async (req, res) => {
   }
 })
 
-// GET /api/laboratorio — configuración del laboratorio
+// GET /api/laboratorio — configuración del laboratorio (schema-adaptive)
 router.get('/laboratorio', async (_req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id, nombre, direccion, rif,
-              preview_orden_trabajo, reporte_resultados, reporte_ordenes,
-              impresion_etiquetas, tipo_factura, resultados, resultados_lista,
-              formato_decimal_resultados, raw_print,
-              ot_list_barcode, ot_list_imprimir, ot_list_facturar,
-              ot_list_procedencia, ot_list_servicio_medico,
-              ot_list_num_ingreso, ot_list_habitacion, ot_list_num_historia,
-              ot_list_ci_paciente,
-              show_stat, show_send_mail,
-              resultados_adjuntos, documentos_adjuntos_ordentrabajo,
-              documentos_preanaliticos, peso_y_estatura_orden_trabajo
-       FROM laboratorio LIMIT 1`
-    )
+    // Base columns that exist in all Labsis installations
+    const cols = [
+      'id', 'nombre', 'direccion', 'rif',
+      'preview_orden_trabajo', 'reporte_resultados', 'reporte_ordenes',
+      'impresion_etiquetas', 'tipo_factura', 'resultados', 'resultados_lista',
+      'formato_decimal_resultados', 'raw_print',
+      'ot_list_barcode', 'ot_list_imprimir', 'ot_list_facturar',
+      'ot_list_procedencia', 'ot_list_servicio_medico',
+      'ot_list_num_ingreso', 'ot_list_habitacion', 'ot_list_num_historia',
+      'show_stat', 'show_send_mail',
+      'resultados_adjuntos', 'documentos_adjuntos_ordentrabajo',
+      'documentos_preanaliticos', 'peso_y_estatura_orden_trabajo'
+    ]
+    // Optional columns — only in some installations (EG has ot_list_ci_paciente, LAPI doesn't)
+    const optCols = ['ot_list_ci_paciente']
+    for (const col of optCols) {
+      const check = await pool.query(
+        `SELECT 1 FROM information_schema.columns WHERE table_name = 'laboratorio' AND column_name = $1`, [col]
+      )
+      if (check.rows.length) cols.push(col)
+    }
+    const result = await pool.query(`SELECT ${cols.join(', ')} FROM laboratorio LIMIT 1`)
     res.json(result.rows[0] || {})
   } catch (err) {
     res.status(500).json({ error: err.message })
