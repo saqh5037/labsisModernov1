@@ -1350,7 +1350,7 @@ span.flatpickr-weekday { font-size:10px !important; font-weight:700 !important; 
   background: var(--surface, #fff);
   border-radius: var(--r-md, 8px);
   border: 1px solid var(--border, #e2e8f0);
-  animation: slideDown 200ms ease-out;
+  animation: slideDown 200ms ease-out forwards;
   margin-top: 6px;
 }
 @keyframes slideDown {

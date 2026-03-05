@@ -407,7 +407,7 @@ export default function Ordenes() {
 
           {/* ── FILTROS NIVEL 2 (colapsable) ── */}
           {showMore && (
-            <div className="ordenes-filters-secondary anim">
+            <div className="ordenes-filters-secondary">
               {showProcedencia && (
               <div className="fld">
                 <label className={hv(filters.procedencia)}>Procedencia</label>
