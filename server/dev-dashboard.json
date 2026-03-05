@@ -1,0 +1,1079 @@
+{
+  "meta": {
+    "version": "1.0",
+    "lastUpdated": "2026-03-04T04:55:52.947Z",
+    "projectName": "labsisModernov1"
+  },
+  "phases": [
+    {
+      "id": "not-started",
+      "label": "Sin iniciar",
+      "color": "#94a3b8",
+      "order": 0
+    },
+    {
+      "id": "investigacion",
+      "label": "Investigación",
+      "color": "#8b5cf6",
+      "order": 1
+    },
+    {
+      "id": "desarrollo-estilos",
+      "label": "Desarrollo: Estilos",
+      "color": "#3b82f6",
+      "order": 2
+    },
+    {
+      "id": "desarrollo-funcionalidades",
+      "label": "Desarrollo: Funcionalidades",
+      "color": "#f59e0b",
+      "order": 3
+    },
+    {
+      "id": "qa",
+      "label": "Pruebas QA",
+      "color": "#22c55e",
+      "order": 4
+    },
+    {
+      "id": "finalizado",
+      "label": "Finalizado",
+      "color": "#059669",
+      "order": 5
+    }
+  ],
+  "modules": [
+    {
+      "id": "ordenes",
+      "name": "Órdenes de Trabajo",
+      "tier": 1,
+      "screens": [
+        {
+          "id": "ot-list",
+          "name": "OT Lista",
+          "phase": "qa",
+          "priority": "P0",
+          "sprint": "sprint-0",
+          "tasks": [
+            {
+              "id": "t1",
+              "text": "Multi-select áreas",
+              "done": false
+            },
+            {
+              "id": "t2",
+              "text": "Area dots en columna",
+              "done": false
+            },
+            {
+              "id": "t3",
+              "text": "Config flags laboratorio",
+              "done": false
+            }
+          ],
+          "notes": "Funcional con 14 filtros, paginación, skeleton loading",
+          "component": "src/pages/Ordenes.jsx",
+          "updatedAt": "2026-03-04T01:57:12.394Z"
+        },
+        {
+          "id": "ot-detail",
+          "name": "OT Detalle",
+          "phase": "desarrollo-estilos",
+          "priority": "P0",
+          "sprint": "sprint-0",
+          "tasks": [
+            {
+              "id": "t1",
+              "text": "CSS rewrite limpio con ot-shell",
+              "done": false
+            },
+            {
+              "id": "t2",
+              "text": "Endpoint /api/config/laboratorio",
+              "done": false
+            },
+            {
+              "id": "t3",
+              "text": "Tabs con contenido real",
+              "done": false
+            },
+            {
+              "id": "t4",
+              "text": "Árbol jerárquico de pruebas",
+              "done": false
+            }
+          ],
+          "notes": "Backend + JSX listos, CSS necesita rewrite",
+          "component": "src/pages/OrdenDetallePage.jsx",
+          "updatedAt": "2026-03-04T03:01:56.587Z"
+        },
+        {
+          "id": "ot-lab",
+          "name": "OT Resultados (Lab)",
+          "phase": "investigacion",
+          "priority": "P0",
+          "sprint": "sprint-0",
+          "tasks": [
+            {
+              "id": "t1",
+              "text": "Crear componente React",
+              "done": false
+            },
+            {
+              "id": "t2",
+              "text": "Backend endpoints resultados",
+              "done": false
+            },
+            {
+              "id": "t3",
+              "text": "Inline edit de resultados",
+              "done": false
+            },
+            {
+              "id": "t4",
+              "text": "Alarmas y valores referencia",
+              "done": false
+            }
+          ],
+          "notes": "Investigación exhaustiva completa. 34 XHTML auxiliares. resultado_numer + resultado_alpha, valor_referencial con rangos por sexo/edad. Ver orden-trabajo-lab.md",
+          "component": "src/pages/OrdenLabPlaceholder.jsx",
+          "updatedAt": "2026-03-04T04:55:00.680Z"
+        },
+        {
+          "id": "ot-viz",
+          "name": "OT Visualización",
+          "phase": "not-started",
+          "priority": "P1",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "ot-edit",
+          "name": "OT Crear/Editar",
+          "phase": "not-started",
+          "priority": "P1",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "ot-print",
+          "name": "OT Print/Preview",
+          "phase": "qa",
+          "priority": "P2",
+          "sprint": "sprint-0",
+          "tasks": [
+            {
+              "id": "t1",
+              "text": "Formato moneda $ (no Bs.)",
+              "done": true
+            },
+            {
+              "id": "t2",
+              "text": "Agregar RIF, habitación, fecha entrega",
+              "done": true
+            },
+            {
+              "id": "t3",
+              "text": "Mover estilos inline a clases CSS (pot-*)",
+              "done": true
+            },
+            {
+              "id": "t4",
+              "text": "Agregar logo real del laboratorio",
+              "done": true
+            }
+          ],
+          "notes": "Completado por Dev 3. Clases pot-* en index.css. Auto-print funcional.",
+          "component": "src/pages/PrintOrdenTrabajo.jsx",
+          "updatedAt": "2026-03-04T06:00:00Z"
+        },
+        {
+          "id": "ot-etiqueta",
+          "name": "Etiqueta Barcode",
+          "phase": "qa",
+          "priority": "P2",
+          "sprint": "sprint-0",
+          "tasks": [
+            {
+              "id": "t1",
+              "text": "Barcode font fallback",
+              "done": true
+            },
+            {
+              "id": "t2",
+              "text": "Nombre del laboratorio en etiqueta",
+              "done": true
+            },
+            {
+              "id": "t3",
+              "text": "Clases CSS pet-*",
+              "done": true
+            }
+          ],
+          "notes": "Completado por Dev 3. Clases pet-* en index.css.",
+          "component": "src/pages/PrintEtiqueta.jsx",
+          "updatedAt": "2026-03-04T02:53:23.764Z"
+        },
+        {
+          "id": "ot-resultados-print",
+          "name": "OT Resultados Print",
+          "phase": "not-started",
+          "priority": "P1",
+          "sprint": null,
+          "tasks": [],
+          "notes": "reportes/resultados*.xhtml (12+ variantes). Reporte de resultados para entregar al paciente.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:14.377Z"
+        },
+        {
+          "id": "ot-busqueda",
+          "name": "OT Búsqueda Rápida",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "BusquedaOrdenTrabajo.xhtml. Búsqueda por número de orden directo.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:14.385Z"
+        },
+        {
+          "id": "ot-recibo",
+          "name": "OT Recibo/Comprobante",
+          "phase": "qa",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Ya existe ruta /ordenes/:numero/recibo.",
+          "component": "src/pages/PrintRecibo.jsx",
+          "updatedAt": "2026-03-04T04:55:14.393Z"
+        },
+        {
+          "id": "ot-instrucciones",
+          "name": "OT Instrucciones Print",
+          "phase": "qa",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Ya existe ruta /ordenes/:numero/instrucciones.",
+          "component": "src/pages/PrintInstrucciones.jsx",
+          "updatedAt": "2026-03-04T04:55:14.400Z"
+        },
+        {
+          "id": "ot-preguntas",
+          "name": "OT Preguntas Print",
+          "phase": "qa",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Ya existe ruta /ordenes/:numero/preguntas.",
+          "component": "src/pages/PrintPreguntas.jsx",
+          "updatedAt": "2026-03-04T04:55:14.407Z"
+        },
+        {
+          "id": "ot-cubiculo",
+          "name": "OT Toma Muestra (Cubículo)",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "cubiculoTomaMuestra/*.xhtml (12 archivos).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:14.414Z"
+        },
+        {
+          "id": "ot-batch-edit",
+          "name": "OT Edición Batch",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "edicionOrdenTrabajo/*.xhtml (17 archivos). Edición masiva de órdenes.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:14.421Z"
+        },
+        {
+          "id": "ot-bloqueo",
+          "name": "OT Bloqueo/Desbloqueo",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Modal inline en OrdenTrabajo.xhtml.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:14.430Z"
+        }
+      ]
+    },
+    {
+      "id": "infraestructura",
+      "name": "Infraestructura (Auth, Layout, Nav)",
+      "tier": 0,
+      "screens": [
+        {
+          "id": "auth-login",
+          "name": "Login + JWT + Auth",
+          "phase": "qa",
+          "priority": "P0",
+          "sprint": "sprint-0",
+          "tasks": [
+            {
+              "id": "t1",
+              "text": "LoginPage.jsx con card centrada",
+              "done": true
+            },
+            {
+              "id": "t2",
+              "text": "AuthContext (user, login, logout, hasPermission, hasRole)",
+              "done": true
+            },
+            {
+              "id": "t3",
+              "text": "ProtectedRoute wrapper",
+              "done": true
+            },
+            {
+              "id": "t4",
+              "text": "server/routes/auth.js (login, logout, me)",
+              "done": true
+            },
+            {
+              "id": "t5",
+              "text": "server/auth.js middleware (requireAuth)",
+              "done": true
+            },
+            {
+              "id": "t6",
+              "text": "SHA-1+salt password verification",
+              "done": true
+            }
+          ],
+          "notes": "Completado por Dev 1. JWT httpOnly cookies. Roles cargados desde BD.",
+          "component": "src/pages/LoginPage.jsx",
+          "updatedAt": "2026-03-04T05:00:00Z"
+        },
+        {
+          "id": "sidebar-nav",
+          "name": "Sidebar + Navegación",
+          "phase": "qa",
+          "priority": "P0",
+          "sprint": "sprint-0",
+          "tasks": [
+            {
+              "id": "t1",
+              "text": "AppLayout.jsx (wrapper con Outlet)",
+              "done": true
+            },
+            {
+              "id": "t2",
+              "text": "Sidebar.jsx (accordion, 8 secciones, filtrado por rol)",
+              "done": true
+            },
+            {
+              "id": "t3",
+              "text": "AppNavbar.jsx (extraer de Ordenes.jsx + hamburguesa)",
+              "done": true
+            },
+            {
+              "id": "t4",
+              "text": "AppFooter.jsx (extraer de Ordenes.jsx)",
+              "done": true
+            },
+            {
+              "id": "t5",
+              "text": "Refactorizar App.jsx rutas con nested layout",
+              "done": true
+            },
+            {
+              "id": "t6",
+              "text": "CSS sidebar (app-sidebar, sidebar-section, sidebar-item)",
+              "done": true
+            }
+          ],
+          "notes": "Sidebar completo. Estructura completa de Labsis: 8 secciones, sub-grupos anidados, ~50+ ítems, filtrado por rol. AppLayout, AppNavbar, AppFooter extraídos. EnConstruccion con labels para dashboard.",
+          "component": "src/components/Sidebar.jsx",
+          "updatedAt": "2026-03-04T02:51:05.527Z"
+        }
+      ]
+    },
+    {
+      "id": "pacientes",
+      "name": "Pacientes",
+      "tier": 2,
+      "screens": [
+        {
+          "id": "pac-list",
+          "name": "Paciente Lista",
+          "phase": "investigacion",
+          "priority": "P1",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Documentado desde video + código fuente. 258 líneas XHTML. Búsqueda fuzzy con GIN trigram indexes. Ver paciente-lista.md",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:00.656Z"
+        },
+        {
+          "id": "pac-detail",
+          "name": "Paciente Detalle",
+          "phase": "investigacion",
+          "priority": "P1",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Documentado desde video + código. 1,826 líneas. 3 tabs (Info, Histórico, Docs), OTs del paciente, 7 modals. Ver paciente-detalle.md",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:00.664Z"
+        },
+        {
+          "id": "pac-edit",
+          "name": "Paciente Editar",
+          "phase": "investigacion",
+          "priority": "P1",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Documentado desde video + código. 859 líneas. ~39 campos (16 visibles en EG), 3 modos dirección, validaciones AJAX. Ver paciente-editar.md",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:00.672Z"
+        },
+        {
+          "id": "med-list",
+          "name": "Médico Lista",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "med-edit",
+          "name": "Médico Editar",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "doc-buscar",
+          "name": "Doctor Buscar/Crear",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "buscarCrearEditarDoctor.xhtml (~300 líneas). Modal reutilizado en OT Edit.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:32.907Z"
+        },
+        {
+          "id": "pac-merge",
+          "name": "Paciente Merge/Fusión",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "PacienteFinalEdit.xhtml (~500 líneas). Fusión de pacientes duplicados.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:32.917Z"
+        },
+        {
+          "id": "cliente-list",
+          "name": "Cliente Lista/Editar",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "cliente/*.xhtml (10 archivos, ~1,530 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:32.925Z"
+        },
+        {
+          "id": "pac-portal",
+          "name": "Portal Paciente Config",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "accesoPaciente/*.xhtml (33 archivos). 28,469 pacientes con portal.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:32.932Z"
+        },
+        {
+          "id": "pac-foto",
+          "name": "Paciente Foto",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Inline en Paciente.xhtml. Upload de foto del paciente.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:32.939Z"
+        }
+      ]
+    },
+    {
+      "id": "facturacion",
+      "name": "Facturación y Citas",
+      "tier": 3,
+      "screens": [
+        {
+          "id": "fact-list",
+          "name": "Factura Lista",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "fact-detail",
+          "name": "Factura Detalle",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "cita-list",
+          "name": "Cita Lista",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "cita-edit",
+          "name": "Cita Editar",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "presup-list",
+          "name": "Presupuesto Lista",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "fact-edit",
+          "name": "Factura Editar",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "FacturaEdit.xhtml (~600 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:32.945Z"
+        },
+        {
+          "id": "fact-print",
+          "name": "Factura Print",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "facturacion/*.xhtml (21 archivos, ~3,000 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:32.952Z"
+        },
+        {
+          "id": "presup-detail",
+          "name": "Presupuesto Detalle",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Presupuesto.xhtml (~500 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:32.959Z"
+        },
+        {
+          "id": "presup-edit",
+          "name": "Presupuesto Editar",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "PresupuestoEdit.xhtml (~700 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:32.967Z"
+        },
+        {
+          "id": "presup-print",
+          "name": "Presupuesto Print",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "reportes/presupuesto*.xhtml (~500 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:32.982Z"
+        },
+        {
+          "id": "caja",
+          "name": "Caja / Cash Register",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Caja*.xhtml (~6 archivos, ~2,000 líneas). Cobros, pagos, apertura/cierre.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:32.992Z"
+        },
+        {
+          "id": "cuenta-pac",
+          "name": "Cuenta Paciente",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "CuentaPaciente*.xhtml (~400 líneas). Saldo, cargos, abonos.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:33.002Z"
+        },
+        {
+          "id": "nota-credito",
+          "name": "Nota de Crédito",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "NotaCredito*.xhtml (~300 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:33.012Z"
+        },
+        {
+          "id": "cita-calendar",
+          "name": "Cita Calendar",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "citas/CitaCalendar*.xhtml (~800 líneas). Vista calendario.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:33.020Z"
+        }
+      ]
+    },
+    {
+      "id": "catalogos",
+      "name": "Catálogos",
+      "tier": 4,
+      "screens": [
+        {
+          "id": "prueba-list",
+          "name": "Prueba Lista",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "prueba-wiz",
+          "name": "Prueba Wizard",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "serv-list",
+          "name": "Servicio Lista",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "proc-list",
+          "name": "Procedencia Lista",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "area-list",
+          "name": "Área Lista",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "user-list",
+          "name": "Usuario Lista",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "dept-list",
+          "name": "Departamento Lista",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "grupo-prueba",
+          "name": "Grupo Prueba Lista/Edit",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "GrupoPrueba*.xhtml. Agrupación lógica de pruebas.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.819Z"
+        },
+        {
+          "id": "lab-config",
+          "name": "Configuración Laboratorio",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Laboratorio*.xhtml (~800 líneas). 189 campos config multi-tenant. Ver _CONFIG.md.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.827Z"
+        },
+        {
+          "id": "val-ref",
+          "name": "Valor Referencial Editor",
+          "phase": "not-started",
+          "priority": "P2",
+          "sprint": null,
+          "tasks": [],
+          "notes": "ValorReferencial*.xhtml (~400 líneas). Rangos por prueba, sexo, edad.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.835Z"
+        },
+        {
+          "id": "serv-edit",
+          "name": "Servicio Editar",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "ServicioEdit.xhtml (~300 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.843Z"
+        },
+        {
+          "id": "proc-edit",
+          "name": "Procedencia Editar",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "ProcedenciaEdit.xhtml (~300 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.851Z"
+        },
+        {
+          "id": "area-edit",
+          "name": "Área Editar",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "AreaEdit.xhtml (~300 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.858Z"
+        },
+        {
+          "id": "user-edit",
+          "name": "Usuario Editar",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "UsuarioEdit.xhtml (~500 líneas). Gestión de usuarios, roles, permisos.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.864Z"
+        },
+        {
+          "id": "unidad",
+          "name": "Unidad Lista/Edit",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Unidad*.xhtml (~200 líneas). Unidades de medida.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.872Z"
+        },
+        {
+          "id": "metodo",
+          "name": "Método Lista/Edit",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Metodo*.xhtml (~200 líneas). Métodos de análisis.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.878Z"
+        },
+        {
+          "id": "doc-preanalitico",
+          "name": "Documento Preanalítico",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "DocumentoPreanalitico*.xhtml (~300 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.885Z"
+        },
+        {
+          "id": "tipo-muestra",
+          "name": "Tipo Muestra",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "TipoMuestra*.xhtml (~200 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.892Z"
+        },
+        {
+          "id": "recipiente",
+          "name": "Recipiente",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Recipiente*.xhtml (~200 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.898Z"
+        },
+        {
+          "id": "antibiotico",
+          "name": "Antibiótico Lista/Edit",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "Antibiotico*.xhtml (~300 líneas). Para antibiograma.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.906Z"
+        },
+        {
+          "id": "status-config",
+          "name": "Status Orden Config",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "StatusOrden*.xhtml (~200 líneas).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.914Z"
+        }
+      ]
+    },
+    {
+      "id": "especializados",
+      "name": "Especializados",
+      "tier": 5,
+      "screens": [
+        {
+          "id": "qc",
+          "name": "Control Calidad",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "muestras",
+          "name": "Almacén Muestras",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "inventario",
+          "name": "Inventario",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "micro",
+          "name": "Microbiología",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "portal-pac",
+          "name": "Portal Paciente",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "portal-cli",
+          "name": "Portal Cliente",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "reportes",
+          "name": "Reportes/Dashboard",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "autovalidacion",
+          "name": "Autovalidación",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "",
+          "component": null,
+          "updatedAt": "2026-03-03T12:00:00Z"
+        },
+        {
+          "id": "trazabilidad",
+          "name": "Trazabilidad",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "trazabilidad/*.xhtml (10 archivos).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.923Z"
+        },
+        {
+          "id": "incidencias",
+          "name": "Incidencias",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "incidencias/*.xhtml (8 archivos).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.930Z"
+        },
+        {
+          "id": "graficas",
+          "name": "Gráficas/Charts",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "graficas/*.xhtml (54 archivos). Levey-Jennings, tendencias.",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.938Z"
+        },
+        {
+          "id": "cubiculo-tm",
+          "name": "Cubículo Toma Muestra",
+          "phase": "not-started",
+          "priority": "P3",
+          "sprint": null,
+          "tasks": [],
+          "notes": "cubiculoTomaMuestra/*.xhtml (12 archivos).",
+          "component": null,
+          "updatedAt": "2026-03-04T04:55:52.947Z"
+        }
+      ]
+    }
+  ],
+  "sprints": [
+    {
+      "id": "sprint-0",
+      "name": "Sprint 0 — Core OT",
+      "status": "active",
+      "startDate": "2026-03-01",
+      "endDate": "2026-03-15",
+      "goal": "Completar las 3 pantallas del flujo principal de OT",
+      "screenIds": [
+        "ot-list",
+        "ot-detail",
+        "ot-lab",
+        "auth-login",
+        "sidebar-nav",
+        "ot-print",
+        "ot-etiqueta"
+      ]
+    }
+  ]
+}
