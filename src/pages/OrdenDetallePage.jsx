@@ -289,7 +289,7 @@ export default function OrdenDetallePage() {
                     <div className="ot-sep" />
                     <div className="ot-fg"><Rf l="Diagnóstico:" v="" /></div>
                     {labConfig?.show_stat && !data.stat && (
-                      <div className="ot-est-stat-link" onClick={() => setStatOpen(true)} style={{ cursor: 'pointer' }}>
+                      <div className="ot-est-stat-link" onClick={() => setStatOpen(true)}>
                         <IcoPlus /> Agregar STAT (Urgencia) a Requisición
                       </div>
                     )}
