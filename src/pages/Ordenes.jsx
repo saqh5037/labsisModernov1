@@ -463,7 +463,7 @@ export default function Ordenes() {
                 <span className="ot-section-label" key={page + '-' + total}>Órdenes de Trabajo</span>
                 {!loading && total > 0 && (
                   <span className="ot-list-count">
-                    {total.toLocaleString()} registros · pág. {page} / {totalPages}
+                    <strong>{total.toLocaleString()}</strong> registros · pág. {page} / {totalPages}
                   </span>
                 )}
               </div>
@@ -528,8 +528,8 @@ export default function Ordenes() {
                                 navigate(`/ordenes/${r.numero}/lab${qStr ? '?' + qStr : ''}`)
                               }}>{r.numero}</a>
                             </td>
-                            <td className="cell-proc">{r.procedencia || <span className="cell-muted">—</span>}</td>
-                            <td className="cell-proc">{r.servicioMedico || <span className="cell-muted">—</span>}</td>
+                            <td className="cell-proc" title={r.procedencia || ''}>{r.procedencia || <span className="cell-muted">—</span>}</td>
+                            <td className="cell-proc" title={r.servicioMedico || ''}>{r.servicioMedico || <span className="cell-muted">—</span>}</td>
                             <td className="cell-name">{r.paciente || '—'}</td>
                             <td className="cell-date">
                               {r.fecha
