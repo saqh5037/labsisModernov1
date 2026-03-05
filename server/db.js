@@ -1,7 +1,8 @@
 import pg from 'pg'
 import dotenv from 'dotenv'
 
-if (process.env.NODE_ENV !== 'production') dotenv.config()
+const envFile = process.env.NODE_ENV === 'production' ? '.env.qa' : '.env'
+dotenv.config({ path: envFile })
 
 const { Pool } = pg
 

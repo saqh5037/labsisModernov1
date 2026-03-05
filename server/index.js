@@ -15,7 +15,7 @@ import devRouter from './routes/dev.js'
 import qaRouter from './routes/qa.js'
 import qaPublicRouter from './routes/qa-public.js'
 
-if (process.env.NODE_ENV !== 'production') dotenv.config()
+// db.js already loads dotenv with the correct .env file
 
 const app = express()
 const PORT = process.env.PORT || 3001
