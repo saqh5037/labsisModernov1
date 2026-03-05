@@ -226,7 +226,15 @@ router.get('/dashboard', async (req, res) => {
       GROUP BY so.id, so.status, so.color, so.orden
       ORDER BY so.orden ASC`
 
-    // B) Progreso pruebas validadas (separate subqueries to avoid cartesian product)
+    // B1) Progreso órdenes (total y validadas — status_id 4=Validada, 7=Informada)
+    const sqlProgresoOrdenes = `
+      SELECT
+        COUNT(DISTINCT ot.id) AS total_ordenes,
+        COUNT(DISTINCT CASE WHEN ot.status_id IN (4,7) THEN ot.id END) AS ordenes_validadas
+      ${baseJoin}
+      ${where}`
+
+    // B2) Progreso pruebas validadas
     const sqlProgresoPruebas = `
       SELECT
         COUNT(po.id) AS total_pruebas,
@@ -269,15 +277,19 @@ router.get('/dashboard', async (req, res) => {
       GROUP BY a.id, a.area
       ORDER BY a.area`
 
-    const [statusRes, pruebasRes, muestrasRes, areaRes] = await Promise.all([
+    const [statusRes, ordenesRes, pruebasRes, muestrasRes, areaRes] = await Promise.all([
       pool.query(sqlPorStatus, params),
+      pool.query(sqlProgresoOrdenes, params),
       pool.query(sqlProgresoPruebas, params),
       pool.query(sqlProgresoMuestras, params),
       pool.query(sqlPorArea, params),
     ])
 
+    const ords = ordenesRes.rows[0] || {}
     const pr = pruebasRes.rows[0] || {}
     const mu = muestrasRes.rows[0] || {}
+    const totalOrdenes = parseInt(ords.total_ordenes) || 0
+    const ordenesValidadas = parseInt(ords.ordenes_validadas) || 0
     const totalPruebas = parseInt(pr.total_pruebas) || 0
     const validadas = parseInt(pr.validadas) || 0
 
@@ -289,6 +301,9 @@ router.get('/dashboard', async (req, res) => {
         total: parseInt(r.total),
       })),
       progreso: {
+        totalOrdenes,
+        ordenesValidadas,
+        porcentajeOrdenes: totalOrdenes > 0 ? Math.round((ordenesValidadas / totalOrdenes) * 100) : 0,
         totalPruebas,
         pruebasValidadas: validadas,
         porcentaje: totalPruebas > 0 ? Math.round((validadas / totalPruebas) * 100) : 0,

@@ -1533,8 +1533,8 @@ span.flatpickr-weekday { font-size:10px !important; font-weight:700 !important; 
 .area-progress-row { display: flex; flex-direction: column; gap: 3px; }
 .area-progress-header {
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
+  gap: 6px;
 }
 .area-progress-label {
   font-size: 12px;
@@ -1543,6 +1543,12 @@ span.flatpickr-weekday { font-size:10px !important; font-weight:700 !important; 
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+}
+.area-progress-detail {
+  font-size: 11px;
+  color: var(--text-3, #94a3b8);
+  white-space: nowrap;
 }
 .area-progress-bar {
   width: 100%;

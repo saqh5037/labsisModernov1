@@ -7,7 +7,7 @@ import DashboardProgress from '../components/DashboardProgress'
 import DashboardStatusChart from '../components/DashboardStatusChart'
 import DashboardAreaProgress from '../components/DashboardAreaProgress'
 import { useNavigate } from 'react-router-dom'
-import { getOrdenes, getDashboard, getStatus, getProcedencias, getAreas, getUsuarios, getServiciosMedicos, searchPruebas } from '../services/api'
+import { getOrdenes, getDashboard, getStatus, getProcedencias, getAreas, getUsuarios, getServiciosMedicos, searchPruebas, getLaboratorio } from '../services/api'
 
 /* ── Icons ── */
 const Ico = ({ d, vb = '0 0 24 24', w = 1.8 }) => (
@@ -142,6 +142,9 @@ export default function Ordenes() {
   const [dashboard, setDashboard] = useState(null)
   const [areaStatuses, setAreaStatuses] = useState(null)
 
+  // Lab config (for dynamic labels)
+  const [labConfig, setLabConfig] = useState(null)
+
   // Catalogs
   const [estados,       setEstados]       = useState([])
   const [procedencias,  setProcedencias]  = useState([])
@@ -163,7 +166,17 @@ export default function Ordenes() {
     getAreas().then(setAreas).catch(() => {})
     getUsuarios().then(setUsuarios).catch(() => {})
     getServiciosMedicos().then(setServiciosMed).catch(() => {})
+    getLaboratorio().then(setLabConfig).catch(() => {})
   }, [])
+
+  // Dynamic labels & visibility based on lab config
+  const ciLabel = labConfig?.configuracion_especial === 'Lapi' ? 'Nro. Registro' : 'Cédula'
+  const ciPlaceholder = labConfig?.configuracion_especial === 'Lapi' ? '125421' : 'V-12345678'
+  const showCi = labConfig?.ot_list_ci_paciente !== false
+  const showProcedencia = labConfig?.ot_list_procedencia !== false
+  const showServicioMed = labConfig?.ot_list_servicio_medico !== false
+  const showNumIngreso = labConfig?.ot_list_num_ingreso !== false
+  const showEmail = labConfig?.show_send_mail !== false
 
   /* react-select options */
   const estadoOpts = useMemo(() => estados.map(s => ({
@@ -328,15 +341,17 @@ export default function Ordenes() {
                 onKeyDown={e => e.key === 'Enter' && doSearch(1)}
               />
             </div>
+            {showCi && (
             <div className="fld" style={{ width: 140 }}>
-              <label className={hv(filters.cedula)}>Cédula</label>
-              <input type="text" placeholder="V-12345678"
+              <label className={hv(filters.cedula)}>{ciLabel}</label>
+              <input type="text" placeholder={ciPlaceholder}
                 className={hv(filters.cedula)}
                 value={filters.cedula}
                 onChange={e => setF('cedula', e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && doSearch(1)}
               />
             </div>
+            )}
             <div className="fld" style={{ width: 220 }}>
               <label className={filters.estado.length > 0 ? 'has-value' : ''}>Estado(s)</label>
               <Select styles={glassStyles} theme={glassTheme} options={estadoOpts}
@@ -372,11 +387,13 @@ export default function Ordenes() {
             </div>
 
             {/* Email toggle */}
+            {showEmail && (
             <div className="email-toggle" data-state={emailState}
               title={filters.emailFilter === 0 ? 'Filtro email: off' : filters.emailFilter === 1 ? 'Solo email enviado' : 'Solo email NO enviado'}
               onClick={toggleEmail}>
               <IcoMail />
             </div>
+            )}
 
             <button className="btn btn-primary" onClick={() => doSearch(1)} disabled={loading}>
               <IcoSearch />
@@ -391,6 +408,7 @@ export default function Ordenes() {
           {/* ── FILTROS NIVEL 2 (colapsable) ── */}
           {showMore && (
             <div className="ordenes-filters-secondary anim">
+              {showProcedencia && (
               <div className="fld">
                 <label className={hv(filters.procedencia)}>Procedencia</label>
                 <Select styles={glassStyles} theme={glassTheme} options={procedenciaOpts}
@@ -401,6 +419,8 @@ export default function Ordenes() {
                   menuPortalTarget={document.body}
                 />
               </div>
+              )}
+              {showServicioMed && (
               <div className="fld">
                 <label className={hv(filters.servicioMedico)}>Servicio médico</label>
                 <Select styles={glassStyles} theme={glassTheme} options={servicioMedOpts}
@@ -411,6 +431,7 @@ export default function Ordenes() {
                   menuPortalTarget={document.body}
                 />
               </div>
+              )}
               <div className="fld">
                 <label className={filters.prueba ? 'has-value' : ''}>Prueba</label>
                 <AsyncSelect styles={glassStyles} theme={glassTheme}
@@ -437,6 +458,7 @@ export default function Ordenes() {
                   menuPortalTarget={document.body}
                 />
               </div>
+              {showNumIngreso && (
               <div className="fld">
                 <label className={hv(filters.numIngreso)}>Núm. ingreso</label>
                 <input type="text" placeholder="00000"
@@ -445,6 +467,7 @@ export default function Ordenes() {
                   onChange={e => setF('numIngreso', e.target.value)}
                 />
               </div>
+              )}
               <div className="fld">
                 <label className={hv(filters.numFactura)}>Núm. factura</label>
                 <input type="text" placeholder="000-00000"

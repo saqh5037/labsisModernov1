@@ -94,7 +94,8 @@ router.get('/laboratorio', async (_req, res) => {
       'ot_list_num_ingreso', 'ot_list_habitacion', 'ot_list_num_historia',
       'show_stat', 'show_send_mail',
       'resultados_adjuntos', 'documentos_adjuntos_ordentrabajo',
-      'documentos_preanaliticos', 'peso_y_estatura_orden_trabajo'
+      'documentos_preanaliticos', 'peso_y_estatura_orden_trabajo',
+      'configuracion_especial'
     ]
     // Optional columns — only in some installations (EG has ot_list_ci_paciente, LAPI doesn't)
     const optCols = ['ot_list_ci_paciente']
