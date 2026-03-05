@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import QANotificationBell from './QANotificationBell'
 import QAToastContainer from './QAToast'
+import QANotepad from './QANotepad'
 
 const IconCode = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -61,6 +62,7 @@ export default function QANav({ active }) {
         </div>
       </nav>
       <QAToastContainer />
+      <QANotepad />
     </>
   )
 }

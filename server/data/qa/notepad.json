@@ -1,0 +1,18 @@
+{
+  "notes": [
+    {
+      "id": "note-1772745525635-7724",
+      "text": "Tabla de pacientes no muestra celular",
+      "createdAt": "2026-03-05T21:18:45.640Z",
+      "promotedToBugId": 14,
+      "archived": true
+    },
+    {
+      "id": "note-1772745525540-ea22",
+      "text": "Boton guardar se corta en mobile",
+      "createdAt": "2026-03-05T21:18:45.542Z",
+      "promotedToBugId": null,
+      "archived": true
+    }
+  ]
+}

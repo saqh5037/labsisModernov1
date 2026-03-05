@@ -21,6 +21,11 @@ export async function ensureDirs() {
   if (!existsSync(assignPath)) {
     await writeFile(assignPath, JSON.stringify({ assignments: [] }))
   }
+  // Ensure notepad file
+  const notepadPath = path.join(DATA_DIR, 'notepad.json')
+  if (!existsSync(notepadPath)) {
+    await writeFile(notepadPath, JSON.stringify({ notes: [] }))
+  }
 }
 
 export async function readJSON(filepath) {
@@ -81,4 +86,8 @@ export function getNotifPath(id) {
 
 export function getSessionPath(token) {
   return path.join(DATA_DIR, 'sessions', `session-${token}.json`)
+}
+
+export function getNotepadPath() {
+  return path.join(DATA_DIR, 'notepad.json')
 }

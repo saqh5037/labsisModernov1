@@ -8,7 +8,7 @@ import crypto from 'crypto'
 import {
   ensureDirs, readJSON, writeJSON, listJSON, nextId,
   getDataDir, getSuitePath, getRunPath, getBugPath,
-  getAssignmentsPath, getNotifPath, getSessionPath
+  getAssignmentsPath, getNotifPath, getSessionPath, getNotepadPath
 } from './qa-store.js'
 import { pushToUser } from './qa-sse.js'
 
@@ -371,6 +371,183 @@ router.get('/bugs/mine', async (req, res) => {
   } catch (err) {
     console.error('QA my bugs error:', err)
     res.status(500).json({ error: 'Error cargando mis bugs' })
+  }
+})
+
+// ─── BATCH BUG CREATION (must be before /bugs/:id) ──────
+router.post('/bugs/batch', async (req, res) => {
+  try {
+    const { bugs: items } = req.body
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Se requiere un array de bugs' })
+    }
+    if (items.length > 20) {
+      return res.status(400).json({ error: 'Máximo 20 bugs por lote' })
+    }
+
+    const reporter = { id: req.user.userId, nombre: `${req.user.nombre} ${req.user.apellido}` }
+    const created = []
+    for (const item of items) {
+      const id = await nextId('bugs')
+      const bug = {
+        id,
+        runId: null,
+        testCaseId: null,
+        titulo: item.titulo || `Bug #${id}`,
+        descripcion: item.nota || '',
+        comportamientoEsperado: '',
+        comportamientoActual: item.nota || '',
+        pasosReproducir: '',
+        severidad: item.severidad || 'mayor',
+        estado: 'abierto',
+        screenshots: [],
+        logs: '',
+        browserInfo: '',
+        tipoError: item.tipoError || '',
+        codigoError: '',
+        dondeOcurre: '',
+        queEsperabas: '',
+        contextoExtra: item.nota || '',
+        brandTokens: [],
+        zonaPantalla: '',
+        reportadoPor: reporter,
+        asignadoA: null,
+        comments: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      await writeJSON(getBugPath(id), bug)
+      created.push(bug)
+    }
+    res.status(201).json({ created, count: created.length })
+  } catch (err) {
+    console.error('QA batch bugs error:', err)
+    res.status(500).json({ error: 'Error creando bugs en lote' })
+  }
+})
+
+// ─── NOTEPAD ────────────────────────────────────────────
+router.get('/notepad', async (req, res) => {
+  try {
+    const p = getNotepadPath()
+    if (!existsSync(p)) return res.json({ notes: [] })
+    const data = await readJSON(p)
+    const notes = (data.notes || []).filter(n => !n.archived)
+    res.json({ notes })
+  } catch (err) {
+    console.error('QA notepad read error:', err)
+    res.status(500).json({ error: 'Error leyendo notepad' })
+  }
+})
+
+router.post('/notepad', async (req, res) => {
+  try {
+    const { text } = req.body
+    if (!text?.trim()) return res.status(400).json({ error: 'Texto requerido' })
+
+    const p = getNotepadPath()
+    const data = existsSync(p) ? await readJSON(p) : { notes: [] }
+    const hex = Math.random().toString(16).slice(2, 6)
+    const note = {
+      id: `note-${Date.now()}-${hex}`,
+      text: text.trim(),
+      createdAt: new Date().toISOString(),
+      promotedToBugId: null,
+      archived: false,
+    }
+    data.notes.unshift(note)
+    await writeJSON(p, data)
+    res.status(201).json(note)
+  } catch (err) {
+    console.error('QA notepad create error:', err)
+    res.status(500).json({ error: 'Error creando nota' })
+  }
+})
+
+router.put('/notepad/:noteId', async (req, res) => {
+  try {
+    const { noteId } = req.params
+    const { text } = req.body
+    const p = getNotepadPath()
+    if (!existsSync(p)) return res.status(404).json({ error: 'Nota no encontrada' })
+    const data = await readJSON(p)
+    const note = data.notes.find(n => n.id === noteId)
+    if (!note) return res.status(404).json({ error: 'Nota no encontrada' })
+    if (text !== undefined) note.text = text.trim()
+    await writeJSON(p, data)
+    res.json(note)
+  } catch (err) {
+    console.error('QA notepad update error:', err)
+    res.status(500).json({ error: 'Error actualizando nota' })
+  }
+})
+
+router.delete('/notepad/:noteId', async (req, res) => {
+  try {
+    const { noteId } = req.params
+    const p = getNotepadPath()
+    if (!existsSync(p)) return res.status(404).json({ error: 'Nota no encontrada' })
+    const data = await readJSON(p)
+    const note = data.notes.find(n => n.id === noteId)
+    if (!note) return res.status(404).json({ error: 'Nota no encontrada' })
+    note.archived = true
+    await writeJSON(p, data)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('QA notepad delete error:', err)
+    res.status(500).json({ error: 'Error eliminando nota' })
+  }
+})
+
+router.post('/notepad/:noteId/promote', async (req, res) => {
+  try {
+    const { noteId } = req.params
+    const { titulo, tipoError, severidad } = req.body
+
+    const p = getNotepadPath()
+    if (!existsSync(p)) return res.status(404).json({ error: 'Nota no encontrada' })
+    const data = await readJSON(p)
+    const note = data.notes.find(n => n.id === noteId)
+    if (!note) return res.status(404).json({ error: 'Nota no encontrada' })
+
+    const bugId = await nextId('bugs')
+    const bug = {
+      id: bugId,
+      runId: null,
+      testCaseId: null,
+      titulo: titulo || note.text,
+      descripcion: note.text,
+      comportamientoEsperado: '',
+      comportamientoActual: note.text,
+      pasosReproducir: '',
+      severidad: severidad || 'mayor',
+      estado: 'abierto',
+      screenshots: [],
+      logs: '',
+      browserInfo: '',
+      tipoError: tipoError || '',
+      codigoError: '',
+      dondeOcurre: '',
+      queEsperabas: '',
+      contextoExtra: '',
+      brandTokens: [],
+      zonaPantalla: '',
+      reportadoPor: { id: req.user.userId, nombre: `${req.user.nombre} ${req.user.apellido}` },
+      asignadoA: null,
+      comments: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    await writeJSON(getBugPath(bugId), bug)
+
+    note.promotedToBugId = bugId
+    note.archived = true
+    await writeJSON(p, data)
+
+    res.status(201).json(bug)
+  } catch (err) {
+    console.error('QA notepad promote error:', err)
+    res.status(500).json({ error: 'Error promoviendo nota a bug' })
   }
 })
 

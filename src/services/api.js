@@ -778,3 +778,56 @@ export async function getQAMyBugs() {
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }
+
+// ─── QA Notepad ─────────────────────────────────────────
+export async function getQANotes() {
+  const res = await fetch(`${BASE}/qa/notepad`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function createQANote(text) {
+  const res = await fetch(`${BASE}/qa/notepad`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function updateQANote(noteId, text) {
+  const res = await fetch(`${BASE}/qa/notepad/${noteId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function deleteQANote(noteId) {
+  const res = await fetch(`${BASE}/qa/notepad/${noteId}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function promoteQANote(noteId, data) {
+  const res = await fetch(`${BASE}/qa/notepad/${noteId}/promote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function createQABugsBatch(bugs) {
+  const res = await fetch(`${BASE}/qa/bugs/batch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bugs }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
