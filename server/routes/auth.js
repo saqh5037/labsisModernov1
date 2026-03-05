@@ -61,7 +61,9 @@ router.post('/login', async (req, res) => {
 
     res.cookie(COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.COOKIE_SECURE !== undefined
+        ? process.env.COOKIE_SECURE === 'true'
+        : process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 12 * 60 * 60 * 1000,
       path: '/',
