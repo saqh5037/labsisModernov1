@@ -755,19 +755,23 @@ router.post('/', async (req, res) => {
         [`pre$${pacienteId}`, pacienteId]
       )
     } else {
+      // Use COALESCE for ALL fields to prevent nullifying existing data
       await client.query(`
         UPDATE paciente SET
           nombre = COALESCE($2, nombre),
           apellido = COALESCE($3, apellido),
-          apellido_segundo = $4,
+          apellido_segundo = COALESCE($4, apellido_segundo),
           sexo = COALESCE($5, sexo),
           fecha_nacimiento = COALESCE($6, fecha_nacimiento),
-          email = $7, telefono = $8, telefono_celular = $9
+          email = COALESCE($7, email),
+          telefono = COALESCE($8, telefono),
+          telefono_celular = COALESCE($9, telefono_celular),
+          send_his = false
         WHERE id = $1
-      `, [pacienteId, paciente.nombre, paciente.apellido,
-          paciente.apellido_segundo, paciente.sexo,
-          paciente.fecha_nacimiento, paciente.email,
-          paciente.telefono, paciente.telefono_celular])
+      `, [pacienteId, paciente.nombre || null, paciente.apellido || null,
+          paciente.apellido_segundo || null, paciente.sexo || null,
+          paciente.fecha_nacimiento || null, paciente.email || null,
+          paciente.telefono || null, paciente.telefono_celular || null])
     }
 
     // 2. Obtener config lab para moneda/tasa
@@ -799,6 +803,22 @@ router.post('/', async (req, res) => {
     const descuentoPct = parseFloat(orden.descuento_porcentaje) || 0
     const descuentoMonto = parseFloat(orden.descuento_monto) || 0
 
+    // Resolve turno_id (current shift, matches Java TurnoHome.getCurrentTurno)
+    let turnoId = null
+    const turnoResult = await client.query(`
+      SELECT id FROM turno
+      WHERE fecha = CURRENT_DATE AND activo = true
+      ORDER BY id DESC LIMIT 1
+    `)
+    if (turnoResult.rows.length) turnoId = turnoResult.rows[0].id
+
+    // Resolve bioanalista_id from departamento responsable
+    let bioanalistaId = null
+    const deptResult = await client.query(`
+      SELECT responsable_id FROM departamento_laboratorio WHERE id = 1
+    `)
+    if (deptResult.rows.length) bioanalistaId = deptResult.rows[0].responsable_id
+
     // Insertar la orden de trabajo
     // numero='0' — el trigger lo reemplaza con YYMMDD####
     const otResult = await client.query(`
@@ -811,14 +831,16 @@ router.post('/', async (req, res) => {
         usuario_id, departamento_laboratorio_id,
         centro_atencion_paciente_id, precio,
         moneda_id, tipo_cambio, tipo_cambio_inverso,
-        descuento_porcentaje, descuento_monto
+        descuento_porcentaje, descuento_monto,
+        turno_id, bioanalista_id
       ) VALUES (
         '0', NOW(), $1, 1, $2, $3, $4, $5, $6, $7,
         $8, $9, $10, $11, $12, $13,
         $14, $15,
         $16, $17, $18, 0,
         $19, $20, $21,
-        $22, $23
+        $22, $23,
+        $24, $25
       ) RETURNING id, numero
     `, [
       pacienteId,
@@ -843,7 +865,9 @@ router.post('/', async (req, res) => {
       otTipoCambio,
       otTipoCambioInverso,
       descuentoPct,
-      descuentoMonto
+      descuentoMonto,
+      turnoId,
+      bioanalistaId
     ])
 
     const otId = otResult.rows[0].id
@@ -911,13 +935,37 @@ router.post('/', async (req, res) => {
       numSucesion++
     }
 
-    // 6. Insertar accion_log (dispara trigger de recálculo de precio)
+    // 6. Create status_area records (one per distinct area — matches Java StatusArea creation)
+    const distinctAreas = await client.query(`
+      SELECT DISTINCT po.area_id
+      FROM prueba_orden po
+      WHERE po.orden_id = $1 AND po.area_id IS NOT NULL
+    `, [otId])
+    for (const row of distinctAreas.rows) {
+      // status_orden_id = 0 (default) or 1 if lab config ot-creacion-activar_status_muestra
+      await client.query(`
+        INSERT INTO status_area (area_id, status_orden_id, orden_id)
+        VALUES ($1, 0, $2)
+      `, [row.area_id, otId])
+    }
+
+    // 7. Insertar accion_log (dispara trigger de recálculo de precio)
     const pruebasList = pruebas.map(p => p.nombre || '').join(', ')
     const accion = ('CREACION ORDEN - ' + pruebasList).substring(0, 98)
     await client.query(`
       INSERT INTO accion_log (usuario_id, accion, realizado, realizado_timestamp, orden_id)
       VALUES ($1, $2, NOW(), NOW(), $3)
     `, [userId, accion, otId])
+
+    // Second accion_log for patient identification (matches Java audit trail)
+    const pacInfo = await client.query('SELECT ci_paciente, nombre, apellido FROM paciente WHERE id = $1', [pacienteId])
+    const pac = pacInfo.rows[0]
+    if (pac) {
+      await client.query(`
+        INSERT INTO accion_log (usuario_id, accion, realizado, realizado_timestamp, orden_id)
+        VALUES ($1, $2, NOW(), NOW(), $3)
+      `, [userId, `Paciente - ${pac.ci_paciente || ''}: ${pac.nombre} ${pac.apellido}`, otId])
+    }
 
     await client.query('COMMIT')
 
@@ -1020,7 +1068,7 @@ router.put('/:numero', async (req, res) => {
 
     // 4. Diff de pruebas — eliminar las que ya no están, agregar las nuevas
     const existingPruebas = await client.query(
-      `SELECT id, prueba_id, gp_id FROM prueba_orden WHERE orden_id = $1`, [ot.id]
+      `SELECT id, prueba_id, gp_id, status_id FROM prueba_orden WHERE orden_id = $1`, [ot.id]
     )
     const existingGPs = await client.query(
       `SELECT id, gp_id FROM gprueba_orden WHERE orden_id = $1`, [ot.id]
@@ -1037,9 +1085,11 @@ router.put('/:numero', async (req, res) => {
       }
     }
 
-    // Eliminar pruebas que ya no están
+    // Eliminar pruebas que ya no están — only if no results have been captured
     for (const ep of existingPruebas.rows) {
       if (!newPruebaIds.has(ep.prueba_id)) {
+        // Guard: skip deletion if prueba already has results (status > 1 means value captured/validated)
+        if (ep.status_id && ep.status_id > 1) continue
         await client.query('DELETE FROM prueba_orden WHERE id = $1', [ep.id])
       }
     }
@@ -1117,8 +1167,12 @@ router.put('/:numero', async (req, res) => {
     }
 
     // 5. Regenerar muestras
-    // Eliminar muestras existentes
-    await client.query('DELETE FROM muestra WHERE orden_id = $1', [ot.id])
+    // Only delete samples that have NOT been received/processed (status_id = 1 is pending)
+    // Samples already received (status_muestra_id >= 2) are preserved to maintain traceability
+    await client.query(
+      `DELETE FROM muestra WHERE orden_id = $1 AND (status_muestra_id IS NULL OR status_muestra_id <= 1)`,
+      [ot.id]
+    )
 
     // Generar nuevas muestras
     const muestraQuery = await client.query(`
@@ -1144,21 +1198,11 @@ router.put('/:numero', async (req, res) => {
       numSucesion++
     }
 
-    // 6. Recalcular precio de la OT manualmente
-    // (El trigger solo se activa con 'CREACION ORDEN' en accion_log, no con edición)
-    const priceResult = await client.query(`
-      SELECT
-        COALESCE(SUM(CASE WHEN po.gp_id IS NULL THEN po.precio ELSE 0 END), 0) AS sum_pruebas,
-        COALESCE((SELECT SUM(go2.precio) FROM gprueba_orden go2 WHERE go2.orden_id = $1 AND go2.gp_auxiliar = false), 0) AS sum_grupos
-      FROM prueba_orden po WHERE po.orden_id = $1
-    `, [ot.id])
-    const newPrice = parseFloat(priceResult.rows[0].sum_pruebas) + parseFloat(priceResult.rows[0].sum_grupos)
-    await client.query('UPDATE orden_trabajo SET precio = $1 WHERE id = $2', [newPrice, ot.id])
-
-    // 7. Accion_log
+    // 6. Accion_log — el trigger update_precio_orden_trabajo recalcula el precio automáticamente
+    //    cuando la acción contiene 'EDICIÓN ORDEN' (con tilde)
     const added = pruebas.filter(p => !existingPruebaIdSet.has(p.prueba_id)).map(p => p.nombre).join(', ')
     const removed = existingPruebas.rows.filter(p => !newPruebaIds.has(p.prueba_id)).length
-    let accionText = 'EDICION ORDEN'
+    let accionText = 'EDICIÓN ORDEN'
     if (added) accionText += ' + ' + added.substring(0, 60)
     if (removed) accionText += ` - ${removed} estudio(s)`
     await client.query(`
@@ -1208,6 +1252,20 @@ router.post('/:numero/facturar', async (req, res) => {
     `, [numero])
     if (!otResult.rows.length) return res.status(404).json({ error: 'Orden no encontrada' })
     const ot = otResult.rows[0]
+
+    // Guard: prevent double invoicing — check if OT already has an active factura
+    const existingFactura = await client.query(
+      `SELECT f.id, f.numero FROM factura f
+       JOIN orden_trabajo o ON o.factura_id = f.id
+       WHERE o.numero = $1 AND f.status_id != 4`,
+      [numero]
+    )
+    if (existingFactura.rows.length) {
+      await client.query('ROLLBACK')
+      return res.status(409).json({
+        error: `Esta orden ya tiene factura activa (#${existingFactura.rows[0].numero})`,
+      })
+    }
 
     // Obtener config lab
     const labResult = await client.query(`
@@ -1306,36 +1364,102 @@ router.post('/:numero/facturar', async (req, res) => {
       if (cajaResult.rows.length) cajaId = cajaResult.rows[0].id
     }
 
+    // Resolve conversion_moneda_id from actual conversion_moneda table
+    let conversionMonedaId = null
+    if (esConDivisas) {
+      const convResult = await client.query(`
+        SELECT id FROM conversion_moneda
+        WHERE moneda = $1 AND divisa = $2
+        AND (fecha_fin IS NULL OR fecha_fin > NOW())
+        ORDER BY fecha_inicio DESC LIMIT 1
+      `, [lab.moneda_id, factMonedaId])
+      if (convResult.rows.length) conversionMonedaId = convResult.rows[0].id
+    }
+
+    // Calculate impuesto_igtf and impuesto_tasa_cambio (Java stores these)
+    const impuestoIgtf = igtfPct ? parseFloat((baseImponibleLocal * (igtfPct / 100)).toFixed(2)) : null
+    const impuestoTasaCambio = esConDivisas ? parseFloat((totalFactura / tasaCambio).toFixed(2)) : null
+
+    // Resolve tipo_servicio_id and intervalo_facturacion_id from servicio
+    let tipoServicioId = null
+    let intervaloFacturacionId = null
+    if (ot.servicio_id) {
+      const svcInfo = await client.query(
+        'SELECT tipo_servicio_id, intervalo_facturacion_id FROM servicio WHERE id = $1', [ot.servicio_id]
+      )
+      if (svcInfo.rows.length) {
+        tipoServicioId = svcInfo.rows[0].tipo_servicio_id
+        intervaloFacturacionId = svcInfo.rows[0].intervalo_facturacion_id
+      }
+    }
+
+    // Resolve fiscalizar: not all CAPs are fiscalizable
+    let fiscalizarFlag = true
+    const capFiscal = await client.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name='centro_atencion_paciente' AND column_name='no_fiscalizable'`)
+    if (capFiscal.rows.length) {
+      const capResult = await client.query(
+        'SELECT no_fiscalizable FROM centro_atencion_paciente WHERE id = $1',
+        [ot.centro_atencion_paciente_id || 1]
+      )
+      if (capResult.rows.length && capResult.rows[0].no_fiscalizable) fiscalizarFlag = false
+    }
+
+    // Resolve active impuesto for item_factura.impuesto_id
+    const impuestoResult = await client.query(
+      `SELECT id FROM impuesto WHERE activo = true ORDER BY id LIMIT 1`
+    )
+    const impuestoId = impuestoResult.rows[0]?.id || null
+
     // Insertar factura
+    // IMPORTANT: descuento stores PERCENTAGE (not absolute amount) — matches Java semantics
     const factResult = await client.query(`
       INSERT INTO factura (
-        fecha, fecha_modificacion, monto_total, descuento,
+        fecha, fecha_modificacion, fecha_vencimiento,
+        monto_total, descuento, descuento_rh,
         base_imponible, iva, iva_monto, total_factura,
         cliente_id, status_id, usuario_id, servicio_id,
         tipo_pago_factura_id, control, caja_id,
         moneda_id, conversion_moneda_id, moneda_base,
         tipo_cambio, tipo_cambio_inverso,
-        tasa_cambio, igtf, monto_igtf, fiscalizar,
+        tasa_cambio, igtf, monto_igtf,
+        impuesto_igtf, impuesto_tasa_cambio,
+        fiscalizar, redondeo,
         razon_social, razon_social_ci_rif,
         centro_atencion_paciente_id,
-        is_factura_copago
+        is_factura_copago,
+        tipo_servicio_id, intervalo_facturacion_id
       ) VALUES (
-        NOW(), CURRENT_DATE, $1, $2, $3, $4, $5, $6,
-        $7, 1, $8, $9, 1, 0, $10,
-        $11, $12, $13, $14, $15,
-        $16, $17, $18, true,
-        $19, $20, $21,
-        $22
+        NOW(), CURRENT_DATE, CURRENT_DATE,
+        $1, $2, 0,
+        $3, $4, $5, $6,
+        $7, 1, $8, $9,
+        1, 0, $10,
+        $11, $12, $13,
+        $14, $15,
+        $16, $17, $18,
+        $19, $20,
+        $21, 0,
+        $22, $23,
+        $24,
+        $25,
+        $26, $27
       ) RETURNING id, numero
     `, [
-      montoTotalLocal, descuentoLocal, baseImponibleLocal, ivaPct || 0, ivaMontoLocal, totalFactura,
+      montoTotalLocal,
+      descPct,  // PERCENTAGE, not absolute amount — Java stores % here
+      baseImponibleLocal, ivaPct || 0, ivaMontoLocal, totalFactura,
       clienteId, userId, ot.servicio_id, cajaId,
-      factMonedaId, factConversionMonedaId, factConversionMonedaId,
+      factMonedaId, conversionMonedaId, lab.moneda_id,
       factTipoCambio, factTipoCambioInverso,
       tasaCambio, igtfPct, igtfMontoLocal,
+      impuestoIgtf, impuestoTasaCambio,
+      fiscalizarFlag,
       lab.nombre, lab.rif,
       ot.centro_atencion_paciente_id || 1,
-      isCopago
+      isCopago,
+      tipoServicioId, intervaloFacturacionId
     ])
     const facturaId = factResult.rows[0].id
     const facturaNumero = factResult.rows[0].numero
@@ -1366,13 +1490,15 @@ router.post('/:numero/facturar', async (req, res) => {
           INSERT INTO item_factura (factura_id, nombre_item, cantidad, monto,
             precio_sin_descuento, descuento, descuento_monto,
             codigo_caja, gp_id,
-            monto_mon_ext, precio_sin_desc_mon_ext)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            monto_mon_ext, precio_sin_desc_mon_ext,
+            impuesto_id, is_recargo, descuento_rh)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, false, 0)
         `, [facturaId, gp.nombre, cantidad, montoLocal, psdLocal,
             descPct || 0, descLocal,
             gp.codigo_caja || 'GEN01', gp.gp_id,
             esConDivisas ? precioConDesc * cantidad : null,
-            esConDivisas ? precioSinDesc * cantidad : null])
+            esConDivisas ? precioSinDesc * cantidad : null,
+            impuestoId])
       }
     }
 
@@ -1398,13 +1524,15 @@ router.post('/:numero/facturar', async (req, res) => {
           INSERT INTO item_factura (factura_id, nombre_item, cantidad, monto,
             precio_sin_descuento, descuento, descuento_monto,
             codigo_caja, prueba_id,
-            monto_mon_ext, precio_sin_desc_mon_ext)
-          VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8, $9, $10)
+            monto_mon_ext, precio_sin_desc_mon_ext,
+            impuesto_id, is_recargo, descuento_rh)
+          VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8, $9, $10, $11, false, 0)
         `, [facturaId, p.nombre, montoLocal, psdLocal,
             descPct || 0, descLocal,
             p.codigo_caja || null, p.prueba_id,
             esConDivisas ? precioConDesc : null,
-            esConDivisas ? precioSinDesc : null])
+            esConDivisas ? precioSinDesc : null,
+            impuestoId])
       }
     }
 
@@ -1416,6 +1544,18 @@ router.post('/:numero/facturar', async (req, res) => {
       INSERT INTO cliente_has_orden (orden_id, cliente_id, servicio_id, facturado, factura_id)
       VALUES ($1, $2, $3, true, $4)
     `, [ot.id, clienteId, ot.servicio_id, facturaId])
+
+    // Crear factura_servicio_parcial (bridge table Java uses for OT-factura linking)
+    await client.query(`
+      INSERT INTO factura_servicio_parcial (factura_id, orden_id, monto_pagar, servicio_id, fecha_orden)
+      VALUES ($1, $2, $3, $4, NOW())
+    `, [facturaId, ot.id, totalFactura, ot.servicio_id])
+
+    // Insertar factura_log "Creada Factura" (matches Java's FacturaHome.persist)
+    await client.query(`
+      INSERT INTO factura_log (usuario_id, accion, factura_id, realizado_timestamp)
+      VALUES ($1, 'Creada Factura', $2, NOW())
+    `, [userId, facturaId])
 
     // Insertar accion_log "CREADA FACTURA"
     await client.query(`
@@ -1519,6 +1659,7 @@ router.get('/factura/:ref', async (req, res) => {
 
 // ═══════════════════════════════════════════════════════
 // POST /api/ot/factura/:id/pago — Registrar pago
+// Creates full chain: factura_pago → pago → cliente_pago (matches Java FacturaPagoHome.persist)
 // ═══════════════════════════════════════════════════════
 router.post('/factura/:id/pago', async (req, res) => {
   const client = await pool.connect()
@@ -1528,42 +1669,101 @@ router.post('/factura/:id/pago', async (req, res) => {
     const { tipo_pago_id, monto, num_documento, monto_recibido } = req.body
     const userId = req.user?.userId || null
 
-    const factCheck = await client.query('SELECT id, total_factura, status_id, moneda_id FROM factura WHERE id = $1', [facturaId])
+    const factCheck = await client.query(
+      'SELECT id, total_factura, status_id, moneda_id, cliente_id FROM factura WHERE id = $1',
+      [facturaId]
+    )
     if (!factCheck.rows.length) return res.status(404).json({ error: 'Factura no encontrada' })
     if (factCheck.rows[0].status_id === 4) return res.status(400).json({ error: 'Factura anulada' })
 
-    // Obtener moneda base del lab para moneda_base del pago
+    const factura = factCheck.rows[0]
+    const clienteId = factura.cliente_id
+
+    // Obtener moneda base del lab
     const labPago = await client.query('SELECT moneda_id FROM laboratorio LIMIT 1')
     const monedaBase = labPago.rows[0]?.moneda_id || 1
 
-    const pagosSum = await client.query('SELECT COALESCE(SUM(monto),0) AS total FROM factura_pago WHERE factura_id = $1 AND anulado = false', [facturaId])
+    const pagosSum = await client.query(
+      'SELECT COALESCE(SUM(monto),0) AS total FROM factura_pago WHERE factura_id = $1 AND anulado = false',
+      [facturaId]
+    )
     const totalPagado = parseFloat(pagosSum.rows[0].total)
-    const totalFactura = parseFloat(factCheck.rows[0].total_factura)
+    const totalFactura = parseFloat(factura.total_factura)
     const pendiente = totalFactura - totalPagado
 
     if (parseFloat(monto) > pendiente + 0.01) {
       return res.status(400).json({ error: 'Monto excede el pendiente' })
     }
 
-    const cambio = monto_recibido ? Math.max(0, parseFloat(monto_recibido) - parseFloat(monto)) : 0
+    const montoNum = parseFloat(monto)
+    const recibido = monto_recibido ? parseFloat(monto_recibido) : montoNum
+    const cambio = Math.max(0, recibido - montoNum)
 
-    await client.query(`
+    // 1) INSERT factura_pago
+    const fpResult = await client.query(`
       INSERT INTO factura_pago (factura_id, tipo_pago_id, monto, num_documento,
-                                fecha, usuario_id, monto_recibido, monto_cambio_devuelto,
-                                moneda_base)
-      VALUES ($1, $2, $3, $4, NOW(), $5, $6, $7, $8)
-    `, [facturaId, tipo_pago_id, monto, num_documento || null, userId,
-        monto_recibido || null, cambio > 0 ? cambio : null, monedaBase])
+                                fecha, usuario_id, moneda_base,
+                                monto_recibido, monto_cambio_devuelto,
+                                is_monto_recibido_moneda_base, is_monto_cambio_moneda_base,
+                                anulado, enviada_sistema_contable, fiscal, fiscalizar)
+      VALUES ($1, $2, $3, $4, NOW(), $5, $6, $7, $8, true, true, false, false, false, false)
+      RETURNING id
+    `, [facturaId, tipo_pago_id, montoNum, num_documento || null, userId,
+        monedaBase, recibido, cambio > 0 ? cambio : 0])
+    const facturaPagoId = fpResult.rows[0].id
 
-    // Verificar si factura está completamente pagada
-    const newPagosSum = await client.query('SELECT COALESCE(SUM(monto),0) AS total FROM factura_pago WHERE factura_id = $1 AND anulado = false', [facturaId])
+    // 2) INSERT pago (bank reference record, links back to factura_pago)
+    const pagoResult = await client.query(`
+      INSERT INTO pago (id, factura_pago_id, banco, num_documento)
+      VALUES (nextval('pago_id_seq'), $1, '', $2)
+      RETURNING id
+    `, [facturaPagoId, num_documento || null])
+    const pagoId = pagoResult.rows[0].id
+
+    // 3) INSERT cliente_pago (client payment record)
+    const cpResult = await client.query(`
+      INSERT INTO cliente_pago (id, cliente_id, monto, monto_disponible, num_documento,
+                                anulado, fecha, usuario_id, tipo_pago_id, pago_id,
+                                moneda_base, is_monto_recibido_moneda_base, is_monto_cambio_moneda_base,
+                                monto_recibido, monto_cambio_devuelto)
+      VALUES (nextval('cliente_pago_id_seq'), $1, $2, 0, $3, false, NOW(), $4, $5, $6, $7, true, true, $8, $9)
+      RETURNING id
+    `, [clienteId, montoNum, num_documento || null, userId, tipo_pago_id,
+        pagoId, monedaBase, recibido, cambio > 0 ? cambio : 0])
+    const clientePagoId = cpResult.rows[0].id
+
+    // 4) UPDATE factura_pago to link back to pago + cliente_pago
+    await client.query(
+      'UPDATE factura_pago SET pago_id = $1, cliente_pago_id = $2 WHERE id = $3',
+      [pagoId, clientePagoId, facturaPagoId]
+    )
+
+    // Determine new status
+    const newPagosSum = await client.query(
+      'SELECT COALESCE(SUM(monto),0) AS total FROM factura_pago WHERE factura_id = $1 AND anulado = false',
+      [facturaId]
+    )
     const nuevoTotal = parseFloat(newPagosSum.rows[0].total)
+    const nuevaStatus = nuevoTotal >= totalFactura - 0.01 ? 3 : (nuevoTotal > 0 ? 2 : 1)
+    const statusNombre = nuevaStatus === 3 ? 'Pagada' : (nuevaStatus === 2 ? 'Pago Parcial' : 'Activa')
 
-    if (nuevoTotal >= totalFactura - 0.01) {
-      await client.query('UPDATE factura SET status_id = 3 WHERE id = $1', [facturaId])
-    } else if (nuevoTotal > 0) {
-      await client.query('UPDATE factura SET status_id = 2 WHERE id = $1', [facturaId])
-    }
+    await client.query('UPDATE factura SET status_id = $1 WHERE id = $2', [nuevaStatus, facturaId])
+
+    // Get tipo_pago info for logs
+    const tpInfo = await client.query('SELECT tipo, codigo_sistema_contable FROM tipo_pago WHERE id = $1', [tipo_pago_id])
+    const tipoPagoNombre = tpInfo.rows[0]?.tipo || ''
+    const tipoPagoCodigo = tpInfo.rows[0]?.codigo_sistema_contable || ''
+
+    // 5) factura_log entries (Java creates 3 per payment)
+    const logTipoPago = 'Tipo Pago: ' + tipoPagoNombre
+    const logIngresado = 'Ingresado Pago a la Factura: ' + statusNombre
+    const logIngresadoTipo = 'Ingresado Tipo Pago: ' + (tipoPagoCodigo ? tipoPagoCodigo + ' ' : '') + tipoPagoNombre
+    await client.query(`
+      INSERT INTO factura_log (usuario_id, accion, factura_id, realizado_timestamp) VALUES
+        ($1, $2, $5, NOW()),
+        ($1, $3, $5, NOW()),
+        ($1, $4, $5, NOW())
+    `, [userId, logTipoPago, logIngresado, logIngresadoTipo, facturaId])
 
     await client.query('COMMIT')
     res.json({ ok: true })
@@ -1595,7 +1795,12 @@ router.post('/factura/:id/pago/:pagoId/anular', async (req, res) => {
     if (!pagoCheck.rows.length) return res.status(404).json({ error: 'Pago no encontrado' })
     if (pagoCheck.rows[0].anulado) return res.status(400).json({ error: 'Pago ya está anulado' })
 
+    // Anular factura_pago + linked cliente_pago
     await client.query('UPDATE factura_pago SET anulado = true WHERE id = $1', [pagoId])
+    await client.query(
+      'UPDATE cliente_pago SET anulado = true WHERE pago_id = (SELECT pago_id FROM factura_pago WHERE id = $1)',
+      [pagoId]
+    )
 
     // Recalculate status
     const factCheck = await client.query('SELECT total_factura FROM factura WHERE id = $1', [facturaId])
@@ -1701,9 +1906,10 @@ router.post('/factura/:id/nota-credito', async (req, res) => {
       INSERT INTO nota_debito_credito
         (factura_id, tipo_nota, monto_total, descuento, base_imponible,
          iva, iva_monto, total_nota, status_id, fecha, fecha_modificacion,
-         observaciones, razon_social, razon_social_ci_rif, razon_social_direccion)
-      VALUES ($1, 1, $2, 0, $3, $4, $5, $2, 3, NOW(), CURRENT_DATE,
-              $6, $7, $8, $9)
+         observaciones, razon_social, razon_social_ci_rif, razon_social_direccion,
+         numero_nota_fiscal, numero_fiscal, fiscalizar, fiscal, enviada_sistema_contable)
+      VALUES ($1, 1, $2, 0, $3, $4, $5, $2, 1, NOW(), CURRENT_DATE,
+              $6, $7, $8, $9, 0, 0, false, false, false)
       RETURNING id, numero
     `, [facturaId, montoNC, baseImponible, ivaPct, ivaMonto,
         observaciones || null, fact.razon_social, fact.razon_social_ci_rif,
@@ -1711,12 +1917,14 @@ router.post('/factura/:id/nota-credito', async (req, res) => {
 
     const ncId = ncResult.rows[0].id
 
+    // Insert NC item using observaciones as nombre_item (matches Java pattern)
+    const itemName = observaciones?.trim() || 'Nota de Crédito'
     await client.query(`
-      INSERT INTO item_nota_debito_credito (nota_id, cantidad, nombre_item, monto)
-      VALUES ($1, 1, 'Nota de Crédito', $2)
-    `, [ncId, montoNC])
+      INSERT INTO item_nota_debito_credito (nota_id, cantidad, nombre_item, monto, exento)
+      VALUES ($1, 1, $2, $3, true)
+    `, [ncId, itemName, montoNC])
 
-    // If NC covers total, update factura status
+    // If NC covers total, update factura status to NC Emitida
     if (montoNC >= parseFloat(fact.total_factura) - 0.01) {
       await client.query('UPDATE factura SET status_id = 6 WHERE id = $1', [facturaId])
     }

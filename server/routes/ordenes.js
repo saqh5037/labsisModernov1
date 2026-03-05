@@ -392,6 +392,89 @@ router.get('/lab/queue', async (req, res) => {
   }
 })
 
+// ── GET /api/ordenes/lab/notas-predefinidas ── Catálogo de notas predefinidas
+// NOTE: Must be BEFORE /:numero to avoid being captured by that wildcard route
+router.get('/lab/notas-predefinidas', async (_req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, titulo, texto, codigo
+      FROM prueba_nota_predefinida
+      ORDER BY titulo
+    `)
+    res.json(result.rows)
+  } catch (err) {
+    if (err.code === '42P01') return res.json([])
+    console.error('GET notas-predefinidas error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── GET /api/ordenes/lab/quick-search?q=... ── Búsqueda rápida por barcode/número/CI/nombre
+// NOTE: Must be BEFORE /:numero to avoid being captured by that wildcard route
+router.get('/lab/quick-search', async (req, res) => {
+  try {
+    const { q } = req.query
+    if (!q || q.length < 2) return res.json([])
+
+    let results = []
+
+    // 1. Si contiene guión → buscar por barcode de muestra
+    if (q.includes('-')) {
+      const r = await pool.query(`
+        SELECT DISTINCT ot.numero,
+               p.nombre || ' ' || p.apellido AS paciente_nombre,
+               so.status, so.color
+        FROM muestra m
+        JOIN orden_trabajo ot ON m.orden_id = ot.id
+        JOIN paciente p ON ot.paciente_id = p.id
+        LEFT JOIN status_orden so ON ot.status_id = so.id
+        WHERE m.barcode = $1
+        LIMIT 1
+      `, [q.trim()])
+      results = r.rows
+    }
+
+    // 2. Si son solo dígitos → buscar por número de orden
+    if (results.length === 0 && /^\d{4,10}$/.test(q.trim())) {
+      const r = await pool.query(`
+        SELECT ot.numero,
+               p.nombre || ' ' || p.apellido AS paciente_nombre,
+               so.status, so.color
+        FROM orden_trabajo ot
+        JOIN paciente p ON ot.paciente_id = p.id
+        LEFT JOIN status_orden so ON ot.status_id = so.id
+        WHERE ot.numero = $1
+        LIMIT 1
+      `, [q.trim()])
+      results = r.rows
+    }
+
+    // 3. Buscar por CI o nombre de paciente
+    if (results.length === 0) {
+      const searchTerm = `%${q.trim()}%`
+      const r = await pool.query(`
+        SELECT DISTINCT ON (ot.numero) ot.numero,
+               p.nombre || ' ' || p.apellido AS paciente_nombre,
+               so.status, so.color
+        FROM orden_trabajo ot
+        JOIN paciente p ON ot.paciente_id = p.id
+        LEFT JOIN status_orden so ON ot.status_id = so.id
+        WHERE (p.ci_paciente ILIKE $1
+          OR sin_acentos(p.nombre || ' ' || p.apellido) ILIKE sin_acentos($1))
+          AND ot.fecha >= NOW() - INTERVAL '30 days'
+        ORDER BY ot.numero, ot.fecha DESC
+        LIMIT 10
+      `, [searchTerm])
+      results = r.rows
+    }
+
+    res.json(results)
+  } catch (err) {
+    console.error('GET /ordenes/lab/quick-search error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // GET /api/ordenes/:numero — detalle completo de una orden
 router.get('/:numero', async (req, res) => {
   try {
@@ -533,12 +616,17 @@ router.patch('/:numero/stat', async (req, res) => {
 router.patch('/:numero/abortar', async (req, res) => {
   try {
     const { numero } = req.params
-    const check = await pool.query('SELECT status_id FROM orden_trabajo WHERE numero = $1', [numero])
+    const check = await pool.query('SELECT id, status_id FROM orden_trabajo WHERE numero = $1', [numero])
     if (!check.rows.length) return res.status(404).json({ error: 'Orden no encontrada' })
     const statusId = check.rows[0].status_id
     if (statusId === 4) return res.status(400).json({ error: 'No se puede abortar una orden validada' })
     if (statusId === 6) return res.status(400).json({ error: 'La orden ya está abortada' })
     await pool.query('UPDATE orden_trabajo SET status_id = 6 WHERE numero = $1', [numero])
+    await pool.query(
+      `INSERT INTO accion_log (usuario_id, accion, realizado, realizado_timestamp, orden_id)
+       VALUES ($1, 'ABORTADA ORDEN', NOW(), NOW(), $2)`,
+      [req.user?.userId || 0, check.rows[0].id]
+    )
     res.json({ ok: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -555,6 +643,11 @@ router.patch('/:numero/activar', async (req, res) => {
     const ordenId = check.rows[0].id
     await pool.query('UPDATE orden_trabajo SET status_id = 1 WHERE numero = $1', [numero])
     await pool.query('UPDATE status_area SET status_orden_id = 1 WHERE orden_id = $1', [ordenId])
+    await pool.query(
+      `INSERT INTO accion_log (usuario_id, accion, realizado, realizado_timestamp, orden_id)
+       VALUES ($1, 'ACTIVADA ORDEN', NOW(), NOW(), $2)`,
+      [req.user?.userId || 0, ordenId]
+    )
     res.json({ ok: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -588,7 +681,7 @@ router.get('/:numero/preguntas', async (req, res) => {
     const { numero } = req.params
     const result = await pool.query(`
       SELECT pip_ot.id, pip_ot.pregunta, pip_ot.respuesta, pip_ot.orden_posicion, pip_ot.codigo,
-             tpi.nombre AS tipo
+             tpi.tipo
       FROM pregunta_ingreso_prueba_orden_trabajo pip_ot
       JOIN tipo_pregunta_ingreso tpi ON tpi.id = pip_ot.tipo_pregunta_ingreso_id
       WHERE pip_ot.orden_id = (SELECT id FROM orden_trabajo WHERE numero = $1)
@@ -637,86 +730,7 @@ router.patch('/:numero/muestras-no-entregadas', async (req, res) => {
   }
 })
 
-// ── GET /api/ordenes/lab/notas-predefinidas ── Catálogo de notas predefinidas
-router.get('/lab/notas-predefinidas', async (_req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT id, titulo, texto, codigo
-      FROM prueba_nota_predefinida
-      ORDER BY titulo
-    `)
-    res.json(result.rows)
-  } catch (err) {
-    if (err.code === '42P01') return res.json([])
-    console.error('GET notas-predefinidas error:', err)
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// ── GET /api/ordenes/lab/quick-search?q=... ── Búsqueda rápida por barcode/número/CI/nombre
-router.get('/lab/quick-search', async (req, res) => {
-  try {
-    const { q } = req.query
-    if (!q || q.length < 2) return res.json([])
-
-    let results = []
-
-    // 1. Si contiene guión → buscar por barcode de muestra
-    if (q.includes('-')) {
-      const r = await pool.query(`
-        SELECT DISTINCT ot.numero,
-               p.nombre || ' ' || p.apellido AS paciente_nombre,
-               so.status, so.color
-        FROM muestra m
-        JOIN orden_trabajo ot ON m.orden_id = ot.id
-        JOIN paciente p ON ot.paciente_id = p.id
-        LEFT JOIN status_orden so ON ot.status_id = so.id
-        WHERE m.barcode = $1
-        LIMIT 1
-      `, [q.trim()])
-      results = r.rows
-    }
-
-    // 2. Si son solo dígitos → buscar por número de orden
-    if (results.length === 0 && /^\d{4,10}$/.test(q.trim())) {
-      const r = await pool.query(`
-        SELECT ot.numero,
-               p.nombre || ' ' || p.apellido AS paciente_nombre,
-               so.status, so.color
-        FROM orden_trabajo ot
-        JOIN paciente p ON ot.paciente_id = p.id
-        LEFT JOIN status_orden so ON ot.status_id = so.id
-        WHERE ot.numero = $1
-        LIMIT 1
-      `, [q.trim()])
-      results = r.rows
-    }
-
-    // 3. Buscar por CI o nombre de paciente
-    if (results.length === 0) {
-      const searchTerm = `%${q.trim()}%`
-      const r = await pool.query(`
-        SELECT DISTINCT ON (ot.numero) ot.numero,
-               p.nombre || ' ' || p.apellido AS paciente_nombre,
-               so.status, so.color
-        FROM orden_trabajo ot
-        JOIN paciente p ON ot.paciente_id = p.id
-        LEFT JOIN status_orden so ON ot.status_id = so.id
-        WHERE (p.ci_paciente ILIKE $1
-          OR sin_acentos(p.nombre || ' ' || p.apellido) ILIKE sin_acentos($1))
-          AND ot.fecha >= NOW() - INTERVAL '30 days'
-        ORDER BY ot.numero, ot.fecha DESC
-        LIMIT 10
-      `, [searchTerm])
-      results = r.rows
-    }
-
-    res.json(results)
-  } catch (err) {
-    console.error('GET /ordenes/lab/quick-search error:', err)
-    res.status(500).json({ error: err.message })
-  }
-})
+// (Moved to before /:numero route to avoid being shadowed)
 
 // ── GET /api/ordenes/:numero/lab ── Datos para pantalla de ingreso de resultados
 router.get('/:numero/lab', async (req, res) => {
@@ -1057,6 +1071,11 @@ router.put('/:numero/lab/resultados', async (req, res) => {
     const { resultados, observaciones_area } = req.body
     const user = req.user
 
+    if (!Array.isArray(resultados) || resultados.length === 0) {
+      client.release()
+      return res.status(400).json({ error: 'resultados debe ser un array no vacío' })
+    }
+
     // ── Control de roles ──
     const canValidate = hasLabRole(user)
     const hasValidaciones = resultados.some(r => r.validado !== undefined)
@@ -1098,10 +1117,13 @@ router.put('/:numero/lab/resultados', async (req, res) => {
       const poResult = await client.query(`
         SELECT po.id, po.prueba_id, po.area_id, po.status_id AS po_status,
                po.fecha_validacion AS po_fecha_val,
-               tp.codigo AS tipo
+               tp.codigo AS tipo,
+               COALESCE(u.unidad, '') AS unidad_nombre,
+               COALESCE(u.simbolo, '') AS unidad_simbolo
         FROM prueba_orden po
         LEFT JOIN prueba pr ON po.prueba_id = pr.id
         LEFT JOIN tipo_prueba tp ON pr.tipo_prueba_id = tp.id
+        LEFT JOIN unidad u ON pr.unidad_id = u.id
         WHERE po.id = $1 AND po.orden_id = $2
       `, [r.prueba_orden_id, ordenId])
       if (!poResult.rows.length) continue
@@ -1145,8 +1167,9 @@ router.put('/:numero/lab/resultados', async (req, res) => {
               if (pHigh != null && vMin != null && pHigh <= vMin) pMin = pHigh
               if (pLow != null && vMax != null && pLow >= vMax) pMax = pLow
             }
-            if (pMax != null && numVal >= pMax) { alarmaStr = 'HH'; isAnormal = true; isCritico = true }
-            else if (pMin != null && numVal <= pMin) { alarmaStr = 'LL'; isAnormal = true; isCritico = true }
+            // alarma is char(1) in resultado_numer: H/L/N only. critico flag lives in prueba_orden.
+            if (pMax != null && numVal >= pMax) { alarmaStr = 'H'; isAnormal = true; isCritico = true }
+            else if (pMin != null && numVal <= pMin) { alarmaStr = 'L'; isAnormal = true; isCritico = true }
             else if (vMax != null && numVal > vMax) { alarmaStr = 'H'; isAnormal = true }
             else if (vMin != null && numVal < vMin) { alarmaStr = 'L'; isAnormal = true }
             else { alarmaStr = 'N' }
@@ -1159,10 +1182,12 @@ router.put('/:numero/lab/resultados', async (req, res) => {
         if (r.valor !== undefined) {
           await client.query(`
             INSERT INTO resultado_numer (pruebao_id, valor, unidad, simbolo, validado_por, creado, actualizado, alarma, valor_timestamp, bioanalista_realizador_id, menor_mayor)
-            VALUES ($1, $2, '', '', $4, NOW()::time, NOW()::time, $3, NOW(), $5, $7)
+            VALUES ($1, $2, $8, $9, $4, NOW()::time, NOW()::time, $3, NOW(), $5, $7)
             ON CONFLICT (pruebao_id)
             DO UPDATE SET valor = $2, alarma = $3, valor_timestamp = NOW(), actualizado = NOW()::time,
                           menor_mayor = $7,
+                          unidad = COALESCE(NULLIF($8, ''), resultado_numer.unidad),
+                          simbolo = COALESCE(NULLIF($9, ''), resultado_numer.simbolo),
                           validado_por = CASE WHEN $6::boolean THEN $4 ELSE resultado_numer.validado_por END,
                           bioanalista_realizador_id = COALESCE(NULLIF($5, 0), resultado_numer.bioanalista_realizador_id),
                           actualizado_sin_validar_timestamp = CASE WHEN $6::boolean THEN resultado_numer.actualizado_sin_validar_timestamp ELSE NOW() END
@@ -1170,13 +1195,15 @@ router.put('/:numero/lab/resultados', async (req, res) => {
               r.validado ? (bioanalistaId || 0) : 0,
               bioanalistaId || 0,
               r.validado || false,
-              r.menor_mayor || null])
+              r.menor_mayor || null,
+              po.unidad_nombre || '',
+              po.unidad_simbolo || ''])
         }
       } else {
         if (r.valor !== undefined) {
           await client.query(`
             INSERT INTO resultado_alpha (pruebao_id, valor, validado_por, creado, actualizado, alarma, bioanalista_realizador_id)
-            VALUES ($1, $2, $4, NOW()::time, NOW()::time, '', $5)
+            VALUES ($1, $2, $4, NOW()::time, NOW()::time, 'n', $5)
             ON CONFLICT (pruebao_id)
             DO UPDATE SET valor = $2, actualizado = NOW()::time,
                           bioanalista_realizador_id = COALESCE(NULLIF($5, 0), resultado_alpha.bioanalista_realizador_id),
@@ -1192,15 +1219,23 @@ router.put('/:numero/lab/resultados', async (req, res) => {
         const newStatus = r.validado
           ? (r.valor === '' || r.valor == null ? 7 : 4)
           : (r.valor !== '' && r.valor != null ? 2 : 1)
-        await client.query(`
-          UPDATE prueba_orden SET
-            status_id = $1,
-            fecha_validacion = $2,
-            fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2),
-            anormal = $3,
-            critico = $4
-          WHERE id = $5
-        `, [newStatus, r.validado ? new Date() : null, isAnormal, isCritico, r.prueba_orden_id])
+        const fechaVal = r.validado ? new Date() : null
+        if (tipo === 'NUM' || tipo === 'CAL') {
+          // NUM/CAL: update anormal/critico flags
+          await client.query(`
+            UPDATE prueba_orden SET status_id = $1, fecha_validacion = $2,
+              fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2),
+              anormal = $3, critico = $4
+            WHERE id = $5
+          `, [newStatus, fechaVal, isAnormal, isCritico, r.prueba_orden_id])
+        } else {
+          // Alpha types: don't overwrite anormal/critico (may have been set by Labsis)
+          await client.query(`
+            UPDATE prueba_orden SET status_id = $1, fecha_validacion = $2,
+              fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2)
+            WHERE id = $3
+          `, [newStatus, fechaVal, r.prueba_orden_id])
+        }
 
         // ── Audit log: prueba_orden_log ──
         const accion = r.validado
@@ -1211,13 +1246,20 @@ router.put('/:numero/lab/resultados', async (req, res) => {
           VALUES ($1, $2, $3, NOW(), $4, 'VALIDACION')
         `, [r.prueba_orden_id, bioanalistaId || 0, user.userId, accion])
       } else if (r.valor !== undefined) {
-        await client.query(`
-          UPDATE prueba_orden SET
-            status_id = CASE WHEN status_id = 1 THEN 2 ELSE status_id END,
-            anormal = $2,
-            critico = $3
-          WHERE id = $1
-        `, [r.prueba_orden_id, isAnormal, isCritico])
+        if (tipo === 'NUM' || tipo === 'CAL') {
+          await client.query(`
+            UPDATE prueba_orden SET
+              status_id = CASE WHEN status_id = 1 THEN 2 ELSE status_id END,
+              anormal = $2, critico = $3
+            WHERE id = $1
+          `, [r.prueba_orden_id, isAnormal, isCritico])
+        } else {
+          await client.query(`
+            UPDATE prueba_orden SET
+              status_id = CASE WHEN status_id = 1 THEN 2 ELSE status_id END
+            WHERE id = $1
+          `, [r.prueba_orden_id])
+        }
 
         // Log captura de valor
         await client.query(`
@@ -1252,6 +1294,9 @@ router.put('/:numero/lab/resultados', async (req, res) => {
             [r.prueba_orden_id, notaResult.rows[0].id, ordenId]
           )
         }
+        // Update contiene_notas flag for Labsis Java compatibility
+        const hasNotas = r.nota.trim() !== ''
+        await client.query('UPDATE prueba_orden SET contiene_notas = $1 WHERE id = $2', [hasNotas, r.prueba_orden_id])
       }
     }
 
@@ -1276,16 +1321,17 @@ router.put('/:numero/lab/resultados', async (req, res) => {
       const existing = await client.query(
         'SELECT id FROM status_area WHERE orden_id = $1 AND area_id = $2', [ordenId, areaId]
       )
+      const tieneAlarma = (stats.anormales || 0) > 0
       if (existing.rows.length > 0) {
         await client.query(`
-          UPDATE status_area SET status_orden_id = $3, porcentaje_con_valor_resultado = $4, is_alguna_prueba_validada = $5
+          UPDATE status_area SET status_orden_id = $3, porcentaje_con_valor_resultado = $4, is_alguna_prueba_validada = $5, is_activa_alarma_val_ref = $6
           WHERE orden_id = $1 AND area_id = $2
-        `, [ordenId, areaId, areaStatus, pctConValor, stats.alguna_validada || false])
+        `, [ordenId, areaId, areaStatus, pctConValor, stats.alguna_validada || false, tieneAlarma])
       } else {
         await client.query(`
-          INSERT INTO status_area (orden_id, area_id, status_orden_id, porcentaje_con_valor_resultado, is_alguna_prueba_validada)
-          VALUES ($1, $2, $3, $4, $5)
-        `, [ordenId, areaId, areaStatus, pctConValor, stats.alguna_validada || false])
+          INSERT INTO status_area (orden_id, area_id, status_orden_id, porcentaje_con_valor_resultado, is_alguna_prueba_validada, is_activa_alarma_val_ref)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [ordenId, areaId, areaStatus, pctConValor, stats.alguna_validada || false, tieneAlarma])
       }
     }
 
@@ -1293,7 +1339,7 @@ router.put('/:numero/lab/resultados', async (req, res) => {
     const allPO = await client.query('SELECT status_id FROM prueba_orden WHERE orden_id = $1', [ordenId])
     const allValidated = allPO.rows.every(r => r.status_id === 4 || r.status_id === 7)
     if (allValidated && allPO.rows.length > 0) {
-      await client.query('UPDATE orden_trabajo SET status_id = 4 WHERE id = $1', [ordenId])
+      await client.query('UPDATE orden_trabajo SET status_id = 4, fecha_validado = NOW() WHERE id = $1', [ordenId])
     } else {
       // Si no todo está validado pero hay al menos una validada, status = 8 (Por Validar)
       const someValidated = allPO.rows.some(r => r.status_id === 4 || r.status_id === 7)
@@ -1388,7 +1434,7 @@ router.post('/:numero/lab/correccion', async (req, res) => {
     await client.query(`
       INSERT INTO prueba_orden_correccion (pruebao_id, valor_old, valor_new, fecha_old, fecha_new, observacion, razon_correccion)
       VALUES ($1, $2, $3, $4, NOW(), $5, $6)
-    `, [prueba_orden_id, valorOld, valor_new, po.po_fecha_val || new Date(), observacion || '', razon_correccion || ''])
+    `, [prueba_orden_id, valorOld, valor_new, po.fecha_validacion || new Date(), observacion || '', razon_correccion || ''])
 
     // Actualizar el valor actual
     if (po.tipo === 'NUM' || po.tipo === 'CAL') {

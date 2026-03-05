@@ -340,6 +340,11 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
     const user = req.user
     const aid = parseInt(areaId)
 
+    if (!Array.isArray(resultados) && !validarTodo) {
+      client.release()
+      return res.status(400).json({ error: 'resultados debe ser un array' })
+    }
+
     if (!hasLabRole(user)) {
       return res.status(403).json({ error: 'No tiene permisos para validar resultados' })
     }
@@ -363,15 +368,19 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
     // Save individual results
     for (const r of (resultados || [])) {
       const poResult = await client.query(`
-        SELECT po.id, po.prueba_id, tp.codigo AS tipo
+        SELECT po.id, po.prueba_id, tp.codigo AS tipo,
+               COALESCE(u.unidad, '') AS unidad_nombre,
+               COALESCE(u.simbolo, '') AS unidad_simbolo
         FROM prueba_orden po
         LEFT JOIN prueba pr ON po.prueba_id = pr.id
         LEFT JOIN tipo_prueba tp ON pr.tipo_prueba_id = tp.id
+        LEFT JOIN unidad u ON pr.unidad_id = u.id
         WHERE po.id = $1 AND po.orden_id = $2 AND po.area_id = $3
       `, [r.prueba_orden_id, otId, aid])
       if (!poResult.rows.length) continue
-      const tipo = poResult.rows[0].tipo || 'NUM'
-      const pruebaId = poResult.rows[0].prueba_id
+      const poRow = poResult.rows[0]
+      const tipo = poRow.tipo || 'NUM'
+      const pruebaId = poRow.prueba_id
 
       // Alarm calculation
       let alarmaStr = ''
@@ -406,8 +415,9 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
               if (pHigh != null && vMin != null && pHigh <= vMin) pMin = pHigh
               if (pLow != null && vMax != null && pLow >= vMax) pMax = pLow
             }
-            if (pMax != null && numVal >= pMax) { alarmaStr = 'HH'; isAnormal = true; isCritico = true }
-            else if (pMin != null && numVal <= pMin) { alarmaStr = 'LL'; isAnormal = true; isCritico = true }
+            // alarma is char(1) in resultado_numer: H/L/N only. critico flag lives in prueba_orden.
+            if (pMax != null && numVal >= pMax) { alarmaStr = 'H'; isAnormal = true; isCritico = true }
+            else if (pMin != null && numVal <= pMin) { alarmaStr = 'L'; isAnormal = true; isCritico = true }
             else if (vMax != null && numVal > vMax) { alarmaStr = 'H'; isAnormal = true }
             else if (vMin != null && numVal < vMin) { alarmaStr = 'L'; isAnormal = true }
             else { alarmaStr = 'N' }
@@ -420,20 +430,24 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
         if (r.valor !== undefined) {
           await client.query(`
             INSERT INTO resultado_numer (pruebao_id, valor, unidad, simbolo, validado_por, creado, actualizado, alarma, valor_timestamp, bioanalista_realizador_id, menor_mayor)
-            VALUES ($1, $2, '', '', $4, NOW()::time, NOW()::time, $3, NOW(), $5, $7)
+            VALUES ($1, $2, $8, $9, $4, NOW()::time, NOW()::time, $3, NOW(), $5, $7)
             ON CONFLICT (pruebao_id)
             DO UPDATE SET valor = $2, alarma = $3, valor_timestamp = NOW(), actualizado = NOW()::time,
                           menor_mayor = $7,
+                          unidad = COALESCE(NULLIF($8, ''), resultado_numer.unidad),
+                          simbolo = COALESCE(NULLIF($9, ''), resultado_numer.simbolo),
                           validado_por = CASE WHEN $6::boolean THEN $4 ELSE resultado_numer.validado_por END,
-                          bioanalista_realizador_id = COALESCE(NULLIF($5, 0), resultado_numer.bioanalista_realizador_id)
+                          bioanalista_realizador_id = COALESCE(NULLIF($5, 0), resultado_numer.bioanalista_realizador_id),
+                          actualizado_sin_validar_timestamp = CASE WHEN $6::boolean THEN resultado_numer.actualizado_sin_validar_timestamp ELSE NOW() END
           `, [r.prueba_orden_id, r.valor === '' ? null : parseFloat(r.valor), alarmaStr,
-              r.validado ? (bioanalistaId || 0) : 0, bioanalistaId || 0, r.validado || false, r.menor_mayor || null])
+              r.validado ? (bioanalistaId || 0) : 0, bioanalistaId || 0, r.validado || false, r.menor_mayor || null,
+              poRow.unidad_nombre || '', poRow.unidad_simbolo || ''])
         }
       } else {
         if (r.valor !== undefined) {
           await client.query(`
             INSERT INTO resultado_alpha (pruebao_id, valor, validado_por, creado, actualizado, alarma, bioanalista_realizador_id)
-            VALUES ($1, $2, $4, NOW()::time, NOW()::time, '', $5)
+            VALUES ($1, $2, $4, NOW()::time, NOW()::time, 'n', $5)
             ON CONFLICT (pruebao_id)
             DO UPDATE SET valor = $2, actualizado = NOW()::time,
                           bioanalista_realizador_id = COALESCE(NULLIF($5, 0), resultado_alpha.bioanalista_realizador_id),
@@ -448,6 +462,7 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
         await client.query(`
           UPDATE prueba_orden SET status_id = $1, fecha_validacion = $2,
             fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2),
+            fecha_validacion_db = CASE WHEN $2 IS NOT NULL THEN NOW() ELSE fecha_validacion_db END,
             anormal = $3, critico = $4
           WHERE id = $5
         `, [newStatus, r.validado ? new Date() : null, isAnormal, isCritico, r.prueba_orden_id])
@@ -491,6 +506,9 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
             [r.prueba_orden_id, notaResult.rows[0].id, otId]
           )
         }
+        // Update contiene_notas flag for Labsis Java compatibility
+        const hasNotas = r.nota.trim() !== ''
+        await client.query('UPDATE prueba_orden SET contiene_notas = $1 WHERE id = $2', [hasNotas, r.prueba_orden_id])
       }
     }
 
@@ -512,11 +530,49 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
         const hasValue = (hasNumVal.rows[0]?.valor != null) || (hasAlphaVal.rows[0]?.valor != null && hasAlphaVal.rows[0]?.valor !== '')
         const newStatus = hasValue ? 4 : 7
 
+        // Recalculate anormal/critico for NUM/CAL pruebas
+        let isAnormal = false, isCritico = false
+        if ((tipo === 'NUM' || tipo === 'CAL') && hasNumVal.rows[0]?.valor != null) {
+          const numVal = Number(hasNumVal.rows[0].valor)
+          if (!isNaN(numVal)) {
+            const refResult = await client.query(`
+              SELECT valor_desde, valor_hasta, panico, sexo, edad_desde, edad_hasta
+              FROM valor_referencial WHERE prueba_id = $1 AND (activo IS NULL OR activo = true)
+            `, [po.prueba_id])
+            const matchesPac = rng => {
+              if (rng.sexo && rng.sexo.trim() && rng.sexo.trim() !== pacSexo) return false
+              if (rng.edad_desde != null && pacEdad != null && pacEdad < rng.edad_desde) return false
+              if (rng.edad_hasta != null && pacEdad != null && pacEdad > rng.edad_hasta) return false
+              return true
+            }
+            const normales = refResult.rows.filter(x => !x.panico)
+            const ref = normales.find(matchesPac) || normales[0] || null
+            const panicRows = refResult.rows.filter(x => x.panico)
+            const panicUsar = panicRows.filter(matchesPac).length > 0 ? panicRows.filter(matchesPac) : panicRows
+            if (ref) {
+              const vMin = ref.valor_desde != null ? Number(ref.valor_desde) : null
+              const vMax = ref.valor_hasta != null ? Number(ref.valor_hasta) : null
+              let pMin = null, pMax = null
+              for (const pr of panicUsar) {
+                const pLow = pr.valor_desde != null ? Number(pr.valor_desde) : null
+                const pHigh = pr.valor_hasta != null ? Number(pr.valor_hasta) : null
+                if (pHigh != null && vMin != null && pHigh <= vMin) pMin = pHigh
+                if (pLow != null && vMax != null && pLow >= vMax) pMax = pLow
+              }
+              if (pMax != null && numVal >= pMax) { isAnormal = true; isCritico = true }
+              else if (pMin != null && numVal <= pMin) { isAnormal = true; isCritico = true }
+              else if (vMax != null && numVal > vMax) { isAnormal = true }
+              else if (vMin != null && numVal < vMin) { isAnormal = true }
+            }
+          }
+        }
+
         await client.query(`
           UPDATE prueba_orden SET status_id = $1, fecha_validacion = NOW(),
-            fecha_primera_validacion = COALESCE(fecha_primera_validacion, NOW())
+            fecha_primera_validacion = COALESCE(fecha_primera_validacion, NOW()),
+            anormal = $3, critico = $4
           WHERE id = $2
-        `, [newStatus, po.id])
+        `, [newStatus, po.id, isAnormal, isCritico])
 
         // Set validado_por
         if (tipo === 'NUM' || tipo === 'CAL') {
@@ -547,6 +603,7 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
     const areaStats = await client.query(`
       SELECT COUNT(*)::int AS total,
         SUM(CASE WHEN po.status_id IN (4, 7) THEN 1 ELSE 0 END)::int AS validados,
+        SUM(CASE WHEN po.anormal = true THEN 1 ELSE 0 END)::int AS anormales,
         BOOL_OR(po.status_id IN (4, 7)) AS alguna_validada,
         SUM(CASE WHEN rn.valor IS NOT NULL OR (ra.valor IS NOT NULL AND ra.valor <> '') THEN 1 ELSE 0 END)::int AS con_valor
       FROM prueba_orden po
@@ -558,18 +615,24 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
     const areaAllValidated = stats.validados === stats.total && stats.total > 0
     const areaStatus = areaAllValidated ? 4 : (stats.validados > 0 ? 8 : 2)
     const pctConValor = stats.total > 0 ? Math.round(stats.con_valor / stats.total * 100) : 0
+    const tieneAlarma = (stats.anormales || 0) > 0
 
     await client.query(`
-      UPDATE status_area SET status_orden_id = $3, porcentaje_con_valor_resultado = $4, is_alguna_prueba_validada = $5
+      UPDATE status_area SET status_orden_id = $3, porcentaje_con_valor_resultado = $4, is_alguna_prueba_validada = $5, is_activa_alarma_val_ref = $6
       WHERE orden_id = $1 AND area_id = $2
-    `, [otId, aid, areaStatus, pctConValor, stats.alguna_validada || false])
+    `, [otId, aid, areaStatus, pctConValor, stats.alguna_validada || false, tieneAlarma])
 
-    // Recalculate OT status
-    if (areaAllValidated) {
-      const allAreas = await client.query('SELECT status_orden_id FROM status_area WHERE orden_id = $1', [otId])
-      const otFullyValidated = allAreas.rows.every(r => r.status_orden_id === 4)
-      if (otFullyValidated) {
-        await client.query('UPDATE orden_trabajo SET status_id = 4, fecha_validado = NOW() WHERE id = $1', [otId])
+    // Recalculate OT status (aligned with ordenes.js logic)
+    const allPO = await client.query('SELECT status_id FROM prueba_orden WHERE orden_id = $1', [otId])
+    const otAllValidated = allPO.rows.every(r => r.status_id === 4 || r.status_id === 7) && allPO.rows.length > 0
+    if (otAllValidated) {
+      await client.query('UPDATE orden_trabajo SET status_id = 4, fecha_validado = NOW() WHERE id = $1', [otId])
+    } else {
+      const someValidated = allPO.rows.some(r => r.status_id === 4 || r.status_id === 7)
+      const someWithValue = allPO.rows.some(r => r.status_id === 2 || r.status_id === 8)
+      if (someValidated || someWithValue) {
+        const newOtStatus = someValidated ? 8 : 2
+        await client.query('UPDATE orden_trabajo SET status_id = $2 WHERE id = $1 AND status_id NOT IN (4, 6)', [otId, newOtStatus])
       }
     }
 
