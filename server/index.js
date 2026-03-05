@@ -15,7 +15,7 @@ import devRouter from './routes/dev.js'
 import qaRouter from './routes/qa.js'
 import qaPublicRouter from './routes/qa-public.js'
 
-dotenv.config()
+if (process.env.NODE_ENV !== 'production') dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -52,7 +52,7 @@ app.use('/api/qa/screenshots', requireAuth, express.static(path.join(__dirname, 
 // Production: serve Vite build
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '..', 'dist')))
-  app.get('*', (_req, res) => {
+  app.get('{*path}', (_req, res) => {
     res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'))
   })
 }
