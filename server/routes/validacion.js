@@ -459,25 +459,40 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
       // Update prueba_orden status
       if (r.validado !== undefined) {
         const newStatus = r.validado ? (r.valor === '' || r.valor == null ? 7 : 4) : (r.valor !== '' && r.valor != null ? 2 : 1)
-        await client.query(`
-          UPDATE prueba_orden SET status_id = $1, fecha_validacion = $2,
-            fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2),
-            fecha_validacion_db = CASE WHEN $2 IS NOT NULL THEN NOW() ELSE fecha_validacion_db END,
-            anormal = $3, critico = $4
-          WHERE id = $5
-        `, [newStatus, r.validado ? new Date() : null, isAnormal, isCritico, r.prueba_orden_id])
+        const fechaVal = r.validado ? new Date() : null
+        if (tipo === 'NUM' || tipo === 'CAL') {
+          await client.query(`
+            UPDATE prueba_orden SET status_id = $1, fecha_validacion = $2,
+              fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2),
+              anormal = $3, critico = $4
+            WHERE id = $5
+          `, [newStatus, fechaVal, isAnormal, isCritico, r.prueba_orden_id])
+        } else {
+          await client.query(`
+            UPDATE prueba_orden SET status_id = $1, fecha_validacion = $2,
+              fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2)
+            WHERE id = $3
+          `, [newStatus, fechaVal, r.prueba_orden_id])
+        }
 
         await client.query(`
           INSERT INTO prueba_orden_log (prueba_orden_id, bioanalista_id, usuario_id, fecha, accion, tipo_accion)
           VALUES ($1, $2, $3, NOW(), $4, 'VALIDACION')
         `, [r.prueba_orden_id, bioanalistaId || 0, user.userId,
-            r.validado ? `Validado Bloque Valor:${r.valor || '(vacío)'}` : `Invalidado Bloque${r.nota_invalidacion ? ' — Razón: ' + r.nota_invalidacion : ''}`])
+            r.validado ? `Validado Valor:${r.valor || '(vacío)'}` : `Invalidado${r.nota_invalidacion ? ' — Razón: ' + r.nota_invalidacion : ''}`])
       } else if (r.valor !== undefined) {
-        await client.query(`
-          UPDATE prueba_orden SET status_id = CASE WHEN status_id = 1 THEN 2 ELSE status_id END,
-            anormal = $2, critico = $3
-          WHERE id = $1
-        `, [r.prueba_orden_id, isAnormal, isCritico])
+        if (tipo === 'NUM' || tipo === 'CAL') {
+          await client.query(`
+            UPDATE prueba_orden SET status_id = CASE WHEN status_id = 1 THEN 2 ELSE status_id END,
+              anormal = $2, critico = $3
+            WHERE id = $1
+          `, [r.prueba_orden_id, isAnormal, isCritico])
+        } else {
+          await client.query(`
+            UPDATE prueba_orden SET status_id = CASE WHEN status_id = 1 THEN 2 ELSE status_id END
+            WHERE id = $1
+          `, [r.prueba_orden_id])
+        }
       }
 
       // Persistir nota de prueba

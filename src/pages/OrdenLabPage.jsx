@@ -189,7 +189,7 @@ function addRipple(e) {
 }
 
 /* ── Inline: Validation Panel (left sidebar in validation mode) ── */
-const barColor = (pct) => pct >= 100 ? 'var(--success, #059669)' : pct >= 50 ? 'var(--success, #059669)' : pct > 0 ? 'var(--orange, #ea580c)' : 'var(--border-l, #e0e0e0)'
+const barColor = (pct) => pct >= 100 ? 'var(--success, #059669)' : pct >= 50 ? 'var(--orange, #ea580c)' : pct > 0 ? 'var(--orange, #ea580c)' : 'var(--border-l, #e0e0e0)'
 const fmtEst = (s) => s >= 60 ? `~${Math.round(s / 60)} min` : `~${s}s`
 
 const ValidationPanel = ({ validation, onSelect }) => {
@@ -481,6 +481,16 @@ export default function OrdenLabPage() {
     return () => clearTimeout(t)
   }, [toast])
 
+  // Warn before navigating away with unsaved changes
+  useEffect(() => {
+    const hasDirty = Object.keys(dirty).length > 0
+    const handler = (e) => {
+      if (hasDirty) { e.preventDefault(); e.returnValue = '' }
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [dirty])
+
   // Value resolution
   const getVal = (po) => dirty[po.id]?.valor ?? po.resultado ?? ''
   const getValidado = (po) => dirty[po.id]?.validado ?? (po.status_id === 4 || po.status_id === 7)
@@ -644,7 +654,7 @@ export default function OrdenLabPage() {
       if (val) s.conValor++
       const isV = dirty[po.id]?.validado ?? (po.status_id === 4 || po.status_id === 7)
       if (isV) s.validados++
-      if (po.tipo === 'NUM' && val) {
+      if ((po.tipo === 'NUM' || po.tipo === 'CAL') && val) {
         const f = calcFlag(val, po.referencia)
         if (f) {
           if (f.flag === 'N') s.normales++
@@ -746,7 +756,7 @@ export default function OrdenLabPage() {
         const resultados = Object.entries(saveDirty).map(([poId, changes]) => ({
           prueba_orden_id: parseInt(poId), ...changes
         }))
-        const resp = await saveVBResultados(data.orden.numero, activeArea, { resultados, validarTodo, observaciones_area: obsArea })
+        const resp = await saveVBResultados(data.orden.numero, activeArea, { resultados, validarTodo, observaciones_area: obsArea[activeArea] || '' })
         if (resp.areaValidated && validation.muestraActualId) {
           validation.markValidated(validation.muestraActualId)
           validation.recordTime()
@@ -794,7 +804,7 @@ export default function OrdenLabPage() {
     const unvalidated = area.pruebas.filter(po => !getValidado(po))
     checkValidationWarnings(unvalidated, () => {
       const newDirty = { ...dirty }
-      area.pruebas.forEach(po => {
+      unvalidated.forEach(po => {
         newDirty[po.id] = { ...newDirty[po.id], validado: true }
       })
       setDirty(newDirty)
@@ -1025,7 +1035,7 @@ export default function OrdenLabPage() {
                       if (results.length === 1) {
                         const target = String(results[0].numero)
                         if (target === String(numero)) {
-                          setToast({ type: 'success', msg: `Orden ${target} ya cargada` })
+                          setToast({ type: 'success', message: `Orden ${target} ya cargada` })
                         } else {
                           navigate(`/ordenes/${target}/lab`)
                         }
@@ -1034,9 +1044,9 @@ export default function OrdenLabPage() {
                       } else if (results.length > 1) {
                         setQuickResults(results)
                       } else {
-                        setToast({ type: 'error', msg: 'No se encontró orden' })
+                        setToast({ type: 'error', message: 'No se encontró orden' })
                       }
-                    } catch { setToast({ type: 'error', msg: 'Error de búsqueda' }) }
+                    } catch { setToast({ type: 'error', message: 'Error de búsqueda' }) }
                     finally { setQuickSearching(false) }
                   }
                 }}
@@ -1200,8 +1210,8 @@ export default function OrdenLabPage() {
                           await setAreaEspera(numero, activeArea, false)
                           const d = await getOrdenLab(numero)
                           setData(d)
-                          setToast({ type: 'success', msg: 'Área reactivada' })
-                        } catch (e) { setToast({ type: 'error', msg: e.message }) }
+                          setToast({ type: 'success', message: 'Área reactivada' })
+                        } catch (e) { setToast({ type: 'error', message: e.message }) }
                       }}>Reactivar Área</button>
                     )}
                   </div>
@@ -1217,8 +1227,8 @@ export default function OrdenLabPage() {
                           await setAreaEspera(numero, activeArea, true)
                           const d = await getOrdenLab(numero)
                           setData(d)
-                          setToast({ type: 'success', msg: 'Área en espera' })
-                        } catch (e) { setToast({ type: 'error', msg: e.message }) }
+                          setToast({ type: 'success', message: 'Área en espera' })
+                        } catch (e) { setToast({ type: 'error', message: e.message }) }
                       }} title="Poner área en espera">⏸ Espera</button>
                     )}
                     <button
@@ -1339,7 +1349,7 @@ export default function OrdenLabPage() {
                                       placeholder={po.valor_por_defecto || ''} />
                                   ) : po.tipo === 'SEL' ? (
                                     <select className="lab-input lab-select" value={val}
-                                      onChange={e => setResultado(po.id, e.target.value)} disabled={isValidado || !canLab}>
+                                      onChange={e => setResultado(po.id, e.target.value)} disabled={isValidado || !canLab || areaEnEspera}>
                                       <option value="">— Seleccione —</option>
                                       {(po.opciones || []).map(opt => (
                                         <option key={opt.id} value={opt.opcion} data-ref={opt.referencial || false}>
@@ -1386,8 +1396,8 @@ export default function OrdenLabPage() {
                                   <FlagBadge flag={flag} />
                                   {po.tipo === 'NUM' && val && po.prev_valor != null && (() => {
                                     const curr = parseFloat(val)
-                                    const prev = po.prev_valor
-                                    if (isNaN(curr) || prev === 0) return null
+                                    const prev = parseFloat(po.prev_valor)
+                                    if (isNaN(curr) || isNaN(prev) || prev === 0) return null
                                     const pct = Math.abs((curr - prev) / prev * 100)
                                     const inRange = pct < 30
                                     return (
@@ -1539,10 +1549,10 @@ export default function OrdenLabPage() {
                       if (!ids?.length) return
                       try {
                         await verificarResultados(numero, ids, true)
-                        setToast({ type: 'success', msg: 'Área verificada' })
+                        setToast({ type: 'success', message: 'Área verificada' })
                         const d = await getOrdenLab(numero)
                         setData(d)
-                      } catch (e) { setToast({ type: 'error', msg: e.message }) }
+                      } catch (e) { setToast({ type: 'error', message: e.message }) }
                     }}>✓✓ Verificar Área</button>
                   )}
                   <button
