@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getQADashboard, getQATeamDashboard } from '../services/api'
+import { getQADashboard, getQATeamDashboard, getQAMyBugs } from '../services/api'
 import QANav from '../components/QANav'
 
 const AVATAR_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#16a34a', '#0ea5e9', '#eab308', '#dc2626']
@@ -8,12 +8,18 @@ const AVATAR_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#16a34a', '#
 export default function QADashboardPage() {
   const [data, setData] = useState(null)
   const [teamData, setTeamData] = useState(null)
+  const [myBugs, setMyBugs] = useState(null)
+  const [myBugsFilter, setMyBugsFilter] = useState(null)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
-    Promise.all([getQADashboard(), getQATeamDashboard().catch(() => null)])
-      .then(([d, t]) => { setData(d); setTeamData(t); setLoading(false) })
+    Promise.all([
+      getQADashboard(),
+      getQATeamDashboard().catch(() => null),
+      getQAMyBugs().catch(() => null),
+    ])
+      .then(([d, t, m]) => { setData(d); setTeamData(t); setMyBugs(m); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
 
@@ -82,6 +88,102 @@ export default function QADashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Mis Bugs */}
+      {myBugs && (myBugs.reported?.length > 0 || myBugs.assigned?.length > 0) && (
+        <div className="dv-content" style={{ paddingBottom: 0 }}>
+          <div className="dv-section">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>Mis Bugs</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[
+                  { key: 'pendingMyAction', label: 'Pendientes', count: myBugs.quickFilters?.pendingMyAction, color: '#dc2626' },
+                  { key: 'inProgress', label: 'En progreso', count: myBugs.quickFilters?.inProgress, color: '#f59e0b' },
+                  { key: 'resolvedPendingVerification', label: 'Por verificar', count: myBugs.quickFilters?.resolvedPendingVerification, color: '#16a34a' },
+                  { key: 'waitingOnDev', label: 'Esperando Dev', count: myBugs.quickFilters?.waitingOnDev, color: '#3b82f6' },
+                ].filter(f => f.count > 0).map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setMyBugsFilter(myBugsFilter === f.key ? null : f.key)}
+                    style={{
+                      padding: '4px 10px', borderRadius: 8, cursor: 'pointer',
+                      border: myBugsFilter === f.key ? `1.5px solid ${f.color}` : '1.5px solid var(--border, #e2e8f0)',
+                      background: myBugsFilter === f.key ? `${f.color}0c` : 'transparent',
+                      fontSize: 11, fontWeight: 700,
+                      color: myBugsFilter === f.key ? f.color : 'var(--text-3)',
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      transition: 'all 150ms',
+                    }}
+                  >
+                    {f.label}
+                    <span style={{
+                      width: 18, height: 18, borderRadius: '50%', display: 'inline-flex',
+                      alignItems: 'center', justifyContent: 'center',
+                      background: `${f.color}15`, color: f.color,
+                      fontSize: 10, fontWeight: 800,
+                    }}>{f.count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              {/* Reported by me */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-4)', marginBottom: 8 }}>Reportados por mí</div>
+                {myBugs.reported?.length === 0 ? (
+                  <p style={{ fontSize: 12, color: 'var(--text-4)' }}>Ninguno</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {myBugs.reported.filter(b => {
+                      if (!myBugsFilter) return true
+                      if (myBugsFilter === 'resolvedPendingVerification') return b.estado === 'resuelto'
+                      if (myBugsFilter === 'waitingOnDev') return b.asignadoA && b.estado !== 'resuelto' && b.estado !== 'cerrado'
+                      return false
+                    }).map(b => (
+                      <div key={b.id} onClick={() => navigate(`/qa/bugs/${b.id}`)} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8,
+                        cursor: 'pointer', border: '1px solid var(--border-s, #e2e8f0)', transition: 'all .15s',
+                      }} className="qa-row-hover">
+                        <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-4)' }}>#{String(b.id).padStart(3, '0')}</span>
+                        <div style={{ flex: 1, fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.titulo}</div>
+                        <span className={`qa-estado-${b.estado}`} style={{ fontSize: 10 }}>{b.estado?.replace('_', ' ')}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Assigned to me */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-4)', marginBottom: 8 }}>Asignados a mí</div>
+                {myBugs.assigned?.length === 0 ? (
+                  <p style={{ fontSize: 12, color: 'var(--text-4)' }}>Ninguno</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {myBugs.assigned.filter(b => {
+                      if (!myBugsFilter) return true
+                      if (myBugsFilter === 'pendingMyAction') return b.estado === 'abierto'
+                      if (myBugsFilter === 'inProgress') return b.estado === 'en_progreso'
+                      return false
+                    }).map(b => (
+                      <div key={b.id} onClick={() => navigate(`/qa/bugs/${b.id}`)} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8,
+                        cursor: 'pointer', border: '1px solid var(--border-s, #e2e8f0)', transition: 'all .15s',
+                      }} className="qa-row-hover">
+                        <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-4)' }}>#{String(b.id).padStart(3, '0')}</span>
+                        <div style={{ flex: 1, fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.titulo}</div>
+                        <span className={`qa-sev-${b.severidad}`} style={{ fontSize: 10 }}>{b.severidad}</span>
+                        <span className={`qa-estado-${b.estado}`} style={{ fontSize: 10 }}>{b.estado?.replace('_', ' ')}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="dv-content">

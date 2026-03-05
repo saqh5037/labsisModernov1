@@ -1,12 +1,14 @@
 import { Router } from 'express'
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import multer from 'multer'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import {
   readJSON, writeJSON, listJSON, nextId,
-  getDataDir, getRunPath, getSuitePath, getBugPath, getSessionPath
+  getDataDir, getRunPath, getSuitePath, getBugPath, getSessionPath, getNotifPath
 } from './qa-store.js'
+import { verifyToken, COOKIE_NAME } from '../auth.js'
+import { addClient, pushToUser } from './qa-sse.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const router = Router()
@@ -150,7 +152,14 @@ router.post('/transcribe', audioUploadPublic.single('audio'), async (req, res) =
     if (!req.file) return res.status(400).json({ error: 'No audio file' })
 
     const audioBase64 = req.file.buffer.toString('base64')
-    const mimeType = req.file.mimetype || 'audio/webm'
+    let mimeType = req.file.mimetype
+    if (!mimeType || mimeType === 'application/octet-stream') {
+      const origName = req.file.originalname || ''
+      if (origName.endsWith('.mp4')) mimeType = 'audio/mp4'
+      else if (origName.endsWith('.ogg')) mimeType = 'audio/ogg'
+      else mimeType = 'audio/webm'
+    }
+    console.log(`[Transcribe-public] file: ${req.file.originalname}, size: ${req.file.size}, mime: ${mimeType}`)
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
@@ -176,6 +185,7 @@ router.post('/transcribe', audioUploadPublic.single('audio'), async (req, res) =
 
     const data = await geminiRes.json()
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    console.log(`[Transcribe-public] result: "${text.trim().substring(0, 100)}"`)
     res.json({ text: text.trim() })
   } catch (err) {
     console.error('Transcription error:', err)
@@ -209,6 +219,96 @@ router.post('/sessions/:token/screenshots', mobileScreenshots.array('screenshots
   } catch (err) {
     console.error('QA mobile screenshot error:', err)
     res.status(500).json({ error: 'Error subiendo foto' })
+  }
+})
+
+// ─── SSE STREAM (dual auth: cookie OR token) ────────────
+router.get('/sse/stream', (req, res) => {
+  let userId = null
+
+  // Try JWT cookie first
+  const cookie = req.cookies?.[COOKIE_NAME]
+  if (cookie) {
+    try {
+      const user = verifyToken(cookie)
+      userId = user.userId
+    } catch { /* invalid cookie, try token */ }
+  }
+
+  // Try session token query param
+  if (!userId && req.query.token) {
+    const sp = getSessionPath(req.query.token)
+    if (existsSync(sp)) {
+      try {
+        const session = JSON.parse(readFileSync(sp, 'utf-8'))
+        if (session.active && new Date(session.expiresAt) > new Date()) {
+          userId = session.userId
+        }
+      } catch { /* invalid session */ }
+    }
+  }
+
+  if (!userId) return res.status(401).json({ error: 'No autenticado' })
+
+  addClient(userId, res)
+})
+
+// ─── MOBILE COMMENT ON BUG ──────────────────────────────
+router.post('/sessions/:token/bugs/:bugId/comments', async (req, res) => {
+  try {
+    const sp = getSessionPath(req.params.token)
+    if (!existsSync(sp)) return res.status(404).json({ error: 'Sesión no encontrada' })
+    const session = await readJSON(sp)
+    if (!session.active || new Date(session.expiresAt) < new Date()) {
+      return res.status(410).json({ error: 'Sesión expirada' })
+    }
+
+    const bp = getBugPath(parseInt(req.params.bugId))
+    if (!existsSync(bp)) return res.status(404).json({ error: 'Bug no encontrado' })
+    const bug = await readJSON(bp)
+
+    const comment = {
+      id: `c-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      userId: session.userId,
+      userName: session.userName,
+      text: req.body.text || '',
+      createdAt: new Date().toISOString(),
+    }
+
+    if (!bug.comments) bug.comments = []
+    bug.comments.push(comment)
+    bug.updatedAt = new Date().toISOString()
+    await writeJSON(bp, bug)
+
+    // Push comment event for real-time thread updates
+    const commentPayload = { ...comment, bugId: bug.id }
+    if (bug.reportadoPor?.id && bug.reportadoPor.id !== session.userId) {
+      pushToUser(bug.reportadoPor.id, 'comment', commentPayload)
+    }
+    if (bug.asignadoA?.id && bug.asignadoA.id !== session.userId) {
+      pushToUser(bug.asignadoA.id, 'comment', commentPayload)
+    }
+
+    // Notify the other party (creates persistent notification)
+    const isReporter = session.userId === bug.reportadoPor?.id
+    const notifyUser = isReporter ? bug.asignadoA : bug.reportadoPor
+    if (notifyUser?.id) {
+      const notifId = await nextId('notifications')
+      const notif = {
+        id: notifId, type: 'new_comment', bugId: bug.id, bugTitle: bug.titulo,
+        fromUser: { id: session.userId, nombre: session.userName },
+        toUser: notifyUser,
+        message: `Nuevo comentario en Bug #${bug.id}`,
+        taunt: null, read: false, createdAt: new Date().toISOString(),
+      }
+      await writeJSON(getNotifPath(notifId), notif)
+      pushToUser(notifyUser.id, 'notification', notif)
+    }
+
+    res.status(201).json(comment)
+  } catch (err) {
+    console.error('QA mobile comment error:', err)
+    res.status(500).json({ error: 'Error agregando comentario' })
   }
 })
 

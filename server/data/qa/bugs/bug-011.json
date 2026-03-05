@@ -1,0 +1,35 @@
+{
+  "id": 11,
+  "runId": 10,
+  "testCaseId": "auth-01",
+  "titulo": "Fallo en: Login con credenciales válidas",
+  "descripcion": "",
+  "comportamientoEsperado": "Login exitoso. Redirige a /ordenes. Sidebar aparece con secciones según rol",
+  "comportamientoActual": "",
+  "pasosReproducir": "1. Navegar a /login\n2. Escribir username válido\n3. Escribir password válida\n4. Click Login",
+  "severidad": "menor",
+  "estado": "abierto",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+  "tipoError": "visual",
+  "codigoError": "333",
+  "dondeOcurre": "111",
+  "queEsperabas": "",
+  "contextoExtra": "111111",
+  "brandTokens": [
+    {
+      "code": "LOG-002",
+      "name": "Logo fondo claro",
+      "category": "Logo"
+    }
+  ],
+  "zonaPantalla": "formulario",
+  "reportadoPor": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-05T14:19:46.490Z",
+  "updatedAt": "2026-03-05T14:19:46.490Z"
+}

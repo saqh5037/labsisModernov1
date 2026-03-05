@@ -1205,7 +1205,7 @@ router.put('/:numero/lab/resultados', async (req, res) => {
         // ── Audit log: prueba_orden_log ──
         const accion = r.validado
           ? `Validado Valor:${r.valor || '(vacío)'}`
-          : `Invalidado`
+          : `Invalidado${r.nota_invalidacion ? ' — Razón: ' + r.nota_invalidacion : ''}`
         await client.query(`
           INSERT INTO prueba_orden_log (prueba_orden_id, bioanalista_id, usuario_id, fecha, accion, tipo_accion)
           VALUES ($1, $2, $3, NOW(), $4, 'VALIDACION')

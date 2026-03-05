@@ -134,7 +134,12 @@ router.get('/orden/:numero/area/:areaId', async (req, res) => {
         rn.validado_por, rn.menor_mayor,
         ra.valor AS resultado_alpha, ra.alarma AS alarma_alpha,
         gp.nombre AS grupo_nombre,
-        pr.formato, pr.valor_por_defecto
+        pr.formato, pr.valor_por_defecto,
+        (SELECT string_agg(pon.texto, '; ')
+         FROM prueba_orden_has_prueba_orden_nota ponh
+         JOIN prueba_orden_nota pon ON ponh.prueba_orden_nota_id = pon.id
+         WHERE ponh.prueba_orden_id = po.id
+        ) AS notas
       FROM prueba_orden po
       LEFT JOIN prueba pr ON po.prueba_id = pr.id
       LEFT JOIN tipo_prueba tp ON pr.tipo_prueba_id = tp.id
@@ -261,6 +266,7 @@ router.get('/orden/:numero/area/:areaId', async (req, res) => {
         corregida: row.corregida || false,
         fecha_validacion: row.fecha_validacion,
         grupo: row.grupo_nombre,
+        notas: row.notas || '',
         referencia: rangoAplicable ? (() => {
           let cMin = null, cMax = null
           for (const pr of panicosUsar) {
@@ -330,7 +336,7 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
   const client = await pool.connect()
   try {
     const { numero, areaId } = req.params
-    const { resultados, validarTodo } = req.body
+    const { resultados, validarTodo, observaciones_area } = req.body
     const user = req.user
     const aid = parseInt(areaId)
 
@@ -450,13 +456,41 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
           INSERT INTO prueba_orden_log (prueba_orden_id, bioanalista_id, usuario_id, fecha, accion, tipo_accion)
           VALUES ($1, $2, $3, NOW(), $4, 'VALIDACION')
         `, [r.prueba_orden_id, bioanalistaId || 0, user.userId,
-            r.validado ? `Validado Bloque Valor:${r.valor || '(vacío)'}` : 'Invalidado Bloque'])
+            r.validado ? `Validado Bloque Valor:${r.valor || '(vacío)'}` : `Invalidado Bloque${r.nota_invalidacion ? ' — Razón: ' + r.nota_invalidacion : ''}`])
       } else if (r.valor !== undefined) {
         await client.query(`
           UPDATE prueba_orden SET status_id = CASE WHEN status_id = 1 THEN 2 ELSE status_id END,
             anormal = $2, critico = $3
           WHERE id = $1
         `, [r.prueba_orden_id, isAnormal, isCritico])
+      }
+
+      // Persistir nota de prueba
+      if (r.nota !== undefined && r.nota !== null) {
+        const existingNota = await client.query(`
+          SELECT pon.id FROM prueba_orden_nota pon
+          JOIN prueba_orden_has_prueba_orden_nota ponh ON ponh.prueba_orden_nota_id = pon.id
+          WHERE ponh.prueba_orden_id = $1 AND pon.titulo = 'Nota manual'
+          ORDER BY pon.id DESC LIMIT 1
+        `, [r.prueba_orden_id])
+
+        if (r.nota.trim() === '') {
+          if (existingNota.rows.length > 0) {
+            await client.query('DELETE FROM prueba_orden_has_prueba_orden_nota WHERE prueba_orden_nota_id = $1', [existingNota.rows[0].id])
+            await client.query('DELETE FROM prueba_orden_nota WHERE id = $1', [existingNota.rows[0].id])
+          }
+        } else if (existingNota.rows.length > 0) {
+          await client.query('UPDATE prueba_orden_nota SET texto = $1 WHERE id = $2', [r.nota.trim(), existingNota.rows[0].id])
+        } else {
+          const notaResult = await client.query(
+            `INSERT INTO prueba_orden_nota (titulo, texto) VALUES ('Nota manual', $1) RETURNING id`,
+            [r.nota.trim()]
+          )
+          await client.query(
+            `INSERT INTO prueba_orden_has_prueba_orden_nota (prueba_orden_id, prueba_orden_nota_id, orden_id, fecha_creacion) VALUES ($1, $2, $3, NOW())`,
+            [r.prueba_orden_id, notaResult.rows[0].id, otId]
+          )
+        }
       }
     }
 
@@ -500,6 +534,13 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
           VALUES ($1, $2, $3, NOW(), 'Validado Bloque (Todo)', 'VALIDACION')
         `, [po.id, bioanalistaId || 0, user.userId])
       }
+    }
+
+    // Persist area observations if provided
+    if (observaciones_area !== undefined && observaciones_area !== null) {
+      await client.query(`
+        UPDATE status_area SET observaciones = $3 WHERE orden_id = $1 AND area_id = $2
+      `, [otId, aid, observaciones_area.trim()])
     }
 
     // Recalculate status_area

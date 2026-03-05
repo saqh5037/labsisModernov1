@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import QANotificationBell from './QANotificationBell'
+import QAToastContainer from './QAToast'
 
 const IconCode = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -31,32 +32,35 @@ export default function QANav({ active }) {
   }
 
   return (
-    <nav className="dv-nav">
-      <div className="dv-nav-left">
-        <div className="dv-nav-icon"><IconCode /></div>
-        <span className="dv-nav-brand">Lab<span>sis</span></span>
-        <span className="dv-nav-tag">QA Testing</span>
-      </div>
-      <div className="dv-nav-right">
-        <div className="dv-nav-live"><span className="dv-live-dot" />Quality Assurance</div>
-        {links.map(link => (
-          <button
-            key={link.id}
-            className={`dv-nav-link ${isActive(link) ? 'dv-nav-active' : ''}`}
-            onClick={() => navigate(link.path)}
-          >
-            {link.icon} {link.label}
+    <>
+      <nav className="dv-nav">
+        <div className="dv-nav-left">
+          <div className="dv-nav-icon"><IconCode /></div>
+          <span className="dv-nav-brand">Lab<span>sis</span></span>
+          <span className="dv-nav-tag">QA Testing</span>
+        </div>
+        <div className="dv-nav-right">
+          <div className="dv-nav-live"><span className="dv-live-dot" />Quality Assurance</div>
+          {links.map(link => (
+            <button
+              key={link.id}
+              className={`dv-nav-link ${isActive(link) ? 'dv-nav-active' : ''}`}
+              onClick={() => navigate(link.path)}
+            >
+              {link.icon} {link.label}
+            </button>
+          ))}
+          <QANotificationBell />
+          <button className="dv-nav-link" onClick={() => navigate('/dev')}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
+            Dev
           </button>
-        ))}
-        <QANotificationBell />
-        <button className="dv-nav-link" onClick={() => navigate('/dev')}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
-          Dev
-        </button>
-        <button className="dv-nav-link" onClick={() => navigate('/ordenes')}>
-          <IconFlask /> App
-        </button>
-      </div>
-    </nav>
+          <button className="dv-nav-link" onClick={() => navigate('/ordenes')}>
+            <IconFlask /> App
+          </button>
+        </div>
+      </nav>
+      <QAToastContainer />
+    </>
   )
 }

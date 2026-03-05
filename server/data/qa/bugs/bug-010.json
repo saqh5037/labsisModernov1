@@ -1,0 +1,36 @@
+{
+  "id": 10,
+  "runId": 9,
+  "testCaseId": "lab-01",
+  "titulo": "Fallo en: Página carga con pruebas de la OT",
+  "descripcion": "",
+  "comportamientoEsperado": "Se muestra lista de pruebas agrupadas por área, con campos de entrada para resultados",
+  "comportamientoActual": "",
+  "pasosReproducir": "1. Navegar a /ordenes/{numero}/lab de una OT activa",
+  "severidad": "mayor",
+  "estado": "abierto",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+  "tipoError": "visual",
+  "codigoError": "",
+  "dondeOcurre": "",
+  "queEsperabas": "",
+  "contextoExtra": "",
+  "brandTokens": [
+    {
+      "code": "COL-002",
+      "name": "Primary Hover",
+      "color": "#2563eb",
+      "category": "Colores"
+    }
+  ],
+  "zonaPantalla": "tabla",
+  "reportadoPor": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-05T13:56:59.249Z",
+  "updatedAt": "2026-03-05T13:56:59.249Z"
+}

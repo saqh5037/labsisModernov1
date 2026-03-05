@@ -10,6 +10,7 @@ import {
   getDataDir, getSuitePath, getRunPath, getBugPath,
   getAssignmentsPath, getNotifPath, getSessionPath
 } from './qa-store.js'
+import { pushToUser } from './qa-sse.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const router = Router()
@@ -26,6 +27,20 @@ const DEV_TAUNTS = [
   'Ni sudé. Manda el que sigue',
 ]
 const randomTaunt = () => DEV_TAUNTS[Math.floor(Math.random() * DEV_TAUNTS.length)]
+
+// ─── NOTIFICATION HELPER ─────────────────────────────────
+async function createNotification({ type, bugId, bugTitle, fromUser, toUser, message, taunt }) {
+  if (!toUser?.id) return null
+  const notifId = await nextId('notifications')
+  const notif = {
+    id: notifId, type, bugId, bugTitle, fromUser, toUser,
+    message, taunt: taunt || null,
+    read: false, createdAt: new Date().toISOString(),
+  }
+  await writeJSON(getNotifPath(notifId), notif)
+  pushToUser(toUser.id, 'notification', notif)
+  return notif
+}
 
 // Ensure data dirs exist on import
 ensureDirs()
@@ -330,6 +345,35 @@ router.get('/bugs', async (_req, res) => {
   }
 })
 
+// ─── MY BUGS (must be before /bugs/:id) ─────────────────
+router.get('/bugs/mine', async (req, res) => {
+  try {
+    const userId = req.user?.userId
+    const bugs = await listJSON('bugs')
+
+    const reported = bugs.filter(b => b.reportadoPor?.id === userId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    const assigned = bugs.filter(b => b.asignadoA?.id === userId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+    res.json({
+      reported,
+      assigned,
+      quickFilters: {
+        pendingMyAction: assigned.filter(b => b.estado === 'abierto').length,
+        waitingOnDev: reported.filter(b => b.estado === 'abierto' && b.asignadoA).length,
+        resolvedPendingVerification: reported.filter(b => b.estado === 'resuelto').length,
+        inProgress: [...new Map([...reported, ...assigned]
+          .filter(b => b.estado === 'en_progreso')
+          .map(b => [b.id, b])).values()].length,
+      }
+    })
+  } catch (err) {
+    console.error('QA my bugs error:', err)
+    res.status(500).json({ error: 'Error cargando mis bugs' })
+  }
+})
+
 router.get('/bugs/:id', async (req, res) => {
   try {
     const p = getBugPath(parseInt(req.params.id))
@@ -564,6 +608,7 @@ router.put('/bugs/:id', async (req, res) => {
 
     const bug = await readJSON(p)
     const prevEstado = bug.estado
+    const prevAsignado = bug.asignadoA?.id
     const allowed = ['titulo', 'descripcion', 'comportamientoEsperado', 'comportamientoActual',
       'pasosReproducir', 'severidad', 'estado', 'logs', 'asignadoA',
       'tipoError', 'codigoError', 'dondeOcurre', 'queEsperabas', 'contextoExtra',
@@ -572,31 +617,62 @@ router.put('/bugs/:id', async (req, res) => {
     for (const key of allowed) {
       if (req.body[key] !== undefined) bug[key] = req.body[key]
     }
-    if (req.body.estado === 'resuelto') bug.resueltoAt = new Date().toISOString()
+    if (req.body.estado === 'resuelto' && prevEstado !== 'resuelto') bug.resueltoAt = new Date().toISOString()
     bug.updatedAt = new Date().toISOString()
 
     await writeJSON(p, bug)
 
-    // Auto-create notification when bug is resolved
-    if (req.body.estado === 'resuelto' && prevEstado !== 'resuelto' && bug.reportadoPor) {
-      try {
-        const notifId = await nextId('notifications')
-        const notif = {
-          id: notifId,
-          type: 'bug_resolved',
-          bugId: bug.id,
-          bugTitle: bug.titulo,
-          fromUser: { id: req.user?.userId, nombre: req.user ? `${req.user.nombre} ${req.user.apellido}` : 'Sistema' },
-          toUser: bug.reportadoPor,
+    const fromUser = { id: req.user?.userId, nombre: req.user ? `${req.user.nombre} ${req.user.apellido}` : 'Sistema' }
+
+    // ── Notification triggers ──
+    try {
+      // Bug assigned
+      if (req.body.asignadoA?.id && req.body.asignadoA.id !== prevAsignado) {
+        await createNotification({
+          type: 'bug_assigned', bugId: bug.id, bugTitle: bug.titulo,
+          fromUser, toUser: bug.asignadoA,
+          message: `Bug #${bug.id} te fue asignado`,
+        })
+      }
+
+      // Estado → en_progreso
+      if (req.body.estado === 'en_progreso' && prevEstado !== 'en_progreso' && bug.reportadoPor) {
+        await createNotification({
+          type: 'bug_in_progress', bugId: bug.id, bugTitle: bug.titulo,
+          fromUser, toUser: bug.reportadoPor,
+          message: `Bug #${bug.id} — alguien lo tomó!`,
+        })
+      }
+
+      // Estado → resuelto
+      if (req.body.estado === 'resuelto' && prevEstado !== 'resuelto' && bug.reportadoPor) {
+        await createNotification({
+          type: 'bug_resolved', bugId: bug.id, bugTitle: bug.titulo,
+          fromUser, toUser: bug.reportadoPor,
           message: `Bug #${bug.id} resuelto — vuelve a probar!`,
           taunt: randomTaunt(),
-          read: false,
-          createdAt: new Date().toISOString(),
-        }
-        await writeJSON(getNotifPath(notifId), notif)
-      } catch (notifErr) {
-        console.error('Error creating notification:', notifErr)
+        })
       }
+
+      // Estado → cerrado
+      if (req.body.estado === 'cerrado' && prevEstado !== 'cerrado' && bug.asignadoA) {
+        await createNotification({
+          type: 'bug_closed', bugId: bug.id, bugTitle: bug.titulo,
+          fromUser, toUser: bug.asignadoA,
+          message: `Bug #${bug.id} cerrado — confirmado, buen trabajo!`,
+        })
+      }
+
+      // Estado → no_reproducible
+      if (req.body.estado === 'no_reproducible' && prevEstado !== 'no_reproducible' && bug.reportadoPor) {
+        await createNotification({
+          type: 'bug_no_repro', bugId: bug.id, bugTitle: bug.titulo,
+          fromUser, toUser: bug.reportadoPor,
+          message: `Bug #${bug.id} marcado como no reproducible`,
+        })
+      }
+    } catch (notifErr) {
+      console.error('Error creating notification:', notifErr)
     }
 
     res.json(bug)
@@ -622,6 +698,54 @@ router.post('/bugs/:id/screenshots', upload.array('screenshots', 5), async (req,
   } catch (err) {
     console.error('QA upload error:', err)
     res.status(500).json({ error: 'Error subiendo screenshots' })
+  }
+})
+
+// ─── COMMENTS ────────────────────────────────────────────
+router.post('/bugs/:id/comments', async (req, res) => {
+  try {
+    const p = getBugPath(parseInt(req.params.id))
+    if (!existsSync(p)) return res.status(404).json({ error: 'Bug no encontrado' })
+    const bug = await readJSON(p)
+
+    const comment = {
+      id: `c-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      userId: req.user?.userId,
+      userName: req.user ? `${req.user.nombre} ${req.user.apellido}` : 'Sistema',
+      text: req.body.text || '',
+      createdAt: new Date().toISOString(),
+    }
+
+    if (!bug.comments) bug.comments = []
+    bug.comments.push(comment)
+    bug.updatedAt = new Date().toISOString()
+    await writeJSON(p, bug)
+
+    // Push comment event to all participants for real-time thread updates
+    const commentPayload = { ...comment, bugId: bug.id }
+    if (bug.reportadoPor?.id && bug.reportadoPor.id !== req.user?.userId) {
+      pushToUser(bug.reportadoPor.id, 'comment', commentPayload)
+    }
+    if (bug.asignadoA?.id && bug.asignadoA.id !== req.user?.userId) {
+      pushToUser(bug.asignadoA.id, 'comment', commentPayload)
+    }
+
+    // Notify the other party (creates persistent notification)
+    const fromUser = { id: req.user?.userId, nombre: comment.userName }
+    const isReporter = req.user?.userId === bug.reportadoPor?.id
+    const notifyUser = isReporter ? bug.asignadoA : bug.reportadoPor
+    if (notifyUser?.id && notifyUser.id !== req.user?.userId) {
+      await createNotification({
+        type: 'new_comment', bugId: bug.id, bugTitle: bug.titulo,
+        fromUser, toUser: notifyUser,
+        message: `Nuevo comentario en Bug #${bug.id}`,
+      })
+    }
+
+    res.status(201).json(comment)
+  } catch (err) {
+    console.error('QA comment error:', err)
+    res.status(500).json({ error: 'Error agregando comentario' })
   }
 })
 
@@ -797,7 +921,15 @@ router.post('/transcribe', audioUpload.single('audio'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No audio file' })
 
     const audioBase64 = req.file.buffer.toString('base64')
-    const mimeType = req.file.mimetype || 'audio/webm'
+    // Resolve mimeType: multer may report application/octet-stream for blob uploads
+    let mimeType = req.file.mimetype
+    if (!mimeType || mimeType === 'application/octet-stream') {
+      const origName = req.file.originalname || ''
+      if (origName.endsWith('.mp4')) mimeType = 'audio/mp4'
+      else if (origName.endsWith('.ogg')) mimeType = 'audio/ogg'
+      else mimeType = 'audio/webm'
+    }
+    console.log(`[Transcribe] file: ${req.file.originalname}, size: ${req.file.size}, mime: ${mimeType}`)
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
@@ -817,12 +949,13 @@ router.post('/transcribe', audioUpload.single('audio'), async (req, res) => {
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text()
-      console.error('Gemini API error:', errText)
-      return res.status(500).json({ error: 'Error de transcripción' })
+      console.error('Gemini API error:', geminiRes.status, errText)
+      return res.status(500).json({ error: `Gemini error ${geminiRes.status}` })
     }
 
     const data = await geminiRes.json()
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    console.log(`[Transcribe] result: "${text.substring(0, 80)}"`)
     res.json({ text: text.trim() })
   } catch (err) {
     console.error('Transcription error:', err)

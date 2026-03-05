@@ -1,10 +1,18 @@
 import { useState, useRef } from 'react'
 
 function getSupportedMimeType() {
-  // iOS Safari doesn't support audio/webm — try mp4 first, then webm
-  const types = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg']
+  if (typeof MediaRecorder === 'undefined') return ''
+  // Detect iOS/Safari — prefer mp4 there, webm everywhere else
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+
+  const types = (isIOS || isSafari)
+    ? ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']
+    : ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
+
   for (const t of types) {
-    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)) return t
+    if (MediaRecorder.isTypeSupported(t)) return t
   }
   return '' // Let browser pick default
 }
@@ -17,57 +25,118 @@ export default function VoiceRecorder({ onTranscription, apiBase = '/api' }) {
   const mediaRecorder = useRef(null)
   const chunks = useRef([])
   const timerRef = useRef(null)
+  const streamRef = useRef(null)
+
+  const showError = (msg) => {
+    setErr(msg)
+    setTimeout(() => setErr(null), 5000)
+  }
 
   const startRecording = async () => {
     setErr(null)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
       const mimeType = getSupportedMimeType()
       const opts = mimeType ? { mimeType } : {}
-      const recorder = new MediaRecorder(stream, opts)
+
+      let recorder
+      try {
+        recorder = new MediaRecorder(stream, opts)
+      } catch {
+        // Fallback: let browser pick format
+        recorder = new MediaRecorder(stream)
+      }
       chunks.current = []
 
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.current.push(e.data) }
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.current.push(e.data)
+      }
+
+      recorder.onerror = (e) => {
+        console.error('MediaRecorder error:', e)
+        cleanup()
+        showError('Error al grabar')
+      }
+
       recorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop())
-        clearInterval(timerRef.current)
-        setRecording(false)
+        cleanup()
         setTranscribing(true)
 
+        if (chunks.current.length === 0) {
+          showError('No se grabó audio')
+          setTranscribing(false)
+          return
+        }
+
         const actualType = recorder.mimeType || mimeType || 'audio/webm'
-        const ext = actualType.includes('mp4') ? 'recording.mp4' : 'recording.webm'
+        const ext = actualType.includes('mp4') ? 'recording.mp4'
+          : actualType.includes('ogg') ? 'recording.ogg'
+          : 'recording.webm'
         const blob = new Blob(chunks.current, { type: actualType })
+
+        if (blob.size < 100) {
+          showError('Grabación muy corta')
+          setTranscribing(false)
+          return
+        }
+
         const formData = new FormData()
         formData.append('audio', blob, ext)
+        console.log('[VoiceRecorder] sending:', { ext, type: actualType, blobSize: blob.size, chunks: chunks.current.length })
 
         try {
-          const res = await fetch(`${apiBase}/qa/transcribe`, { method: 'POST', body: formData })
+          const res = await fetch(`${apiBase}/qa/transcribe`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+          })
+          const rawText = await res.text()
+          console.log('[VoiceRecorder] response:', res.status, rawText.substring(0, 200))
+          let data
+          try { data = JSON.parse(rawText) } catch { data = {} }
           if (!res.ok) {
-            const errData = await res.json().catch(() => ({}))
-            throw new Error(errData.error || 'Error de transcripción')
+            throw new Error(data.error || `Error ${res.status}`)
           }
-          const data = await res.json()
-          if (data.text) onTranscription(data.text)
+          if (data.text) {
+            onTranscription(data.text)
+          } else {
+            showError('No se detectó texto')
+          }
         } catch (e) {
-          setErr(e.message || 'Error')
-          setTimeout(() => setErr(null), 3000)
+          console.error('[VoiceRecorder] error:', e)
+          showError(e.message || 'Error de transcripción')
         }
         setTranscribing(false)
       }
 
-      recorder.start()
+      // Start with timeslice to ensure data flows periodically
+      recorder.start(1000)
       mediaRecorder.current = recorder
       setRecording(true)
       setElapsed(0)
       timerRef.current = setInterval(() => setElapsed(prev => prev + 1), 1000)
     } catch (e) {
-      setErr('Micrófono no disponible')
-      setTimeout(() => setErr(null), 3000)
+      console.error('getUserMedia error:', e)
+      showError(e.name === 'NotAllowedError' ? 'Permiso de micrófono denegado' : 'Micrófono no disponible')
     }
   }
 
+  const cleanup = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+    clearInterval(timerRef.current)
+    setRecording(false)
+  }
+
   const stopRecording = () => {
-    mediaRecorder.current?.stop()
+    if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
+      mediaRecorder.current.stop()
+    } else {
+      cleanup()
+    }
   }
 
   const fmtTime = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
@@ -118,8 +187,10 @@ export default function VoiceRecorder({ onTranscription, apiBase = '/api' }) {
         <div style={{
           position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)',
           background: '#dc2626', color: '#fff', fontSize: 10, fontWeight: 600,
-          padding: '4px 8px', borderRadius: 6, whiteSpace: 'nowrap',
+          padding: '6px 10px', borderRadius: 6, whiteSpace: 'nowrap',
+          boxShadow: '0 4px 12px rgba(220,38,38,0.3)',
           animation: 'fadeUp 200ms ease-out forwards',
+          zIndex: 100,
         }}>{err}</div>
       )}
     </div>

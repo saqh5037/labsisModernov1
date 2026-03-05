@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getQABug, updateQABug, getQAUsers, getQABugPrompt } from '../services/api'
+import { getQABug, updateQABug, getQAUsers, getQABugPrompt, addQABugComment } from '../services/api'
+import { useSSE } from '../hooks/useSSE'
 import QANav from '../components/QANav'
 
 /* ── Constants ── */
@@ -42,6 +43,18 @@ export default function QABugDetailPage() {
   const [lightbox, setLightbox] = useState(null)
   const [promptStatus, setPromptStatus] = useState('idle')
   const [updateFeedback, setUpdateFeedback] = useState(null) // { field, status }
+  const [commentText, setCommentText] = useState('')
+  const [commentSending, setCommentSending] = useState(false)
+  const commentsEndRef = useRef(null)
+
+  // SSE: listen for new comments on this bug
+  const handleSSEComment = useCallback((data) => {
+    if (String(data.bugId) === String(id)) {
+      setBug(prev => prev ? { ...prev, comments: [...(prev.comments || []), data] } : prev)
+      setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+    }
+  }, [id])
+  useSSE({ onComment: handleSSEComment })
 
   useEffect(() => {
     Promise.all([getQABug(id), getQAUsers().catch(() => [])])
@@ -92,6 +105,18 @@ export default function QABugDetailPage() {
       alert('Error: ' + err.message)
       setPromptStatus('idle')
     }
+  }
+
+  const handleAddComment = async () => {
+    if (!commentText.trim() || commentSending) return
+    setCommentSending(true)
+    try {
+      const comment = await addQABugComment(id, commentText.trim())
+      setBug(prev => prev ? { ...prev, comments: [...(prev.comments || []), comment] } : prev)
+      setCommentText('')
+      setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+    } catch { /* silent */ }
+    setCommentSending(false)
   }
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
@@ -453,6 +478,79 @@ export default function QABugDetailPage() {
                 </div>
               </InfoCard>
             )}
+
+            {/* ── Comments Thread ── */}
+            <InfoCard
+              label={`Comentarios (${bug.comments?.length || 0})`}
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>}
+              iconColor="#3b82f6"
+              delay={220}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {(!bug.comments || bug.comments.length === 0) && (
+                  <p style={{ fontSize: 12, color: 'var(--text-4)', margin: 0, fontStyle: 'italic' }}>Sin comentarios aún</p>
+                )}
+                {bug.comments?.map(c => {
+                  const initials = (c.userName || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()
+                  return (
+                    <div key={c.id} style={{
+                      display: 'flex', gap: 10, padding: '10px 12px', borderRadius: 10,
+                      background: 'rgba(59,130,246,0.03)', border: '1px solid rgba(59,130,246,0.08)',
+                    }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                        background: 'rgba(59,130,246,0.1)', color: '#3b82f6',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, fontWeight: 800,
+                      }}>{initials}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)' }}>{c.userName}</span>
+                          <span style={{ fontSize: 10, color: 'var(--text-4)' }}>{fmtDate(c.createdAt)}</span>
+                        </div>
+                        <p style={{ fontSize: 13, color: 'var(--text-2)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{c.text}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+                <div ref={commentsEndRef} />
+
+                {/* New comment input */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <textarea
+                    value={commentText}
+                    onChange={e => setCommentText(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment() } }}
+                    placeholder="Escribe un comentario..."
+                    rows={2}
+                    style={{
+                      flex: 1, padding: '10px 12px', borderRadius: 10, resize: 'vertical',
+                      border: '1.5px solid var(--border, #e2e8f0)', fontSize: 13,
+                      background: 'var(--surface, #fff)', fontFamily: 'inherit',
+                      minHeight: 42, maxHeight: 120,
+                    }}
+                  />
+                  <button
+                    onClick={handleAddComment}
+                    disabled={!commentText.trim() || commentSending}
+                    style={{
+                      padding: '10px 16px', borderRadius: 10, cursor: commentText.trim() ? 'pointer' : 'default',
+                      border: 'none', background: commentText.trim() ? '#3b82f6' : 'var(--border, #e2e8f0)',
+                      color: commentText.trim() ? '#fff' : 'var(--text-4)',
+                      fontSize: 12, fontWeight: 700, alignSelf: 'flex-end',
+                      transition: 'all 200ms',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    {commentSending ? (
+                      <div className="dv-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </InfoCard>
           </div>
 
           {/* ── Right sidebar ── */}

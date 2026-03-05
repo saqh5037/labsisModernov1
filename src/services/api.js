@@ -752,3 +752,19 @@ export async function createQASessionBug(token, data) {
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }
+
+export async function addQABugComment(bugId, text) {
+  const res = await fetch(`${BASE}/qa/bugs/${bugId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getQAMyBugs() {
+  const res = await fetch(`${BASE}/qa/bugs/mine`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}

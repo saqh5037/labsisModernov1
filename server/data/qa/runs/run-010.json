@@ -1,0 +1,66 @@
+{
+  "id": 10,
+  "suiteId": "auth",
+  "suiteName": "Autenticación y Permisos",
+  "tester": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "estado": "en_progreso",
+  "progreso": 10,
+  "notas": "",
+  "startedAt": "2026-03-05T14:19:07.090Z",
+  "completedAt": null,
+  "results": {
+    "auth-01": {
+      "resultado": "fail",
+      "observaciones": "",
+      "testedAt": "2026-03-05T14:19:11.000Z"
+    },
+    "auth-02": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-03": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-04": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-05": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-06": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-07": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-08": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-09": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-10": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    }
+  }
+}

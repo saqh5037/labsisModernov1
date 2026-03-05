@@ -74,8 +74,8 @@ const calcFlag = (valor, ref) => {
   if (valor === '' || valor == null || !ref || (ref.min == null && ref.max == null)) return null
   const v = parseFloat(valor)
   if (isNaN(v)) return null
-  if (ref.critico_max != null && v > ref.critico_max) return { flag: 'HH', label: 'Críticamente Alto', critical: true }
-  if (ref.critico_min != null && v < ref.critico_min) return { flag: 'LL', label: 'Críticamente Bajo', critical: true }
+  if (ref.critico_max != null && v >= ref.critico_max) return { flag: 'HH', label: 'Críticamente Alto', critical: true }
+  if (ref.critico_min != null && v <= ref.critico_min) return { flag: 'LL', label: 'Críticamente Bajo', critical: true }
   if (ref.max != null && v > ref.max) return { flag: 'H', label: 'Alto' }
   if (ref.min != null && v < ref.min) return { flag: 'L', label: 'Bajo' }
   return { flag: 'N', label: 'Normal' }
@@ -98,19 +98,32 @@ const FlagBadge = ({ flag }) => {
 const RefBar = ({ valor, min, max }) => {
   if (min == null || max == null) return null
   const range = max - min
+  if (range <= 0) return null
   const v = parseFloat(valor)
-  const pct = isNaN(v) ? null : Math.min(100, Math.max(0, ((v - min) / range) * 100))
-  let markerColor = '#059669'
-  if (pct !== null) {
-    if (pct <= 10 || pct >= 90) markerColor = '#dc2626'
-    else if (pct <= 25 || pct >= 75) markerColor = '#f59e0b'
+  if (isNaN(v)) return null
+
+  // Bar zones: low=0-20%, normal=20-80%, high=80-100%
+  // Reference range (min→max) maps exactly to the normal zone (20%→80%)
+  let pct
+  if (v >= min && v <= max) {
+    pct = 20 + ((v - min) / range) * 60
+  } else if (v < min) {
+    const lowExtent = range * 0.5
+    pct = Math.max(0, 20 - ((min - v) / lowExtent) * 20)
+  } else {
+    const highExtent = range * 0.5
+    pct = Math.min(100, 80 + ((v - max) / highExtent) * 20)
   }
+
+  let markerColor = '#059669' // green = within range
+  if (v < min || v > max) markerColor = '#dc2626' // red = out of range
+
   return (
     <div className="lab-ref-bar">
       <div className="lab-ref-zone lab-ref-zone-low" />
       <div className="lab-ref-zone lab-ref-zone-normal" />
       <div className="lab-ref-zone lab-ref-zone-high" />
-      {pct !== null && <div className="lab-ref-marker" style={{ left: `${pct}%`, background: markerColor }} />}
+      <div className="lab-ref-marker" style={{ left: `${pct}%`, background: markerColor }} />
     </div>
   )
 }
@@ -482,7 +495,12 @@ export default function OrdenLabPage() {
     const blanks = []
     const panics = []
     pruebas.forEach(po => {
-      const val = getVal(po)
+      let val = getVal(po)
+      // CAL pruebas: check computed value as fallback
+      if ((!val || val === '') && po.tipo === 'CAL') {
+        const computed = calcFormula(po)
+        if (computed != null) val = String(computed)
+      }
       if (!val || val === '') {
         blanks.push(po.prueba)
       } else if ((po.tipo === 'NUM' || po.tipo === 'CAL') && po.referencia) {
@@ -728,7 +746,7 @@ export default function OrdenLabPage() {
         const resultados = Object.entries(saveDirty).map(([poId, changes]) => ({
           prueba_orden_id: parseInt(poId), ...changes
         }))
-        const resp = await saveVBResultados(data.orden.numero, activeArea, { resultados, validarTodo })
+        const resp = await saveVBResultados(data.orden.numero, activeArea, { resultados, validarTodo, observaciones_area: obsArea })
         if (resp.areaValidated && validation.muestraActualId) {
           validation.markValidated(validation.muestraActualId)
           validation.recordTime()
@@ -818,6 +836,7 @@ export default function OrdenLabPage() {
     const newDirty = { ...dirty }
     let count = 0
     area.pruebas.forEach(po => {
+      if (getValidado(po)) return // skip already validated
       const val = getVal(po)
       if (!val) return
       const isNumeric = po.tipo === 'NUM' || po.tipo === 'CAL'
@@ -1490,7 +1509,13 @@ export default function OrdenLabPage() {
                     <IcoSave /> {saving ? 'Guardando...' : 'Guardar'}
                   </button>
                   <button className="lab-btn lab-btn-danger lab-btn-sm" disabled={saving}
-                    onClick={(e) => { addRipple(e); handleSave(true) }}>
+                    onClick={(e) => {
+                      addRipple(e)
+                      const area = data?.areas?.[0]
+                      if (!area) return
+                      const unvalidated = area.pruebas.filter(po => !getValidado(po))
+                      checkValidationWarnings(unvalidated, () => handleSave(true))
+                    }}>
                     <IcoCheck /> Validar Todo
                   </button>
                   <button className="lab-btn lab-btn-ghost lab-btn-sm" onClick={() => {
@@ -1801,7 +1826,7 @@ export default function OrdenLabPage() {
 
       {/* Modal de confirmación (blank/panic warnings) */}
       {confirmModal && (
-        <div className="lab-modal-overlay" onClick={() => setConfirmModal(null)}>
+        <div className="lab-modal-overlay" onClick={() => { if (confirmModal.type !== 'invalidate') setConfirmModal(null) }}>
           <div className={`lab-modal lab-confirm-modal ${confirmModal.type === 'panic' ? 'lab-confirm-panic' : confirmModal.type === 'invalidate' ? 'lab-confirm-invalidate' : ''}`} onClick={e => e.stopPropagation()}>
             <div className="lab-modal-header">
               <span className="lab-modal-title">{confirmModal.title}</span>
