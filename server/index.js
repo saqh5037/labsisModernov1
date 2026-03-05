@@ -49,6 +49,14 @@ import path from 'path'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 app.use('/api/qa/screenshots', requireAuth, express.static(path.join(__dirname, 'data/qa/screenshots')))
 
+// Production: serve Vite build
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '..', 'dist')))
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'))
+  })
+}
+
 app.listen(PORT, () => {
   console.log(`API corriendo en http://localhost:${PORT}`)
 })
