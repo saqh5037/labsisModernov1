@@ -1,5 +1,15 @@
 const BASE = '/api'
 
+export async function getHealth() {
+  try {
+    const res = await fetch(`${BASE}/health`)
+    if (!res.ok) return { ok: false, db: null }
+    return res.json()
+  } catch {
+    return { ok: false, db: null }
+  }
+}
+
 export async function getOrdenes(params = {}) {
   const qs = new URLSearchParams(
     Object.entries(params).filter(([, v]) => v !== '' && v != null)

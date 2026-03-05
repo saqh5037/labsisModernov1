@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
+import pool from './db.js'
 import authRouter from './routes/auth.js'
 import { requireAuth } from './auth.js'
 import ordenesRouter from './routes/ordenes.js'
@@ -23,7 +24,14 @@ app.use(cors({ origin: true, credentials: true }))
 app.use(cookieParser())
 app.use(express.json())
 
-app.get('/api/health', (_req, res) => res.json({ ok: true }))
+app.get('/api/health', async (_req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT current_database() AS db_name')
+    res.json({ ok: true, db: rows[0].db_name })
+  } catch {
+    res.json({ ok: false, db: null })
+  }
+})
 app.use('/api/dev', devRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/ordenes', requireAuth, ordenesRouter)

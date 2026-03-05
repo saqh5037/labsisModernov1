@@ -19,7 +19,6 @@ import PacienteEditPage from './pages/PacienteEditPage'
 import OTEditPage from './pages/OTEditPage'
 import FacturaCobro from './pages/FacturaCobro'
 // /validacion now uses OrdenLabPage in validation mode (no separate page)
-import EnConstruccion from './pages/EnConstruccion'
 import DevDashboard from './pages/DevDashboard'
 import DevScreenDetail from './pages/DevScreenDetail'
 import DevArchitecture from './pages/DevArchitecture'
@@ -60,7 +59,7 @@ export default function App() {
             <Route path="/pacientes/:id" element={<PacienteDetallePage />} />
             <Route path="/pacientes/:id/editar" element={<PacienteEditPage />} />
             <Route path="/validacion" element={<OrdenLabPage />} />
-            <Route path="/en-construccion/:seccion" element={<EnConstruccion />} />
+
           </Route>
           <Route path="/qa" element={<QADashboardPage />} />
           <Route path="/qa/suites" element={<QASuiteListPage />} />
