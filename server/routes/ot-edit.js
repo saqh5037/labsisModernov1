@@ -736,24 +736,34 @@ router.post('/', async (req, res) => {
     // 1. Crear o actualizar paciente
     let pacienteId = paciente.id
     if (!pacienteId) {
+      // Auto-generate CI if blank (matching pacientes.js pattern)
+      let ciPaciente = paciente.ci_paciente?.trim() || null
+      if (!ciPaciente) {
+        const maxCi = await client.query(
+          `SELECT ci_paciente FROM paciente WHERE ci_paciente LIKE 'AUTO-%' ORDER BY id DESC LIMIT 1`
+        )
+        let nextNum = 1
+        if (maxCi.rows.length) {
+          const m = maxCi.rows[0].ci_paciente.match(/AUTO-(\d+)/)
+          if (m) nextNum = parseInt(m[1]) + 1
+        }
+        ciPaciente = `AUTO-${String(nextNum).padStart(6, '0')}`
+      }
       const pResult = await client.query(`
         INSERT INTO paciente (ci_paciente, nombre, apellido, apellido_segundo,
                               sexo, fecha_nacimiento, email, telefono, telefono_celular,
-                              ci_representante, ci_rfc, num_historia, raza, activo)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'Indefinido',true)
+                              ci_representante, ci_rfc, num_historia, raza_id, activo,
+                              generacion_id_auto)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,1,true,$13)
         RETURNING id
-      `, [paciente.ci_paciente, paciente.nombre, paciente.apellido,
-          paciente.apellido_segundo || null, paciente.sexo,
+      `, [ciPaciente, paciente.nombre?.substring(0,30), paciente.apellido?.substring(0,30),
+          (paciente.apellido_segundo || null)?.substring?.(0,30) || null, paciente.sexo,
           paciente.fecha_nacimiento || null, paciente.email || null,
           paciente.telefono || null, paciente.telefono_celular || null,
           paciente.ci_representante || null, paciente.ci_rfc || null,
-          paciente.num_historia || null])
+          paciente.num_historia || null,
+          ciPaciente.startsWith('AUTO-')])
       pacienteId = pResult.rows[0].id
-      // Generar acceso_id (formato Labsis: 'pre$' + id)
-      await client.query(
-        `UPDATE paciente SET acceso_id = $1 WHERE id = $2`,
-        [`pre$${pacienteId}`, pacienteId]
-      )
     } else {
       // Use COALESCE for ALL fields to prevent nullifying existing data
       await client.query(`
@@ -803,21 +813,21 @@ router.post('/', async (req, res) => {
     const descuentoPct = parseFloat(orden.descuento_porcentaje) || 0
     const descuentoMonto = parseFloat(orden.descuento_monto) || 0
 
-    // Resolve turno_id (current shift, matches Java TurnoHome.getCurrentTurno)
+    // Resolve turno_id by day of week (matches Java TurnoHome.getCurrentTurno)
     let turnoId = null
-    const turnoResult = await client.query(`
-      SELECT id FROM turno
-      WHERE fecha = CURRENT_DATE AND activo = true
-      ORDER BY id DESC LIMIT 1
-    `)
+    const dayColumns = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']
+    const todayCol = dayColumns[new Date().getDay()] // safe: only values from our array
+    const turnoResult = await client.query(
+      `SELECT id FROM turno WHERE "` + todayCol + `" = true ORDER BY id LIMIT 1`
+    )
     if (turnoResult.rows.length) turnoId = turnoResult.rows[0].id
 
-    // Resolve bioanalista_id from departamento responsable
+    // Resolve bioanalista_id from departamento principal
     let bioanalistaId = null
-    const deptResult = await client.query(`
-      SELECT responsable_id FROM departamento_laboratorio WHERE id = 1
-    `)
-    if (deptResult.rows.length) bioanalistaId = deptResult.rows[0].responsable_id
+    const deptResult = await client.query(
+      `SELECT bioanalista_id FROM departamento_laboratorio WHERE id = 1`
+    )
+    if (deptResult.rows.length) bioanalistaId = deptResult.rows[0].bioanalista_id
 
     // Insertar la orden de trabajo
     // numero='0' — el trigger lo reemplaza con YYMMDD####

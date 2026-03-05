@@ -882,19 +882,7 @@ router.get('/notifications', async (req, res) => {
   }
 })
 
-router.put('/notifications/:id/read', async (req, res) => {
-  try {
-    const p = getNotifPath(parseInt(req.params.id))
-    if (!existsSync(p)) return res.status(404).json({ error: 'Notificación no encontrada' })
-    const notif = await readJSON(p)
-    notif.read = true
-    await writeJSON(p, notif)
-    res.json(notif)
-  } catch (err) {
-    res.status(500).json({ error: 'Error actualizando notificación' })
-  }
-})
-
+// IMPORTANT: read-all MUST be before :id to avoid Express matching "read-all" as :id
 router.put('/notifications/read-all', async (req, res) => {
   try {
     const all = await listJSON('notifications')
@@ -911,57 +899,20 @@ router.put('/notifications/read-all', async (req, res) => {
   }
 })
 
-// ─── VOICE TRANSCRIPTION (Gemini) ───────────────────────
-const audioUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
-
-router.post('/transcribe', audioUpload.single('audio'), async (req, res) => {
+router.put('/notifications/:id/read', async (req, res) => {
   try {
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' })
-    if (!req.file) return res.status(400).json({ error: 'No audio file' })
-
-    const audioBase64 = req.file.buffer.toString('base64')
-    // Resolve mimeType: multer may report application/octet-stream for blob uploads
-    let mimeType = req.file.mimetype
-    if (!mimeType || mimeType === 'application/octet-stream') {
-      const origName = req.file.originalname || ''
-      if (origName.endsWith('.mp4')) mimeType = 'audio/mp4'
-      else if (origName.endsWith('.ogg')) mimeType = 'audio/ogg'
-      else mimeType = 'audio/webm'
-    }
-    console.log(`[Transcribe] file: ${req.file.originalname}, size: ${req.file.size}, mime: ${mimeType}`)
-
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { inlineData: { mimeType, data: audioBase64 } },
-              { text: 'Transcribe this audio exactly as spoken. If it is in Spanish, keep it in Spanish. Only output the transcription, nothing else. No quotes, no labels.' }
-            ]
-          }]
-        })
-      }
-    )
-
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text()
-      console.error('Gemini API error:', geminiRes.status, errText)
-      return res.status(500).json({ error: `Gemini error ${geminiRes.status}` })
-    }
-
-    const data = await geminiRes.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
-    console.log(`[Transcribe] result: "${text.substring(0, 80)}"`)
-    res.json({ text: text.trim() })
+    const p = getNotifPath(parseInt(req.params.id))
+    if (!existsSync(p)) return res.status(404).json({ error: 'Notificación no encontrada' })
+    const notif = await readJSON(p)
+    notif.read = true
+    await writeJSON(p, notif)
+    res.json(notif)
   } catch (err) {
-    console.error('Transcription error:', err)
-    res.status(500).json({ error: 'Error transcribiendo audio' })
+    res.status(500).json({ error: 'Error actualizando notificación' })
   }
 })
+
+// NOTE: /transcribe lives in qa-public.js (no auth needed, supports mobile)
 
 // ─── MOBILE SESSIONS ────────────────────────────────────
 router.post('/sessions', async (req, res) => {

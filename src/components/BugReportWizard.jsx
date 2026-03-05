@@ -99,8 +99,6 @@ const icons = {
   footer: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="15" x2="21" y2="15"/></svg>,
 }
 
-const CONFETTI_COLORS = ['#dc2626', '#3b82f6', '#16a34a', '#f59e0b', '#8b5cf6', '#ec4899', '#0ea5e9', '#f97316']
-
 /* ── Gamification: QA taunts ── */
 const QA_TAUNTS = [
   'Aquí te va otro... suerte arreglándolo',
@@ -143,10 +141,10 @@ export default function BugReportWizard({ testCase, runId, onCreated }) {
   const recentPatterns = getRecentPatterns()
   const canProceed = state.step === 1 ? state.tipoError !== '' : true
 
-  // Auto-close after celebration
+  // Auto-close quickly after submit
   useEffect(() => {
     if (state.submitted) {
-      const t = setTimeout(() => onCreated(), 1800)
+      const t = setTimeout(() => onCreated(), 900)
       return () => clearTimeout(t)
     }
   }, [state.submitted, onCreated])
@@ -663,49 +661,23 @@ export default function BugReportWizard({ testCase, runId, onCreated }) {
         </div>
       </div>
 
-      {/* Celebration overlay */}
+      {/* Compact success banner — replaces content, auto-closes */}
       {state.submitted && (
         <div style={{
           position: 'absolute', inset: 0, borderRadius: 14,
-          background: 'rgba(255,255,255,0.97)',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', gap: 12,
+          background: 'rgba(255,255,255,0.98)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 10,
-          animation: 'fadeUp 250ms cubic-bezier(0.4,0,0.2,1) forwards',
+          animation: 'fadeUp 200ms ease-out forwards',
         }}>
-          {/* Confetti */}
-          {CONFETTI_COLORS.map((c, i) => (
-            <div key={i} style={{
-              position: 'absolute', width: 8, height: 8, borderRadius: '50%',
-              background: c, opacity: 0,
-              animation: `wizardConfettiPop 600ms cubic-bezier(0.34,1.56,0.64,1) ${100 + i * 50}ms forwards`,
-              top: `calc(50% + ${Math.sin(i * 45 * Math.PI / 180) * 70}px)`,
-              left: `calc(50% + ${Math.cos(i * 45 * Math.PI / 180) * 70}px)`,
-            }} />
-          ))}
-
-          {/* Checkmark */}
           <div style={{
-            width: 72, height: 72, borderRadius: '50%',
-            background: '#ecfdf5', border: '3px solid #16a34a',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            animation: 'wizardBounceIn 500ms cubic-bezier(0.34,1.56,0.64,1) forwards',
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '12px 20px', borderRadius: 10,
+            background: '#ecfdf5', border: '1.5px solid #16a34a',
           }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
-              style={{ strokeDasharray: 24, strokeDashoffset: 24, animation: 'wizardCheckDraw 400ms ease-out 250ms forwards' }}
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </div>
-
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#16a34a', marginBottom: 4 }}>Bug reportado!</div>
-            <div style={{
-              fontSize: 14, color: 'var(--text-2, #334155)', fontStyle: 'italic', fontWeight: 600,
-              marginTop: 4, opacity: 0,
-              animation: 'fadeUp 400ms ease-out 400ms forwards',
-            }}>"{randomQATaunt()}"</div>
-            <div style={{ fontSize: 11, color: 'var(--text-4, #94a3b8)', marginTop: 6 }}>El equipo lo revisará pronto</div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#16a34a' }}>Bug reportado!</span>
+            <span style={{ fontSize: 12, color: 'var(--text-3, #64748b)', fontStyle: 'italic' }}>"{randomQATaunt()}"</span>
           </div>
         </div>
       )}

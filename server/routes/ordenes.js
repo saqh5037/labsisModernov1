@@ -1225,6 +1225,7 @@ router.put('/:numero/lab/resultados', async (req, res) => {
           await client.query(`
             UPDATE prueba_orden SET status_id = $1, fecha_validacion = $2,
               fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2),
+              fecha_validacion_db = CASE WHEN $2 IS NOT NULL THEN NOW() ELSE fecha_validacion_db END,
               anormal = $3, critico = $4
             WHERE id = $5
           `, [newStatus, fechaVal, isAnormal, isCritico, r.prueba_orden_id])
@@ -1232,7 +1233,8 @@ router.put('/:numero/lab/resultados', async (req, res) => {
           // Alpha types: don't overwrite anormal/critico (may have been set by Labsis)
           await client.query(`
             UPDATE prueba_orden SET status_id = $1, fecha_validacion = $2,
-              fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2)
+              fecha_primera_validacion = COALESCE(fecha_primera_validacion, $2),
+              fecha_validacion_db = CASE WHEN $2 IS NOT NULL THEN NOW() ELSE fecha_validacion_db END
             WHERE id = $3
           `, [newStatus, fechaVal, r.prueba_orden_id])
         }

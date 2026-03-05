@@ -119,8 +119,10 @@ export default function QARunPage() {
       const existingBugs = freshRun.bugs || []
       const existingBugCaseIds = new Set(existingBugs.map(b => b.testCaseId))
 
+      // Use server's canonical results, not local state
+      const serverResults = freshRun.results || {}
       const failedCases = allCases.filter(c => {
-        const r = results[c.id]
+        const r = serverResults[c.id]
         if (!r) return false
         const isFailed = r.resultado === 'fail' || r.resultado === 'blocker'
         const alreadyReported = existingBugCaseIds.has(c.id)
@@ -131,7 +133,7 @@ export default function QARunPage() {
       if (failedCases.length > 0) {
         setFinishLog(prev => [...prev, `Generando ${failedCases.length} bug${failedCases.length > 1 ? 's' : ''} automático${failedCases.length > 1 ? 's' : ''}...`])
         for (const c of failedCases) {
-          const r = results[c.id] || {}
+          const r = serverResults[c.id] || {}
           try {
             const bugData = {
               runId: run.id,

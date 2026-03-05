@@ -1,0 +1,29 @@
+{
+  "id": 13,
+  "runId": 12,
+  "testCaseId": "auth-06",
+  "titulo": "Fallo en: Ruta protegida sin login",
+  "descripcion": "",
+  "comportamientoEsperado": "Redirige a /login",
+  "comportamientoActual": "",
+  "pasosReproducir": "1. Cerrar sesión\n2. Navegar directo a /ordenes",
+  "severidad": "mayor",
+  "estado": "abierto",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_3_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/145.0.7632.108 Mobile/15E148 Safari/604.1",
+  "tipoError": "no_carga",
+  "codigoError": "",
+  "dondeOcurre": "Sección: Sesión — Ruta protegida sin login",
+  "queEsperabas": "",
+  "contextoExtra": "Reportado desde móvil",
+  "brandTokens": [],
+  "zonaPantalla": "",
+  "reportadoPor": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-05T15:33:13.189Z",
+  "updatedAt": "2026-03-05T15:33:13.189Z"
+}

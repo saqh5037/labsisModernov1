@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { getQASession, saveQASessionResult, createQASessionBug } from '../services/api'
 import VoiceRecorder from '../components/VoiceRecorder'
@@ -166,6 +166,15 @@ export default function QAMobileRunPage() {
   const removePhoto = (idx) => {
     setBugPhotos(prev => prev.filter((_, i) => i !== idx))
   }
+
+  // Memoize object URLs to avoid memory leaks — revoke old ones when photos change
+  const photoUrls = useMemo(() => {
+    const urls = bugPhotos.map(f => URL.createObjectURL(f))
+    return urls
+  }, [bugPhotos])
+  useEffect(() => {
+    return () => photoUrls.forEach(url => URL.revokeObjectURL(url))
+  }, [photoUrls])
 
   if (loading) return (
     <div style={styles.container}>
@@ -378,7 +387,7 @@ export default function QAMobileRunPage() {
                       {bugPhotos.map((file, idx) => (
                         <div key={idx} style={{ position: 'relative', width: 64, height: 64, borderRadius: 8, overflow: 'hidden', border: '2px solid #e2e8f0' }}>
                           <img
-                            src={URL.createObjectURL(file)}
+                            src={photoUrls[idx]}
                             alt=""
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />

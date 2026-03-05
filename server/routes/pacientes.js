@@ -1,7 +1,37 @@
 import { Router } from 'express'
+import crypto from 'crypto'
 import pool from '../db.js'
 
 const router = Router()
+
+// Max lengths matching DB varchar constraints
+const PACIENTE_MAX_LENGTHS = {
+  nombre: 30, apellido: 30, ci_paciente: 25, telefono: 30,
+  telefono_celular: 30, lugar_nacimiento: 20, nacionalidad: 20,
+  estado_civil: 30, codigo_postal: 10, email: 200, apellido_segundo: 30,
+  direccion1: 100, direccion2: 100, direccion3: 100, direccion4: 100,
+  observaciones: null // text, no limit
+}
+
+function truncateField(val, maxLen) {
+  if (!val || !maxLen) return val
+  return String(val).substring(0, maxLen)
+}
+
+// Generate auto CI when patient has no ID (matches Java's creaCiPaciente)
+async function generateAutoCI(prefix) {
+  const rand = crypto.randomBytes(8).toString('hex').substring(0, 10).toUpperCase()
+  return (prefix || 'AUTO$') + rand
+}
+
+// Generate portal password (matches Java's generarPassword)
+function generatePortalPassword() {
+  const plain = crypto.randomBytes(8).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, 10)
+  const salt = crypto.randomBytes(10).toString('hex').substring(0, 20)
+  // SHA1 hash matching Java's PasswordManager
+  const hash = crypto.createHash('sha1').update(salt + plain).digest('hex')
+  return { plain, salt, hash }
+}
 
 // GET /api/pacientes/config/campos — Config de campos visibles por tenant
 // IMPORTANTE: esta ruta va ANTES de /:id para que "config" no sea capturado como param
@@ -345,16 +375,38 @@ router.post('/', async (req, res) => {
     if (!apellido || !apellido.trim()) return res.status(400).json({ error: 'Apellido es requerido' })
     if (!sexo || !['M', 'F'].includes(sexo)) return res.status(400).json({ error: 'Sexo debe ser M o F' })
 
-    // Verificar CI único (si se proporcionó)
-    if (ci_paciente && ci_paciente.trim()) {
+    // Truncate fields to DB max lengths
+    const tNombre = truncateField(nombre.trim(), 30)
+    const tApellido = truncateField(apellido.trim(), 30)
+    const tApellidoSeg = truncateField(apellido_segundo?.trim(), 30)
+
+    // Resolve CI: auto-generate if blank (matches Java creaCiPaciente)
+    let ciResolved = ci_paciente?.trim() || null
+    let isAutoCI = false
+    if (!ciResolved) {
+      const labConfig = await pool.query(
+        'SELECT prefijo_ingreso_paciente_sin_id_manual, ingreso_paciente_sin_id_manual FROM laboratorio LIMIT 1'
+      )
+      const cfg = labConfig.rows[0] || {}
+      ciResolved = await generateAutoCI(cfg.prefijo_ingreso_paciente_sin_id_manual)
+      isAutoCI = true
+    } else {
+      ciResolved = truncateField(ciResolved, 25)
+    }
+
+    // Verificar CI único (si se proporcionó manualmente)
+    if (!isAutoCI && ciResolved) {
       const ciCheck = await pool.query(
         'SELECT id FROM paciente WHERE lower(ci_paciente) = lower($1) AND activo = true',
-        [ci_paciente.trim()]
+        [ciResolved]
       )
       if (ciCheck.rows.length) {
         return res.status(409).json({ error: 'Ya existe un paciente con esa cédula/identificación' })
       }
     }
+
+    // Generate portal password (matches Java generarPassword)
+    const portalPwd = generatePortalPassword()
 
     const result = await pool.query(
       `INSERT INTO paciente (
@@ -365,29 +417,52 @@ router.post('/', async (req, res) => {
         paciente_representante_id, vinculo_representante_id,
         estado_civil, nacionalidad, raza_id, paciente_saludo_id,
         lugar_nacimiento, num_historia_old, empresa,
-        activo
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25, true)
+        activo, generacion_id_auto, send_his,
+        passwd_string, passwd_sha1, pass_salt,
+        cambiar_clave_portal, send_clave_portal
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,
+                true, $26, false, $27, $28, $29, true, true)
       RETURNING id`,
       [
-        ci_paciente?.trim() || null, nombre.trim(), apellido.trim(), apellido_segundo?.trim() || null,
-        sexo, fecha_nacimiento || null, email?.trim() || null, telefono?.trim() || null, telefono_celular?.trim() || null,
-        direccion1?.trim() || null, direccion2?.trim() || null, direccion3?.trim() || null, direccion4?.trim() || null,
-        codigo_postal?.trim() || null, observaciones?.trim() || null, vip || false,
+        ciResolved, tNombre, tApellido, tApellidoSeg || null,
+        sexo, fecha_nacimiento || null,
+        truncateField(email?.trim(), 200) || null,
+        truncateField(telefono?.trim(), 30) || null,
+        truncateField(telefono_celular?.trim(), 30) || null,
+        truncateField(direccion1?.trim(), 100) || null,
+        truncateField(direccion2?.trim(), 100) || null,
+        truncateField(direccion3?.trim(), 100) || null,
+        truncateField(direccion4?.trim(), 100) || null,
+        truncateField(codigo_postal?.trim(), 10) || null,
+        observaciones?.trim() || null, vip || false,
         paciente_representante_id || null, vinculo_representante_id || null,
-        estado_civil?.trim() || null, nacionalidad?.trim() || null,
-        raza_id ? parseInt(raza_id) : null, paciente_saludo_id ? parseInt(paciente_saludo_id) : null,
-        lugar_nacimiento?.trim() || null, num_historia?.trim() || null, empresa || false
+        truncateField(estado_civil?.trim(), 30) || null,
+        truncateField(nacionalidad?.trim(), 20) || null,
+        raza_id ? parseInt(raza_id) : 1,  // Default 1 matches Java (BRANCA)
+        paciente_saludo_id ? parseInt(paciente_saludo_id) : null,
+        truncateField(lugar_nacimiento?.trim(), 20) || null,
+        num_historia?.trim() || null, empresa || false,
+        isAutoCI,  // generacion_id_auto
+        portalPwd.plain, portalPwd.hash, portalPwd.salt
       ]
     )
 
-    // Log de creación
+    const newId = result.rows[0].id
+
+    // Log CREACION (matches Java format)
     await pool.query(
       `INSERT INTO accion_paciente_log (paciente_id, usuario_id, realizado_timestamp, accion)
        VALUES ($1, $2, NOW(), $3)`,
-      [result.rows[0].id, req.user.userId, `CREACION - Paciente creado: ${nombre} ${apellido}`]
+      [newId, req.user.userId, `CREACION PACIENTE - ${tNombre} ${tApellido} (${ciResolved})`]
+    )
+    // Log FIRMA PACIENTE (Java creates a second entry for audit)
+    await pool.query(
+      `INSERT INTO accion_paciente_log (paciente_id, usuario_id, realizado_timestamp, accion)
+       VALUES ($1, $2, NOW(), $3)`,
+      [newId, req.user.userId, `FIRMA PACIENTE - ID: ${newId}`]
     )
 
-    res.status(201).json({ id: result.rows[0].id })
+    res.status(201).json({ id: newId })
   } catch (err) {
     console.error('Error creando paciente:', err)
     res.status(500).json({ error: err.message })
@@ -448,17 +523,43 @@ router.put('/:id', async (req, res) => {
 
     if (!setClauses.length) return res.json({ ok: true, message: 'Sin cambios' })
 
+    // Always reset send_his on patient update (matches Java behavior)
+    setClauses.push(`send_his = $${paramIdx}`)
+    params.push(false)
+    paramIdx++
+
+    // Truncate string fields to DB max lengths
+    for (let i = 0; i < params.length; i++) {
+      if (typeof params[i] === 'string') {
+        // Find corresponding field from setClauses to get max length
+        const clause = setClauses[i]
+        if (clause) {
+          const field = clause.split(' = ')[0]
+          const maxLen = PACIENTE_MAX_LENGTHS[field]
+          if (maxLen && params[i].length > maxLen) {
+            params[i] = params[i].substring(0, maxLen)
+          }
+        }
+      }
+    }
+
     params.push(id)
     await pool.query(
       `UPDATE paciente SET ${setClauses.join(', ')} WHERE id = $${paramIdx}`,
       params
     )
 
-    // Log de edición con diff
+    // Log EDICION with diff
     await pool.query(
       `INSERT INTO accion_paciente_log (paciente_id, usuario_id, realizado_timestamp, accion)
        VALUES ($1, $2, NOW(), $3)`,
       [id, req.user.userId, `EDICION - ${changes.join('; ')}`]
+    )
+    // Log FIRMA PACIENTE (Java creates second entry for audit)
+    await pool.query(
+      `INSERT INTO accion_paciente_log (paciente_id, usuario_id, realizado_timestamp, accion)
+       VALUES ($1, $2, NOW(), $3)`,
+      [id, req.user.userId, `FIRMA PACIENTE - ID: ${id}`]
     )
 
     res.json({ ok: true })

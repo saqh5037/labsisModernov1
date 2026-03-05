@@ -15,12 +15,12 @@
     "lab-01": {
       "resultado": "fail",
       "observaciones": "",
-      "testedAt": "2026-03-05T13:48:41.904Z"
+      "testedAt": "2026-03-05T14:44:43.797Z"
     },
     "lab-02": {
-      "resultado": "pass",
+      "resultado": "fail",
       "observaciones": "",
-      "testedAt": "2026-03-05T06:26:15.404Z"
+      "testedAt": "2026-03-05T14:44:47.009Z"
     },
     "lab-03": {
       "resultado": "pass",
