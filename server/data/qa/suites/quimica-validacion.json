@@ -1,0 +1,443 @@
+{
+  "id": "quimica-validacion",
+  "nombre": "Química — Validación de Resultados",
+  "modulo": "validacion",
+  "descripcion": "Verificar el flujo completo de validación de resultados de Química: ingreso de valores, cálculo de alarmas, validación individual y por bloque, rangos de referencia, banderas, y actualización de estados",
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "qv-01",
+      "seccion": "Acceso",
+      "titulo": "Entrar a la pantalla de validación por área",
+      "descripcion": "Verificar que se puede acceder al módulo de validación",
+      "pasos": [
+        "Desde el menú lateral, hacer clic en 'Validación por Área'",
+        "Verificar que carga la pantalla con el panel de áreas a la izquierda"
+      ],
+      "resultado_esperado": "La pantalla de validación carga con un panel lateral que permite seleccionar área y rango de fechas",
+      "prioridad": "critico",
+      "orden": 1
+    },
+    {
+      "id": "qv-02",
+      "seccion": "Acceso",
+      "titulo": "Seleccionar área Química",
+      "descripcion": "Elegir el área de Química para ver las muestras pendientes",
+      "pasos": [
+        "En el panel lateral, seleccionar el área 'Química' (o 'Química Clínica')",
+        "Verificar que se carga la lista de muestras"
+      ],
+      "resultado_esperado": "Aparece una lista de muestras/OTs que tienen pruebas de Química. Cada item muestra: paciente, número OT, progreso de validación",
+      "prioridad": "critico",
+      "orden": 2
+    },
+    {
+      "id": "qv-03",
+      "seccion": "Cola de Muestras",
+      "titulo": "La cola muestra OTs pendientes de validar",
+      "descripcion": "Filtrar por muestras pendientes y verificar que la cola es correcta",
+      "pasos": [
+        "Con área Química seleccionada, filtrar por 'Pendientes'",
+        "Verificar que las muestras mostradas tienen pruebas sin validar"
+      ],
+      "resultado_esperado": "Solo aparecen muestras con pruebas pendientes de validación. La barra de progreso de cada una NO está al 100%",
+      "prioridad": "alto",
+      "orden": 3
+    },
+    {
+      "id": "qv-04",
+      "seccion": "Cola de Muestras",
+      "titulo": "Progreso de validación es correcto",
+      "descripcion": "Verificar que el porcentaje de progreso coincide con los datos reales",
+      "pasos": [
+        "Hacer clic en una muestra de la cola",
+        "Contar manualmente cuántas pruebas tiene y cuántas están validadas",
+        "Comparar con el porcentaje mostrado en la cola"
+      ],
+      "resultado_esperado": "El porcentaje mostrado (ej: '3/5 validados 60%') coincide con la cantidad real de pruebas validadas vs totales",
+      "prioridad": "alto",
+      "orden": 4
+    },
+    {
+      "id": "qv-05",
+      "seccion": "Cola de Muestras",
+      "titulo": "Buscar muestra por nombre de paciente",
+      "descripcion": "Usar el buscador de la cola para filtrar por nombre",
+      "pasos": [
+        "En el campo de búsqueda de la cola, escribir el nombre o apellido de un paciente",
+        "Verificar que la cola se filtra"
+      ],
+      "resultado_esperado": "Solo aparecen las muestras del paciente buscado (o que coincidan parcialmente con el texto)",
+      "prioridad": "medio",
+      "orden": 5
+    },
+    {
+      "id": "qv-06",
+      "seccion": "Datos del Paciente",
+      "titulo": "Información del paciente es correcta",
+      "descripcion": "Al seleccionar una muestra, verificar los datos del paciente",
+      "pasos": [
+        "Hacer clic en una muestra de la cola",
+        "Verificar los datos del paciente: nombre, cédula, edad, sexo, fecha de nacimiento",
+        "Si es posible, comparar con el sistema Java"
+      ],
+      "resultado_esperado": "Todos los datos del paciente son correctos y coinciden con el sistema Labsis. La edad se calcula correctamente",
+      "prioridad": "critico",
+      "orden": 6
+    },
+    {
+      "id": "qv-07",
+      "seccion": "Pruebas de Química",
+      "titulo": "Se muestran todas las pruebas de Química de la OT",
+      "descripcion": "Verificar que aparecen todas las pruebas solicitadas del área Química",
+      "pasos": [
+        "Seleccionar una OT con varias pruebas de Química (ej: perfil básico: Glicemia, Urea, Creatinina, Ácido Úrico, Colesterol, Triglicéridos)",
+        "Contar las pruebas mostradas",
+        "Comparar con las pruebas solicitadas en el sistema Java"
+      ],
+      "resultado_esperado": "Todas las pruebas de Química aparecen listadas. No falta ninguna y no aparecen pruebas de otras áreas",
+      "prioridad": "critico",
+      "orden": 7
+    },
+    {
+      "id": "qv-08",
+      "seccion": "Ingreso de Resultados",
+      "titulo": "Ingresar resultado numérico",
+      "descripcion": "Escribir un valor numérico en una prueba (ej: Glicemia)",
+      "pasos": [
+        "Ubicar una prueba numérica sin resultado (ej: Glicemia)",
+        "Escribir un valor dentro del rango normal (ej: 90 mg/dL)",
+        "Guardar o pasar al siguiente campo"
+      ],
+      "resultado_esperado": "El valor se acepta, se muestra en el campo y se guarda. La bandera muestra 'N' (Normal) en verde",
+      "prioridad": "critico",
+      "orden": 8
+    },
+    {
+      "id": "qv-09",
+      "seccion": "Ingreso de Resultados",
+      "titulo": "Resultado alto muestra bandera H",
+      "descripcion": "Ingresar un valor por encima del rango normal",
+      "pasos": [
+        "En una prueba con rango definido (ej: Glicemia rango 70-110)",
+        "Escribir un valor alto (ej: 150)",
+        "Verificar la bandera que aparece"
+      ],
+      "resultado_esperado": "La bandera muestra 'H' (High) en rojo. El valor se resalta visualmente como fuera de rango",
+      "prioridad": "critico",
+      "orden": 9
+    },
+    {
+      "id": "qv-10",
+      "seccion": "Ingreso de Resultados",
+      "titulo": "Resultado bajo muestra bandera L",
+      "descripcion": "Ingresar un valor por debajo del rango normal",
+      "pasos": [
+        "En una prueba con rango definido (ej: Glicemia rango 70-110)",
+        "Escribir un valor bajo (ej: 50)",
+        "Verificar la bandera que aparece"
+      ],
+      "resultado_esperado": "La bandera muestra 'L' (Low) en rojo. El valor se resalta visualmente",
+      "prioridad": "critico",
+      "orden": 10
+    },
+    {
+      "id": "qv-11",
+      "seccion": "Ingreso de Resultados",
+      "titulo": "Resultado crítico muestra bandera HH o LL",
+      "descripcion": "Ingresar un valor en rango crítico (pánico)",
+      "pasos": [
+        "Buscar una prueba que tenga rango de pánico definido (ej: Glicemia crítico >400 o <40)",
+        "Escribir un valor en rango crítico (ej: 450 o 30)",
+        "Verificar la bandera"
+      ],
+      "resultado_esperado": "La bandera muestra 'HH' o 'LL' en rojo intenso. Debe ser visualmente más alarmante que H o L",
+      "prioridad": "alto",
+      "orden": 11
+    },
+    {
+      "id": "qv-12",
+      "seccion": "Rangos de Referencia",
+      "titulo": "Los rangos de referencia se muestran correctamente",
+      "descripcion": "Verificar que cada prueba muestra su rango de referencia correcto",
+      "pasos": [
+        "Revisar varias pruebas de Química (Glicemia, Urea, Creatinina, Colesterol, etc.)",
+        "Verificar que junto a cada prueba aparece el rango de referencia (ej: 70-110 mg/dL)",
+        "Comparar los rangos con los del sistema Java o con los valores conocidos del laboratorio"
+      ],
+      "resultado_esperado": "Los rangos de referencia son correctos para cada prueba. Deben considerar sexo y edad del paciente cuando aplique",
+      "prioridad": "critico",
+      "orden": 12
+    },
+    {
+      "id": "qv-13",
+      "seccion": "Rangos de Referencia",
+      "titulo": "Rangos diferenciados por sexo",
+      "descripcion": "Verificar que pruebas con rangos por sexo muestran el rango correcto",
+      "pasos": [
+        "Buscar una prueba que tenga rangos diferentes por sexo (ej: Creatinina, Ácido Úrico)",
+        "Abrir una OT de paciente masculino → anotar el rango",
+        "Abrir una OT de paciente femenino → anotar el rango",
+        "Comparar"
+      ],
+      "resultado_esperado": "Los rangos son diferentes según el sexo del paciente. Ej: Creatinina masculino 0.7-1.3, femenino 0.6-1.1 (valores aproximados, verificar con el lab)",
+      "prioridad": "alto",
+      "orden": 13
+    },
+    {
+      "id": "qv-14",
+      "seccion": "Validación Individual",
+      "titulo": "Validar una prueba individual",
+      "descripcion": "Marcar una prueba como validada",
+      "pasos": [
+        "Ingresar un resultado en una prueba",
+        "Hacer clic en el botón/checkbox de validar para esa prueba",
+        "Verificar que el estado cambia"
+      ],
+      "resultado_esperado": "La prueba se marca como validada. El indicador visual cambia (ej: check verde). El progreso de la muestra se actualiza en la cola",
+      "prioridad": "critico",
+      "orden": 14
+    },
+    {
+      "id": "qv-15",
+      "seccion": "Validación Individual",
+      "titulo": "Invalidar una prueba previamente validada",
+      "descripcion": "Revertir la validación de una prueba",
+      "pasos": [
+        "Buscar una prueba que esté validada",
+        "Hacer clic en invalidar",
+        "Verificar que pide razón de invalidación (si aplica)"
+      ],
+      "resultado_esperado": "La prueba vuelve a estado 'sin validar'. El progreso de la muestra se reduce. Se puede editar el valor nuevamente",
+      "prioridad": "alto",
+      "orden": 15
+    },
+    {
+      "id": "qv-16",
+      "seccion": "Validación por Bloque",
+      "titulo": "Validar todas las pruebas del área (Validar Todo)",
+      "descripcion": "Usar el botón 'Validar Todo' para validar todas las pruebas de Química de una vez",
+      "pasos": [
+        "Seleccionar una OT que tenga todas las pruebas de Química con resultado ingresado",
+        "Hacer clic en 'Validar Todo'",
+        "Verificar que todas se marcan como validadas"
+      ],
+      "resultado_esperado": "Todas las pruebas del área Química se marcan como validadas. El progreso llega a 100%. Si la OT solo tiene pruebas de Química, el estado de la OT cambia a 'Validado'",
+      "prioridad": "critico",
+      "orden": 16
+    },
+    {
+      "id": "qv-17",
+      "seccion": "Validación por Bloque",
+      "titulo": "Validar Todo NO funciona si hay pruebas sin resultado",
+      "descripcion": "Intentar validar todo cuando hay pruebas vacías",
+      "pasos": [
+        "Seleccionar una OT que tenga pruebas de Química SIN resultado",
+        "Intentar hacer clic en 'Validar Todo'",
+        "Observar el comportamiento"
+      ],
+      "resultado_esperado": "El sistema NO debe validar pruebas vacías. Debe mostrar un mensaje de advertencia o deshabilitar el botón. Las pruebas sin valor NO deben quedar como 'validadas'",
+      "prioridad": "alto",
+      "orden": 17
+    },
+    {
+      "id": "qv-18",
+      "seccion": "Estado de la OT",
+      "titulo": "Estado de OT cambia al validar todas las áreas",
+      "descripcion": "Verificar que cuando todas las áreas están validadas, la OT pasa a estado Validado",
+      "pasos": [
+        "Buscar una OT que tenga pruebas SOLO de Química (sin otras áreas)",
+        "Validar todas las pruebas",
+        "Regresar a la lista de OTs",
+        "Verificar el estado de esa OT"
+      ],
+      "resultado_esperado": "La OT aparece con estado 'Validado' (badge verde) en la lista",
+      "prioridad": "critico",
+      "orden": 18
+    },
+    {
+      "id": "qv-19",
+      "seccion": "Estado de la OT",
+      "titulo": "OT con múltiples áreas NO se valida si solo Química está lista",
+      "descripcion": "Verificar que una OT con Química + Hematología no se marca como validada si solo se valida Química",
+      "pasos": [
+        "Buscar una OT que tenga pruebas de Química Y de otra área (ej: Hematología)",
+        "Validar solo las pruebas de Química",
+        "Regresar a la lista de OTs",
+        "Verificar el estado"
+      ],
+      "resultado_esperado": "La OT NO debe estar en estado 'Validado'. Debe estar en 'Por Validar' o 'Iniciada' porque aún faltan otras áreas",
+      "prioridad": "critico",
+      "orden": 19
+    },
+    {
+      "id": "qv-20",
+      "seccion": "Guardado",
+      "titulo": "Los resultados se guardan correctamente",
+      "descripcion": "Verificar que al guardar, los valores persisten después de recargar",
+      "pasos": [
+        "Ingresar resultados en varias pruebas de Química",
+        "Guardar",
+        "Cerrar la OT (navegar a otra pantalla)",
+        "Volver a abrir la misma OT",
+        "Verificar que los valores están ahí"
+      ],
+      "resultado_esperado": "Todos los valores ingresados persisten. Las banderas (H/L/N) se mantienen. No se pierde ningún dato",
+      "prioridad": "critico",
+      "orden": 20
+    },
+    {
+      "id": "qv-21",
+      "seccion": "Guardado",
+      "titulo": "Modificar un resultado previamente guardado",
+      "descripcion": "Cambiar un valor que ya fue guardado (pero no validado)",
+      "pasos": [
+        "Abrir una OT con resultados guardados pero NO validados",
+        "Modificar el valor de una prueba (ej: cambiar Glicemia de 90 a 95)",
+        "Guardar",
+        "Verificar que el nuevo valor se guardó"
+      ],
+      "resultado_esperado": "El valor se actualiza correctamente. La bandera se recalcula si el cambio afecta el rango",
+      "prioridad": "alto",
+      "orden": 21
+    },
+    {
+      "id": "qv-22",
+      "seccion": "Histórico",
+      "titulo": "Ver resultados anteriores del paciente",
+      "descripcion": "Verificar que se puede consultar el histórico de resultados del paciente",
+      "pasos": [
+        "En una prueba (ej: Glicemia), buscar el botón/icono de historial",
+        "Hacer clic para ver resultados anteriores",
+        "Verificar que muestra valores de OTs previas"
+      ],
+      "resultado_esperado": "Se muestra un historial con fechas y valores previos del paciente para esa prueba. Idealmente con gráfica de tendencia (sparkline)",
+      "prioridad": "medio",
+      "orden": 22
+    },
+    {
+      "id": "qv-23",
+      "seccion": "Navegación",
+      "titulo": "Navegar entre muestras de la cola",
+      "descripcion": "Pasar de una muestra a otra sin salir de la pantalla de validación",
+      "pasos": [
+        "Con la cola de muestras visible, hacer clic en la primera muestra",
+        "Verificar que carga sus pruebas",
+        "Hacer clic en la segunda muestra",
+        "Verificar que cambia a las pruebas de esa muestra"
+      ],
+      "resultado_esperado": "El cambio entre muestras es fluido. Los datos de la muestra anterior se guardan (o se pide confirmar). La nueva muestra carga correctamente",
+      "prioridad": "alto",
+      "orden": 23
+    },
+    {
+      "id": "qv-24",
+      "seccion": "Navegación",
+      "titulo": "Tab entre campos de resultado funciona",
+      "descripcion": "Usar Tab para moverse entre campos de entrada de resultados",
+      "pasos": [
+        "Hacer clic en el campo de resultado de la primera prueba",
+        "Presionar Tab",
+        "Verificar que el cursor se mueve al siguiente campo de resultado"
+      ],
+      "resultado_esperado": "Tab navega secuencialmente entre los campos de resultado, saltando los elementos de UI que no son de entrada",
+      "prioridad": "medio",
+      "orden": 24
+    },
+    {
+      "id": "qv-25",
+      "seccion": "Unidades",
+      "titulo": "Las unidades de medida son correctas",
+      "descripcion": "Verificar que cada prueba muestra la unidad correcta",
+      "pasos": [
+        "Revisar las unidades de varias pruebas de Química",
+        "Glicemia → mg/dL",
+        "Urea → mg/dL",
+        "Creatinina → mg/dL",
+        "Colesterol → mg/dL",
+        "Triglicéridos → mg/dL",
+        "Comparar con las unidades del laboratorio"
+      ],
+      "resultado_esperado": "Todas las unidades de medida son correctas y coinciden con las configuradas en el laboratorio",
+      "prioridad": "alto",
+      "orden": 25
+    },
+    {
+      "id": "qv-26",
+      "seccion": "Formato",
+      "titulo": "Decimales se manejan correctamente",
+      "descripcion": "Verificar que los decimales de cada prueba se redondean según su configuración",
+      "pasos": [
+        "Ingresar un valor con muchos decimales (ej: 90.12345) en una prueba que solo acepta 1 decimal",
+        "Guardar",
+        "Verificar cómo se muestra el valor"
+      ],
+      "resultado_esperado": "El valor se redondea según la configuración de la prueba (ej: si es 1 decimal, muestra 90.1). No debe aceptar más decimales de los configurados",
+      "prioridad": "medio",
+      "orden": 26
+    },
+    {
+      "id": "qv-27",
+      "seccion": "Notas",
+      "titulo": "Agregar nota a una prueba",
+      "descripcion": "Agregar una observación/nota a un resultado individual",
+      "pasos": [
+        "En una prueba, buscar el icono de nota/observación",
+        "Hacer clic y escribir una nota (ej: 'Muestra lipémica')",
+        "Guardar",
+        "Verificar que la nota se guarda"
+      ],
+      "resultado_esperado": "La nota se guarda y se muestra junto al resultado. Un indicador visual señala que esa prueba tiene una nota",
+      "prioridad": "medio",
+      "orden": 27
+    },
+    {
+      "id": "qv-28",
+      "seccion": "Métricas",
+      "titulo": "Métricas del panel de validación son correctas",
+      "descripcion": "Verificar las métricas que se muestran al pie del panel de cola",
+      "pasos": [
+        "Validar varias muestras",
+        "Observar las métricas: Progreso, Promedio, Estimado, Vistas"
+      ],
+      "resultado_esperado": "El progreso muestra X/Total con porcentaje correcto. Los tiempos promedio y estimado son razonables",
+      "prioridad": "bajo",
+      "orden": 28
+    },
+    {
+      "id": "qv-29",
+      "seccion": "Comparación",
+      "titulo": "Resultados coinciden con el sistema Java",
+      "descripcion": "Comparar resultados de una OT entre la app moderna y el sistema Java original",
+      "pasos": [
+        "Elegir una OT validada en ambos sistemas",
+        "En el sistema Java, ver los resultados de Química de esa OT",
+        "En la app moderna, ver los mismos resultados",
+        "Comparar: valores, banderas, rangos"
+      ],
+      "resultado_esperado": "Los valores, banderas (H/L/N), rangos de referencia y estados son IDÉNTICOS en ambos sistemas. No hay discrepancias",
+      "prioridad": "critico",
+      "orden": 29
+    },
+    {
+      "id": "qv-30",
+      "seccion": "Rendimiento",
+      "titulo": "La pantalla responde rápidamente",
+      "descripcion": "Verificar que la pantalla no se congela ni tarda excesivamente",
+      "pasos": [
+        "Navegar entre muestras, ingresar resultados, validar",
+        "Observar tiempos de carga y respuesta",
+        "Probar con una OT que tenga muchas pruebas"
+      ],
+      "resultado_esperado": "Las acciones responden en menos de 2 segundos. No hay congelamientos ni errores en consola",
+      "prioridad": "alto",
+      "orden": 30
+    }
+  ],
+  "archivos": {
+    "frontend": ["src/pages/OrdenLabPage.jsx"],
+    "backend": ["server/routes/validacion.js", "server/routes/ordenes.js"],
+    "api": ["src/services/api.js — getValidacionMuestras, saveValidacionResultados, getOrdenLab"],
+    "ruta": "/validacion, /ordenes/:numero/lab"
+  }
+}

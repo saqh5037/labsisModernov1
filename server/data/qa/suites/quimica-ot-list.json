@@ -1,0 +1,293 @@
+{
+  "id": "quimica-ot-list",
+  "nombre": "Química — Lista de Órdenes de Trabajo",
+  "modulo": "ordenes",
+  "descripcion": "Verificar que la pantalla de Lista OT funciona correctamente para el flujo de trabajo de Química: buscar OTs, filtrar por área Química, ver estados, navegar a resultados",
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "qol-01",
+      "seccion": "Carga Inicial",
+      "titulo": "La página carga y muestra órdenes",
+      "descripcion": "Al entrar a /ordenes, la tabla muestra OTs con datos reales de la BD QA",
+      "pasos": [
+        "Navegar a la pantalla de Órdenes de Trabajo",
+        "Esperar que cargue la tabla",
+        "Verificar que aparecen filas con datos"
+      ],
+      "resultado_esperado": "La tabla muestra al menos 10 OTs con número, fecha, paciente, cédula, procedencia y estado",
+      "prioridad": "critico",
+      "orden": 1
+    },
+    {
+      "id": "qol-02",
+      "seccion": "Carga Inicial",
+      "titulo": "Los estados se muestran con colores correctos",
+      "descripcion": "Cada OT muestra un badge de estado con el color correspondiente",
+      "pasos": [
+        "Observar la columna Estado en la tabla",
+        "Identificar OTs en diferentes estados (Activo, Iniciada, Validado, Por Validar)"
+      ],
+      "resultado_esperado": "Activo=rojo, Iniciada=naranja, Validado=verde, Por Validar=rosa. Los colores coinciden con el estado real de la OT",
+      "prioridad": "alto",
+      "orden": 2
+    },
+    {
+      "id": "qol-03",
+      "seccion": "Búsqueda",
+      "titulo": "Buscar OT por número",
+      "descripcion": "Escribir un número de OT conocido y verificar que aparece",
+      "pasos": [
+        "Escribir un número de OT que exista (ej: una OT reciente con pruebas de Química)",
+        "Presionar Enter o hacer clic en Buscar",
+        "Verificar que aparece la OT correcta"
+      ],
+      "resultado_esperado": "La tabla muestra solo la OT buscada con sus datos correctos",
+      "prioridad": "critico",
+      "orden": 3
+    },
+    {
+      "id": "qol-04",
+      "seccion": "Búsqueda",
+      "titulo": "Buscar OT por cédula del paciente",
+      "descripcion": "Buscar usando la cédula de un paciente conocido",
+      "pasos": [
+        "Limpiar el filtro de número de OT",
+        "Escribir la cédula de un paciente con OTs de Química",
+        "Presionar Enter",
+        "Verificar que aparecen las OTs de ese paciente"
+      ],
+      "resultado_esperado": "Se muestran todas las OTs del paciente buscado. El nombre del paciente coincide con la cédula",
+      "prioridad": "critico",
+      "orden": 4
+    },
+    {
+      "id": "qol-05",
+      "seccion": "Filtros",
+      "titulo": "Filtrar por estado 'Activo'",
+      "descripcion": "Usar el filtro de estado para ver solo OTs activas (pendientes de resultados)",
+      "pasos": [
+        "Abrir el filtro de Estado",
+        "Seleccionar 'Activo'",
+        "Verificar que la tabla se actualiza"
+      ],
+      "resultado_esperado": "Solo aparecen OTs con estado Activo (badge rojo). El conteo de resultados es coherente",
+      "prioridad": "alto",
+      "orden": 5
+    },
+    {
+      "id": "qol-06",
+      "seccion": "Filtros",
+      "titulo": "Filtrar por estado 'Validado'",
+      "descripcion": "Ver solo OTs que ya fueron validadas completamente",
+      "pasos": [
+        "Cambiar el filtro de Estado a 'Validado'",
+        "Verificar que la tabla muestra solo OTs validadas"
+      ],
+      "resultado_esperado": "Todas las OTs mostradas tienen badge verde 'Validado'",
+      "prioridad": "alto",
+      "orden": 6
+    },
+    {
+      "id": "qol-07",
+      "seccion": "Filtros",
+      "titulo": "Filtrar por rango de fechas",
+      "descripcion": "Buscar OTs de un rango de fechas específico",
+      "pasos": [
+        "Limpiar otros filtros",
+        "Seleccionar fecha 'Desde' (ej: hace 7 días)",
+        "Seleccionar fecha 'Hasta' (hoy)",
+        "Verificar que los resultados corresponden al rango"
+      ],
+      "resultado_esperado": "Todas las OTs mostradas tienen fecha dentro del rango seleccionado",
+      "prioridad": "alto",
+      "orden": 7
+    },
+    {
+      "id": "qol-08",
+      "seccion": "Filtros",
+      "titulo": "Filtrar por área 'Química'",
+      "descripcion": "Usar el filtro de Área para ver solo OTs que tienen pruebas de Química",
+      "pasos": [
+        "Abrir filtros avanzados si están ocultos",
+        "Buscar y seleccionar el área 'Química' (o 'Química Clínica')",
+        "Verificar que la tabla se filtra"
+      ],
+      "resultado_esperado": "Solo aparecen OTs que contienen al menos una prueba del área de Química",
+      "prioridad": "critico",
+      "orden": 8
+    },
+    {
+      "id": "qol-09",
+      "seccion": "Filtros",
+      "titulo": "Buscar prueba específica de Química",
+      "descripcion": "Usar el filtro de Prueba para buscar una prueba específica (ej: Glicemia, Urea, Creatinina)",
+      "pasos": [
+        "Seleccionar área 'Química' primero (si el filtro de prueba depende del área)",
+        "En el campo Prueba, escribir 'Glicemia' o 'Urea'",
+        "Seleccionar la prueba de la lista",
+        "Verificar los resultados"
+      ],
+      "resultado_esperado": "Solo aparecen OTs que contienen la prueba específica buscada",
+      "prioridad": "medio",
+      "orden": 9
+    },
+    {
+      "id": "qol-10",
+      "seccion": "Filtros",
+      "titulo": "Combinar filtros (área + estado + fecha)",
+      "descripcion": "Aplicar múltiples filtros simultáneamente",
+      "pasos": [
+        "Seleccionar Área: Química",
+        "Seleccionar Estado: Por Validar o Iniciada",
+        "Seleccionar rango de fechas: última semana",
+        "Verificar que la tabla muestra resultados coherentes"
+      ],
+      "resultado_esperado": "Las OTs mostradas cumplen TODOS los filtros aplicados",
+      "prioridad": "alto",
+      "orden": 10
+    },
+    {
+      "id": "qol-11",
+      "seccion": "Filtros",
+      "titulo": "Limpiar filtros",
+      "descripcion": "Verificar que se pueden quitar todos los filtros y volver al listado completo",
+      "pasos": [
+        "Con filtros aplicados, limpiar cada filtro uno por uno",
+        "Verificar que la tabla vuelve a mostrar todas las OTs"
+      ],
+      "resultado_esperado": "La tabla regresa a mostrar el listado completo sin filtros",
+      "prioridad": "medio",
+      "orden": 11
+    },
+    {
+      "id": "qol-12",
+      "seccion": "Navegación",
+      "titulo": "Abrir detalle de OT (icono ojo)",
+      "descripcion": "Hacer clic en el icono de ojo para ver el detalle de una OT",
+      "pasos": [
+        "Identificar una OT con pruebas de Química",
+        "Hacer clic en el icono de ojo (👁) en esa fila",
+        "Verificar que se abre la vista de detalle"
+      ],
+      "resultado_esperado": "Se navega a la pantalla de detalle de la OT con toda la información del paciente, pruebas solicitadas y resultados",
+      "prioridad": "critico",
+      "orden": 12
+    },
+    {
+      "id": "qol-13",
+      "seccion": "Navegación",
+      "titulo": "Abrir resultados de OT (icono lápiz)",
+      "descripcion": "Hacer clic en el icono de lápiz para ir a la pantalla de ingreso de resultados",
+      "pasos": [
+        "Identificar una OT con pruebas de Química",
+        "Hacer clic en el icono de lápiz (✏️) en esa fila",
+        "Verificar que se abre la pantalla de Lab/Resultados"
+      ],
+      "resultado_esperado": "Se navega a la pantalla de resultados mostrando las pruebas organizadas por área, incluyendo el área de Química",
+      "prioridad": "critico",
+      "orden": 13
+    },
+    {
+      "id": "qol-14",
+      "seccion": "Navegación",
+      "titulo": "Imprimir OT (icono impresora)",
+      "descripcion": "Hacer clic en el icono de impresora para ver la vista de impresión",
+      "pasos": [
+        "Hacer clic en el icono de impresora (🖨️) en una OT con resultados validados",
+        "Verificar que se abre la vista de impresión"
+      ],
+      "resultado_esperado": "Se abre una nueva pestaña/vista con el formato de impresión de la OT, mostrando resultados, rangos de referencia y banderas",
+      "prioridad": "alto",
+      "orden": 14
+    },
+    {
+      "id": "qol-15",
+      "seccion": "Paginación",
+      "titulo": "Navegar entre páginas",
+      "descripcion": "Verificar que la paginación funciona correctamente",
+      "pasos": [
+        "Con filtros que devuelvan más de 10 resultados",
+        "Hacer clic en 'Siguiente'",
+        "Verificar que muestra la siguiente página",
+        "Hacer clic en 'Anterior'",
+        "Verificar que regresa a la página anterior"
+      ],
+      "resultado_esperado": "La paginación funciona correctamente. Los datos cambian al cambiar de página. El contador 'Mostrando X-Y de Total' es correcto",
+      "prioridad": "medio",
+      "orden": 15
+    },
+    {
+      "id": "qol-16",
+      "seccion": "Dashboard",
+      "titulo": "Dashboard lateral muestra estadísticas",
+      "descripcion": "Verificar que el panel lateral derecho muestra resumen de estados",
+      "pasos": [
+        "Observar el panel derecho de la pantalla (dashboard 70/30)",
+        "Verificar que muestra barras de progreso por estado"
+      ],
+      "resultado_esperado": "El dashboard muestra la distribución de OTs por estado con barras de colores. Los números son coherentes con los datos de la tabla",
+      "prioridad": "medio",
+      "orden": 16
+    },
+    {
+      "id": "qol-17",
+      "seccion": "Dashboard",
+      "titulo": "Hacer clic en barra del dashboard filtra la tabla",
+      "descripcion": "Al hacer clic en una barra de estado del dashboard, la tabla se filtra",
+      "pasos": [
+        "Hacer clic en la barra de 'Validado' en el dashboard",
+        "Verificar que la tabla se filtra"
+      ],
+      "resultado_esperado": "La tabla muestra solo OTs del estado seleccionado. El filtro de Estado se actualiza visualmente",
+      "prioridad": "bajo",
+      "orden": 17
+    },
+    {
+      "id": "qol-18",
+      "seccion": "Datos",
+      "titulo": "Datos del paciente son correctos",
+      "descripcion": "Verificar que los datos mostrados coinciden con los datos reales del paciente",
+      "pasos": [
+        "Buscar una OT de un paciente conocido",
+        "Comparar: nombre, cédula, número de OT",
+        "Si es posible, comparar con el sistema Java para verificar que coinciden"
+      ],
+      "resultado_esperado": "Los datos del paciente en la app moderna coinciden exactamente con los del sistema Labsis Java",
+      "prioridad": "critico",
+      "orden": 18
+    },
+    {
+      "id": "qol-19",
+      "seccion": "Datos",
+      "titulo": "Procedencia se muestra correctamente",
+      "descripcion": "Verificar que la columna Procedencia muestra valores coherentes",
+      "pasos": [
+        "Observar la columna Procedencia en varias OTs",
+        "Verificar que los valores son nombres de procedencia válidos (no IDs numéricos)"
+      ],
+      "resultado_esperado": "La procedencia muestra el nombre legible (ej: 'Laboratorio', 'Emergencia', 'Consulta') y no un ID numérico",
+      "prioridad": "medio",
+      "orden": 19
+    },
+    {
+      "id": "qol-20",
+      "seccion": "Rendimiento",
+      "titulo": "La búsqueda responde en tiempo razonable",
+      "descripcion": "Verificar que las búsquedas y filtros no tardan demasiado",
+      "pasos": [
+        "Realizar varias búsquedas seguidas (por número, cédula, filtros)",
+        "Observar el tiempo de respuesta"
+      ],
+      "resultado_esperado": "Las búsquedas responden en menos de 3 segundos. No se congela la pantalla",
+      "prioridad": "alto",
+      "orden": 20
+    }
+  ],
+  "archivos": {
+    "frontend": ["src/pages/Ordenes.jsx"],
+    "backend": ["server/routes/ordenes.js"],
+    "api": ["src/services/api.js — getOrdenes, getOrdenCount"],
+    "ruta": "/ordenes"
+  }
+}
