@@ -2,8 +2,8 @@ module.exports = {
   apps: [{
     name: 'labsis-modern-qa',
     script: 'server/index.js',
+    exec_mode: 'fork',
     node_args: '--env-file=.env.qa',
-    instances: 1,
     autorestart: true,
     max_memory_restart: '512M',
     env: {
