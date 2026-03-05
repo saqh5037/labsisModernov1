@@ -213,12 +213,17 @@ router.get('/orden/:numero/area/:areaId', async (req, res) => {
 
     const pruebas = pruebasResult.rows.map(row => {
       const rangosPrueba = rangos.filter(r => r.prueba_id === row.prueba_id)
-      const rangoAplicable = rangosPrueba.find(r => {
+      const matchesPac = r => {
         if (r.sexo && r.sexo.trim() && r.sexo.trim() !== pacSexo) return false
         if (r.edad_desde != null && pacEdad != null && pacEdad < r.edad_desde) return false
         if (r.edad_hasta != null && pacEdad != null && pacEdad > r.edad_hasta) return false
         return true
-      }) || rangosPrueba[0] || null
+      }
+      const rangosNormales = rangosPrueba.filter(r => !r.panico)
+      const rangoAplicable = rangosNormales.find(matchesPac) || rangosNormales[0] || null
+      const rangosPanico = rangosPrueba.filter(r => r.panico)
+      const panicosMatch = rangosPanico.filter(matchesPac)
+      const panicosUsar = panicosMatch.length > 0 ? panicosMatch : rangosPanico
 
       let refTexto = ''
       if (rangoAplicable) {
@@ -258,9 +263,11 @@ router.get('/orden/:numero/area/:areaId', async (req, res) => {
         grupo: row.grupo_nombre,
         referencia: rangoAplicable ? (() => {
           let cMin = null, cMax = null
-          if (rangoAplicable.panico) {
-            const parts = String(rangoAplicable.panico).split('-').map(Number)
-            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) { cMin = parts[0]; cMax = parts[1] }
+          for (const pr of panicosUsar) {
+            const pLow = pr.valor_desde != null ? Number(pr.valor_desde) : null
+            const pHigh = pr.valor_hasta != null ? Number(pr.valor_hasta) : null
+            if (pHigh != null && rangoAplicable.valor_desde != null && pHigh <= Number(rangoAplicable.valor_desde)) cMin = pHigh
+            if (pLow != null && rangoAplicable.valor_hasta != null && pLow >= Number(rangoAplicable.valor_hasta)) cMax = pLow
           }
           return {
             min: rangoAplicable.valor_desde != null ? Number(rangoAplicable.valor_desde) : null,
@@ -371,23 +378,30 @@ router.put('/orden/:numero/area/:areaId/resultados', async (req, res) => {
             SELECT valor_desde, valor_hasta, panico, sexo, edad_desde, edad_hasta
             FROM valor_referencial WHERE prueba_id = $1 AND (activo IS NULL OR activo = true)
           `, [pruebaId])
-          const ref = refResult.rows.find(rng => {
+          const matchesPac = rng => {
             if (rng.sexo && rng.sexo.trim() && rng.sexo.trim() !== pacSexo) return false
             if (rng.edad_desde != null && pacEdad != null && pacEdad < rng.edad_desde) return false
             if (rng.edad_hasta != null && pacEdad != null && pacEdad > rng.edad_hasta) return false
             return true
-          }) || refResult.rows[0] || null
+          }
+          const normales = refResult.rows.filter(r => !r.panico)
+          const ref = normales.find(matchesPac) || normales[0] || null
+          const panicRows = refResult.rows.filter(r => r.panico)
+          const panicMatch = panicRows.filter(matchesPac)
+          const panicUsar = panicMatch.length > 0 ? panicMatch : panicRows
 
           if (ref) {
             const vMin = ref.valor_desde != null ? Number(ref.valor_desde) : null
             const vMax = ref.valor_hasta != null ? Number(ref.valor_hasta) : null
             let pMin = null, pMax = null
-            if (ref.panico) {
-              const parts = String(ref.panico).split('-').map(Number)
-              if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) { pMin = parts[0]; pMax = parts[1] }
+            for (const pr of panicUsar) {
+              const pLow = pr.valor_desde != null ? Number(pr.valor_desde) : null
+              const pHigh = pr.valor_hasta != null ? Number(pr.valor_hasta) : null
+              if (pHigh != null && vMin != null && pHigh <= vMin) pMin = pHigh
+              if (pLow != null && vMax != null && pLow >= vMax) pMax = pLow
             }
-            if (pMax != null && numVal > pMax) { alarmaStr = 'C'; isAnormal = true; isCritico = true }
-            else if (pMin != null && numVal < pMin) { alarmaStr = 'C'; isAnormal = true; isCritico = true }
+            if (pMax != null && numVal >= pMax) { alarmaStr = 'HH'; isAnormal = true; isCritico = true }
+            else if (pMin != null && numVal <= pMin) { alarmaStr = 'LL'; isAnormal = true; isCritico = true }
             else if (vMax != null && numVal > vMax) { alarmaStr = 'H'; isAnormal = true }
             else if (vMin != null && numVal < vMin) { alarmaStr = 'L'; isAnormal = true }
             else { alarmaStr = 'N' }

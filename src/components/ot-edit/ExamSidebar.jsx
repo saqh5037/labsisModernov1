@@ -10,6 +10,7 @@ const IcoSave = () => (
 export default function ExamSidebar({
   muestrasPreview, totalPrice, calcTotales, servicioInfo,
   descuento, updateDescuento,
+  descuentoCategorias, selectedCategoriaId, selectDescuentoCategoria,
   saving, isEdit, handleSave, navigate
 }) {
   const isDivisas = servicioInfo?.is_facturacion_con_divisas && servicioInfo?.moneda_nombre === 'Dolar'
@@ -19,8 +20,11 @@ export default function ExamSidebar({
   const t = calcTotales || {}
   const showDesc = t.descPct > 0 || descuento?.esManual
   const showCopago = t.copagoPct > 0
+  const showIva = t.ivaPct > 0
   const showIgtf = t.aplicarIgtf && t.igtfPct > 0
-  const showBreakdown = showDesc || showCopago || showIgtf
+  const showBreakdown = showDesc || showCopago || showIva || showIgtf
+
+  const hasCategorias = descuentoCategorias && descuentoCategorias.length > 0
 
   return (
     <aside className="ote-sidebar">
@@ -43,6 +47,25 @@ export default function ExamSidebar({
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Descuento categoría selector */}
+      {servicioInfo?.descuento_activo && hasCategorias && (
+        <div className="ote-sidebar-card ote-discount-section">
+          <h4 className="ote-sidebar-title">Descuento</h4>
+          <select
+            value={selectedCategoriaId || ''}
+            onChange={(e) => selectDescuentoCategoria(e.target.value)}
+            className="ote-input ote-discount-select"
+          >
+            <option value="">Sin categoría</option>
+            {descuentoCategorias.map(cat => (
+              <option key={cat.id} value={cat.id}>
+                {cat.nombre} {cat.limite ? `(máx ${cat.limite}%)` : ''}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -82,6 +105,14 @@ export default function ExamSidebar({
               <div className="ote-breakdown-row ote-breakdown-copago">
                 <span>Copago servicio ({t.copagoPct}%)</span>
                 <span>- {currencySymbol} {fmtPrice(t.subtotalConDesc - t.montoPaciente)}</span>
+              </div>
+            )}
+
+            {/* IVA */}
+            {showIva && (
+              <div className="ote-breakdown-row ote-breakdown-iva">
+                <span>IVA ({t.ivaPct}%)</span>
+                <span>+ {currencySymbol} {fmtPrice(t.ivaMonto)}</span>
               </div>
             )}
 

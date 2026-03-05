@@ -135,6 +135,9 @@ export default function OTEditPage() {
         servicioInfo={state.servicioInfo}
         descuento={state.descuento}
         updateDescuento={state.updateDescuento}
+        descuentoCategorias={state.descuentoCategorias}
+        selectedCategoriaId={state.selectedCategoriaId}
+        selectDescuentoCategoria={state.selectDescuentoCategoria}
         saving={state.saving}
         isEdit={state.isEdit}
         handleSave={state.handleSave}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { getOrdenLab, saveResultados, getHistorico, getLabQueue, getLabAreas, corregirResultado, getCorrecciones, getMe, getVBOrdenArea, saveVBResultados } from '../services/api'
+import { getOrdenLab, saveResultados, getHistorico, getLabQueue, getLabAreas, corregirResultado, getCorrecciones, getMe, getVBOrdenArea, saveVBResultados, labQuickSearch, verificarResultados, setAreaEspera, getNotasPredefinidas } from '../services/api'
 import { useValidationMode } from '../hooks/useValidationMode'
 
 /* ── SVG Icons ── */
@@ -19,7 +19,8 @@ const IcoEye = () => <Ico d={<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-1
 const IcoEdit = () => <Ico d={<><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></>} size={12} w={2} />
 const IcoChart = ({ size = 12 }) => (
   <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="1 12 4 7 8 9 11 4 15 6" />
+    <line x1="2" y1="13" x2="2" y2="8" /><line x1="6" y1="13" x2="6" y2="5" />
+    <line x1="10" y1="13" x2="10" y2="9" /><line x1="14" y1="13" x2="14" y2="3" />
   </svg>
 )
 const IcoFilter = ({ size = 12 }) => (
@@ -73,19 +74,22 @@ const calcFlag = (valor, ref) => {
   if (valor === '' || valor == null || !ref || (ref.min == null && ref.max == null)) return null
   const v = parseFloat(valor)
   if (isNaN(v)) return null
-  if (ref.critico_max != null && v > ref.critico_max) return { flag: 'C', label: 'Crítico Alto', critical: true }
-  if (ref.critico_min != null && v < ref.critico_min) return { flag: 'C', label: 'Crítico Bajo', critical: true }
+  if (ref.critico_max != null && v > ref.critico_max) return { flag: 'HH', label: 'Críticamente Alto', critical: true }
+  if (ref.critico_min != null && v < ref.critico_min) return { flag: 'LL', label: 'Críticamente Bajo', critical: true }
   if (ref.max != null && v > ref.max) return { flag: 'H', label: 'Alto' }
   if (ref.min != null && v < ref.min) return { flag: 'L', label: 'Bajo' }
   return { flag: 'N', label: 'Normal' }
 }
 
 /* ── Flag badge component ── */
+const FLAG_DISPLAY = {
+  N: 'N', H: '↑', L: '↓', HH: '↑↑', LL: '↓↓', C: 'C', A: 'A', AA: 'AA'
+}
 const FlagBadge = ({ flag }) => {
   if (!flag) return <span className="lab-flag lab-flag-empty">—</span>
   return (
-    <span className={`lab-flag lab-flag-${flag.flag}`} title={flag.label}>
-      {flag.flag}
+    <span className={`lab-flag lab-flag-${flag.flag} lab-tip`} data-tip={flag.label}>
+      {FLAG_DISPLAY[flag.flag] || flag.flag}
     </span>
   )
 }
@@ -96,10 +100,17 @@ const RefBar = ({ valor, min, max }) => {
   const range = max - min
   const v = parseFloat(valor)
   const pct = isNaN(v) ? null : Math.min(100, Math.max(0, ((v - min) / range) * 100))
+  let markerColor = '#059669'
+  if (pct !== null) {
+    if (pct <= 10 || pct >= 90) markerColor = '#dc2626'
+    else if (pct <= 25 || pct >= 75) markerColor = '#f59e0b'
+  }
   return (
     <div className="lab-ref-bar">
-      <div className="lab-ref-fill" />
-      {pct !== null && <div className="lab-ref-marker" style={{ left: `${pct}%` }} />}
+      <div className="lab-ref-zone lab-ref-zone-low" />
+      <div className="lab-ref-zone lab-ref-zone-normal" />
+      <div className="lab-ref-zone lab-ref-zone-high" />
+      {pct !== null && <div className="lab-ref-marker" style={{ left: `${pct}%`, background: markerColor }} />}
     </div>
   )
 }
@@ -313,15 +324,25 @@ export default function OrdenLabPage() {
   // Notas por prueba
   const [notaOpen, setNotaOpen] = useState(new Set())
 
+  // Quick search
+  const [quickSearch, setQuickSearch] = useState('')
+  const [quickResults, setQuickResults] = useState([])
+  const [quickSearching, setQuickSearching] = useState(false)
+
   // Cola de órdenes pendientes
   const [queue, setQueue] = useState([])
   const [queueLoading, setQueueLoading] = useState(false)
+  const [queuePage, setQueuePage] = useState(1)
+  const [queueHasMore, setQueueHasMore] = useState(false)
   const [queueFilters, setQueueFilters] = useState({
     area: searchParams.get('area') || '',
-    fechaDesde: '', fechaHasta: '',
+    fechaDesde: searchParams.get('fechaDesde') || '',
+    fechaHasta: searchParams.get('fechaHasta') || '',
     transmitido: '', estado: ''
   })
-  const [showQueueFilters, setShowQueueFilters] = useState(!!searchParams.get('area'))
+  const [showQueueFilters, setShowQueueFilters] = useState(
+    !!(searchParams.get('area') || searchParams.get('fechaDesde'))
+  )
   const [labAreas, setLabAreas] = useState([])
 
   // Usuario autenticado y permisos
@@ -333,6 +354,25 @@ export default function OrdenLabPage() {
   const [correccionForm, setCorreccionForm] = useState({ valor_new: '', observacion: '', razon_correccion: '' })
   const [correccionSaving, setCorreccionSaving] = useState(false)
   const [correcciones, setCorrecciones] = useState({}) // {poId: [{valor_old, valor_new, ...}]}
+  const [predefinedNotes, setPredefinedNotes] = useState([])
+  const [confirmModal, setConfirmModal] = useState(null) // { title, message, items, onConfirm, type }
+  const [labTheme, setLabTheme] = useState(() => localStorage.getItem('lab-theme') || 'mesh')
+  const [labFontSize, setLabFontSize] = useState(() => localStorage.getItem('lab-font-size') || 'normal')
+  const [showLabConfig, setShowLabConfig] = useState(false)
+
+  // Theme + font size switcher
+  useEffect(() => {
+    document.body.setAttribute('data-lab-theme', labTheme)
+    document.body.setAttribute('data-lab-font', labFontSize)
+    localStorage.setItem('lab-theme', labTheme)
+    localStorage.setItem('lab-font-size', labFontSize)
+    return () => { document.body.removeAttribute('data-lab-theme'); document.body.removeAttribute('data-lab-font') }
+  }, [labTheme, labFontSize])
+
+  // Load predefined notes catalog
+  useEffect(() => {
+    getNotasPredefinidas().then(setPredefinedNotes).catch(() => {})
+  }, [])
 
   // Load data (normal mode only)
   useEffect(() => {
@@ -342,6 +382,12 @@ export default function OrdenLabPage() {
       .then(d => {
         setData(d)
         if (d.areas?.length) setActiveArea(Number(d.areas[0].id))
+        // Initialize obsArea from backend
+        if (d.areasStatus) {
+          const obs = {}
+          for (const as of d.areasStatus) { if (as.observaciones) obs[as.area_id] = as.observaciones }
+          setObsArea(obs)
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -396,11 +442,16 @@ export default function OrdenLabPage() {
   }, [])
 
   // Load queue with filters
-  const loadQueue = useCallback((filters) => {
+  const loadQueue = useCallback((filters, page = 1, append = false) => {
     const f = filters || queueFilters
     const clean = Object.fromEntries(Object.entries(f).filter(([, v]) => v))
+    clean.page = page
     setQueueLoading(true)
-    getLabQueue(clean).then(setQueue).catch(() => setQueue([])).finally(() => setQueueLoading(false))
+    getLabQueue(clean).then(r => {
+      setQueue(prev => append ? [...prev, ...r.rows] : r.rows)
+      setQueueHasMore(r.hasMore)
+      setQueuePage(page)
+    }).catch(() => { if (!append) setQueue([]) }).finally(() => setQueueLoading(false))
   }, [queueFilters])
 
   useEffect(() => { loadQueue() }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -420,13 +471,102 @@ export default function OrdenLabPage() {
   // Value resolution
   const getVal = (po) => dirty[po.id]?.valor ?? po.resultado ?? ''
   const getValidado = (po) => dirty[po.id]?.validado ?? (po.status_id === 4 || po.status_id === 7)
-  const getNota = (po) => dirty[po.id]?.nota ?? ''
+  const getNota = (po) => dirty[po.id]?.nota ?? po.notas ?? ''
 
   const setResultado = (poId, valor) => {
     setDirty(prev => ({ ...prev, [poId]: { ...prev[poId], valor } }))
   }
 
+  // ── Validation warnings: blank results + panic values ──
+  const checkValidationWarnings = (pruebas, callback) => {
+    const blanks = []
+    const panics = []
+    pruebas.forEach(po => {
+      const val = getVal(po)
+      if (!val || val === '') {
+        blanks.push(po.prueba)
+      } else if ((po.tipo === 'NUM' || po.tipo === 'CAL') && po.referencia) {
+        const f = calcFlag(val, po.referencia)
+        if (f && f.critical) {
+          panics.push({ prueba: po.prueba, val, flag: f.flag === 'HH' ? 'Críticamente Alto' : 'Críticamente Bajo' })
+        }
+      }
+    })
+
+    if (panics.length > 0) {
+      setConfirmModal({
+        type: 'panic',
+        title: '⚠ Valores de Pánico Detectados',
+        message: 'Las siguientes pruebas tienen resultados en rango de PÁNICO. ¿Confirma que desea validar?',
+        items: panics.map(p => `${p.prueba}: ${p.val} (${p.flag})`),
+        onConfirm: () => {
+          if (blanks.length > 0) {
+            setConfirmModal({
+              type: 'blank',
+              title: 'Resultados en blanco',
+              message: `${blanks.length} prueba(s) no tienen resultado capturado. ¿Desea validar sin resultado?`,
+              items: blanks,
+              onConfirm: () => { setConfirmModal(null); callback() }
+            })
+          } else {
+            setConfirmModal(null); callback()
+          }
+        }
+      })
+      return
+    }
+
+    if (blanks.length > 0) {
+      setConfirmModal({
+        type: 'blank',
+        title: 'Resultados en blanco',
+        message: `${blanks.length} prueba(s) no tienen resultado capturado. ¿Desea validar sin resultado?`,
+        items: blanks,
+        onConfirm: () => { setConfirmModal(null); callback() }
+      })
+      return
+    }
+
+    callback()
+  }
+
   const toggleValidado = (poId, current) => {
+    if (!current) {
+      // Trying to validate — check if blank or panic
+      const po = currentArea?.pruebas?.find(p => p.id === poId)
+      if (po) {
+        const val = getVal(po)
+        if (!val || val === '') {
+          setConfirmModal({
+            type: 'blank',
+            title: 'Resultado en blanco',
+            message: `La prueba "${po.prueba}" no tiene resultado capturado. ¿Desea validar sin resultado?`,
+            items: [],
+            onConfirm: () => {
+              setConfirmModal(null)
+              setDirty(prev => ({ ...prev, [poId]: { ...prev[poId], validado: true } }))
+            }
+          })
+          return
+        }
+        if ((po.tipo === 'NUM' || po.tipo === 'CAL') && po.referencia) {
+          const f = calcFlag(val, po.referencia)
+          if (f && f.critical) {
+            setConfirmModal({
+              type: 'panic',
+              title: '⚠ Valor de Pánico',
+              message: `"${po.prueba}" tiene un resultado de ${val} que está en rango de PÁNICO (${f.flag === 'HH' ? 'Críticamente Alto' : 'Críticamente Bajo'}). ¿Confirma la validación?`,
+              items: [],
+              onConfirm: () => {
+                setConfirmModal(null)
+                setDirty(prev => ({ ...prev, [poId]: { ...prev[poId], validado: true } }))
+              }
+            })
+            return
+          }
+        }
+      }
+    }
     setDirty(prev => ({ ...prev, [poId]: { ...prev[poId], validado: !current } }))
   }
 
@@ -469,7 +609,11 @@ export default function OrdenLabPage() {
   }
 
   const currentArea = data?.areas?.find(a => Number(a.id) === Number(activeArea))
+  const areaEnEspera = data?.areasStatus?.find(as => Number(as.area_id) === Number(activeArea))?.status_id === 10
   const hasDirty = Object.keys(dirty).length > 0
+  const someVal = currentArea?.pruebas?.some(po => getValidado(po))
+  const allVerified = currentArea?.pruebas?.every(po => po.verificado || !(po.status_id === 4 || po.status_id === 7))
+  const canVerify = userInfo?.roles?.some(r => ['ADM', 'COORD'].includes(r))
 
   // Compute area stats for sidebar
   const { areaStats, alarmaList } = useMemo(() => {
@@ -487,9 +631,9 @@ export default function OrdenLabPage() {
         if (f) {
           if (f.flag === 'N') s.normales++
           const refText = po.referencia ? `${po.referencia.min ?? ''} – ${po.referencia.max ?? ''}` : null
-          if (f.flag === 'H') { s.altos++; al.push({ prueba: po.prueba, val, flag: f, ref: refText }) }
-          if (f.flag === 'L') { s.bajos++; al.push({ prueba: po.prueba, val, flag: f, ref: refText }) }
-          if (f.critical) { s.criticos++; al.push({ prueba: po.prueba, val, flag: f, ref: refText }) }
+          if (f.flag === 'H' || f.flag === 'HH') { s.altos++; al.push({ prueba: po.prueba, val, flag: f, ref: refText }) }
+          if (f.flag === 'L' || f.flag === 'LL') { s.bajos++; al.push({ prueba: po.prueba, val, flag: f, ref: refText }) }
+          if (f.critical && f.flag !== 'H' && f.flag !== 'L') { s.criticos++; if (f.flag !== 'HH' && f.flag !== 'LL') al.push({ prueba: po.prueba, val, flag: f, ref: refText }) }
         }
       }
     })
@@ -613,7 +757,7 @@ export default function OrdenLabPage() {
         const resultados = Object.entries(saveDirty).map(([poId, changes]) => ({
           prueba_orden_id: parseInt(poId), ...changes
         }))
-        await saveResultados(numero, resultados)
+        await saveResultados(numero, resultados, obsArea)
         const d = await getOrdenLab(numero)
         setData(d)
         setDirty({})
@@ -625,28 +769,46 @@ export default function OrdenLabPage() {
     } finally { setSaving(false) }
   }
 
-  // Validate all in active area
+  // Validate all in active area (with warnings)
   const handleValidarTodo = () => {
     const area = data.areas.find(a => Number(a.id) === Number(activeArea))
     if (!area) return
-    const newDirty = { ...dirty }
-    area.pruebas.forEach(po => {
-      newDirty[po.id] = { ...newDirty[po.id], validado: true }
+    const unvalidated = area.pruebas.filter(po => !getValidado(po))
+    checkValidationWarnings(unvalidated, () => {
+      const newDirty = { ...dirty }
+      area.pruebas.forEach(po => {
+        newDirty[po.id] = { ...newDirty[po.id], validado: true }
+      })
+      setDirty(newDirty)
+      setToast({ message: `${area.nombre}: todas las pruebas marcadas como validadas`, type: 'success' })
     })
-    setDirty(newDirty)
-    setToast({ message: `${area.nombre}: todas las pruebas marcadas como validadas`, type: 'success' })
   }
 
-  // Invalidate all in active area
+  // Invalidate all in active area (with reason if fully validated)
   const handleInvalidarTodo = () => {
     const area = data.areas.find(a => Number(a.id) === Number(activeArea))
     if (!area) return
-    const newDirty = { ...dirty }
-    area.pruebas.forEach(po => {
-      newDirty[po.id] = { ...newDirty[po.id], validado: false }
-    })
-    setDirty(newDirty)
-    setToast({ message: `${area.nombre}: validación removida de todas las pruebas`, type: 'success' })
+    const allValidated = area.pruebas.every(po => getValidado(po))
+    const doInvalidate = (razon) => {
+      const newDirty = { ...dirty }
+      area.pruebas.forEach(po => {
+        newDirty[po.id] = { ...newDirty[po.id], validado: false, nota_invalidacion: razon || undefined }
+      })
+      setDirty(newDirty)
+      setToast({ message: `${area.nombre}: validación removida${razon ? ' — ' + razon : ''}`, type: 'success' })
+    }
+    if (allValidated) {
+      setConfirmModal({
+        type: 'invalidate',
+        title: 'Invalidar Área Validada',
+        message: `El área "${area.nombre}" está completamente validada. Por favor indique la razón de la invalidación:`,
+        items: [],
+        razon: '',
+        onConfirm: (razon) => { setConfirmModal(null); doInvalidate(razon) }
+      })
+    } else {
+      doInvalidate()
+    }
   }
 
   // Autovalidar — validates only those with value and within normal range
@@ -724,6 +886,51 @@ export default function OrdenLabPage() {
         ) : (
           <button className="ot-nav-back" onClick={() => navigate(`/ordenes/${numero}`)}><IcoBack /> Orden {numero}</button>
         )}
+        <div style={{ flex: 1 }} />
+        <div className="lab-config-wrap">
+          <button className="lab-config-btn" onClick={() => setShowLabConfig(v => !v)} title="Personalizar vista">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+          {showLabConfig && (
+            <>
+              <div className="lab-config-backdrop" onClick={() => setShowLabConfig(false)} />
+              <div className="lab-config-panel">
+                <div className="lab-config-title">Personalizar vista</div>
+                <div className="lab-config-section">
+                  <span className="lab-config-label">Fondo</span>
+                  <div className="lab-config-options lab-config-themes">
+                    {[
+                      ['mesh', 'Gradiente', 'linear-gradient(135deg, #dbeafe, #ede9fe, #dbeafe)'],
+                      ['white', 'Blanco', '#ffffff'],
+                      ['warm', 'Cálido', '#f8f6f1'],
+                      ['steel', 'Acero', '#e8ecf1'],
+                      ['dark', 'Oscuro', '#0f172a'],
+                    ].map(([t, label, bg]) => (
+                      <button key={t} className={`lab-config-theme-btn${labTheme === t ? ' active' : ''}`}
+                        onClick={() => setLabTheme(t)}>
+                        <span className="lab-config-swatch" style={{ background: bg }} />
+                        <span className="lab-config-opt-label">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="lab-config-section">
+                  <span className="lab-config-label">Densidad</span>
+                  <div className="lab-config-options">
+                    {[['compact','Compacto'],['normal','Normal'],['large','Amplio']].map(([s, label]) => (
+                      <button key={s} className={`lab-config-opt${labFontSize === s ? ' active' : ''}`}
+                        onClick={() => setLabFontSize(s)}>
+                        <span className="lab-config-opt-label">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {loading && (
@@ -745,6 +952,88 @@ export default function OrdenLabPage() {
             <div className="lab-queue-header">
               <span className="lab-queue-title">Cola de trabajo</span>
               <span className="lab-queue-count">{queue.length}</span>
+            </div>
+
+            {/* Queue dashboard metrics */}
+            {queue.length > 0 && (() => {
+              const totalQ = queue.length
+              const valQ = queue.filter(q => q.validadas >= q.total_pruebas).length
+              const pendQ = totalQ - valQ
+              const alarmQ = queue.filter(q => q.anormales > 0).length
+              const pctQ = Math.round(valQ / totalQ * 100)
+              return (
+                <div className="lab-queue-dashboard">
+                  <div className="lab-queue-dash-row">
+                    <div className="lab-queue-dash-stat">
+                      <span className="lab-queue-dash-num">{totalQ}</span>
+                      <span className="lab-queue-dash-label">Total</span>
+                    </div>
+                    <div className="lab-queue-dash-stat">
+                      <span className="lab-queue-dash-num" style={{ color: '#059669' }}>{valQ}</span>
+                      <span className="lab-queue-dash-label">Listas</span>
+                    </div>
+                    <div className="lab-queue-dash-stat">
+                      <span className="lab-queue-dash-num" style={{ color: '#f59e0b' }}>{pendQ}</span>
+                      <span className="lab-queue-dash-label">Pendientes</span>
+                    </div>
+                    <div className="lab-queue-dash-stat">
+                      <span className="lab-queue-dash-num" style={{ color: '#dc2626' }}>{alarmQ}</span>
+                      <span className="lab-queue-dash-label">Alarmas</span>
+                    </div>
+                  </div>
+                  <div className="lab-queue-dash-bar">
+                    <div className="lab-queue-dash-fill" style={{ width: `${pctQ}%` }} />
+                  </div>
+                  <div className="lab-queue-dash-pct">{pctQ}% completado</div>
+                </div>
+              )
+            })()}
+
+            {/* Quick search */}
+            <div className="lab-quick-search">
+              <input
+                className={`lab-quick-input ${quickSearching ? 'lab-quick-searching' : ''}`}
+                placeholder="Escanear tubo o buscar..."
+                value={quickSearch}
+                autoComplete="off"
+                onChange={e => { setQuickSearch(e.target.value); if (!e.target.value.trim()) setQuickResults([]) }}
+                onKeyDown={async e => {
+                  if (e.key === 'Enter' && quickSearch.trim().length >= 2) {
+                    e.preventDefault()
+                    setQuickSearching(true)
+                    try {
+                      const results = await labQuickSearch(quickSearch.trim())
+                      if (results.length === 1) {
+                        const target = String(results[0].numero)
+                        if (target === String(numero)) {
+                          setToast({ type: 'success', msg: `Orden ${target} ya cargada` })
+                        } else {
+                          navigate(`/ordenes/${target}/lab`)
+                        }
+                        setQuickSearch('')
+                        setQuickResults([])
+                      } else if (results.length > 1) {
+                        setQuickResults(results)
+                      } else {
+                        setToast({ type: 'error', msg: 'No se encontró orden' })
+                      }
+                    } catch { setToast({ type: 'error', msg: 'Error de búsqueda' }) }
+                    finally { setQuickSearching(false) }
+                  }
+                }}
+              />
+              {quickResults.length > 1 && (
+                <div className="lab-quick-results">
+                  {quickResults.map(r => (
+                    <div key={r.numero} className="lab-quick-result-item"
+                      onClick={() => { navigate(`/ordenes/${r.numero}/lab`); setQuickSearch(''); setQuickResults([]) }}>
+                      <span className="lab-quick-ord">{r.numero}</span>
+                      <span className="lab-quick-pac">{r.paciente_nombre}</span>
+                      <span className="lab-quick-dot" style={{ background: r.color }} />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Filter toggle + filters */}
@@ -819,6 +1108,11 @@ export default function OrdenLabPage() {
                   </div>
                 )
               })}
+              {queueHasMore && !queueLoading && (
+                <button className="lab-queue-load-more" onClick={() => loadQueue(null, queuePage + 1, true)}>
+                  Cargar más ({queue.length} cargadas)
+                </button>
+              )}
             </div>
           </div>
           )}
@@ -855,25 +1149,59 @@ export default function OrdenLabPage() {
             {/* Area tabs — hide in validation mode (single area) */}
             {!isValidation && (
             <div className="ot-tab-row">
-              {data.areas.map(area => (
-                <button
-                  key={area.id}
-                  className={`ot-tab-btn ${activeArea === area.id ? 'active' : ''}`}
-                  onClick={() => setActiveArea(area.id)}
-                >
-                  {area.nombre}
-                  <span className="lab-tab-count">{area.pruebas.length}</span>
-                </button>
-              ))}
+              {data.areas.map(area => {
+                const aTotal = area.pruebas.length
+                const aValidados = area.pruebas.filter(po => getValidado(po)).length
+                const aPct = aTotal > 0 ? Math.round((aValidados / aTotal) * 100) : 0
+                const aComplete = aPct === 100
+                return (
+                  <button
+                    key={area.id}
+                    className={`ot-tab-btn ${activeArea === area.id ? 'active' : ''} ${aComplete ? 'lab-tab-done' : ''}`}
+                    onClick={() => setActiveArea(area.id)}
+                  >
+                    {aComplete && <span className="lab-tab-check">✓</span>}
+                    {area.nombre}
+                    <span className="lab-tab-count">{aPct > 0 && aPct < 100 ? `${aPct}%` : aTotal}</span>
+                  </button>
+                )
+              })}
             </div>
             )}
 
-            {currentArea && (
+            {currentArea && (() => {
+              return (
               <>
+                {areaEnEspera && (
+                  <div className="lab-area-espera-banner">
+                    <span>⏸ Área en espera — los campos están bloqueados</span>
+                    {canLab && (
+                      <button className="lab-btn lab-btn-sm lab-btn-ghost" onClick={async () => {
+                        try {
+                          await setAreaEspera(numero, activeArea, false)
+                          const d = await getOrdenLab(numero)
+                          setData(d)
+                          setToast({ type: 'success', msg: 'Área reactivada' })
+                        } catch (e) { setToast({ type: 'error', msg: e.message }) }
+                      }}>Reactivar Área</button>
+                    )}
+                  </div>
+                )}
                 <div className="lab-table-card">
                   <div className="lab-area-toolbar">
                     <span className="lab-area-title">{currentArea.nombre}</span>
                     <span className="lab-area-count">{currentArea.pruebas.length} pruebas</span>
+                    {canLab && !areaEnEspera && (
+                      <button className="lab-btn lab-btn-ghost lab-btn-sm" onClick={async () => {
+                        if (!confirm('¿Poner esta área en espera? Las pruebas no validadas quedarán bloqueadas.')) return
+                        try {
+                          await setAreaEspera(numero, activeArea, true)
+                          const d = await getOrdenLab(numero)
+                          setData(d)
+                          setToast({ type: 'success', msg: 'Área en espera' })
+                        } catch (e) { setToast({ type: 'error', msg: e.message }) }
+                      }} title="Poner área en espera">⏸ Espera</button>
+                    )}
                     <button
                       className="lab-btn lab-btn-ghost lab-btn-sm"
                       onClick={handleToggleAllHist}
@@ -903,7 +1231,7 @@ export default function OrdenLabPage() {
                           const val = getVal(po)
                           const isValidado = getValidado(po)
                           const flag = (po.tipo === 'NUM' || po.tipo === 'CAL') ? calcFlag(val, po.referencia) : null
-                          const isAlarm = flag && (flag.flag === 'H' || flag.flag === 'L')
+                          const isAlarm = flag && (flag.flag === 'H' || flag.flag === 'L' || flag.flag === 'HH' || flag.flag === 'LL')
                           const isCritical = flag && flag.critical
                           const nota = getNota(po)
                           const showNota = notaOpen.has(po.id)
@@ -925,7 +1253,26 @@ export default function OrdenLabPage() {
                                 <td>
                                   <div style={{ display: 'flex', alignItems: 'center' }}>
                                     <span className="lab-cell-prueba">{po.prueba}</span>
+                                    {po.tiene_regla_autovalidacion && (
+                                      <span className={`lab-badge-auto ${po.fue_autovalidada ? 'lab-badge-auto-ok' : 'lab-badge-auto-fail'}`}
+                                        title={po.fue_autovalidada ? 'Autovalidada OK' : 'No pasó autovalidación'}>A</span>
+                                    )}
+                                    {val && (
+                                      <span className={`lab-badge-source ${po.transmision_equipo ? 'lab-badge-source-equipo' : 'lab-badge-source-manual'}`}
+                                        title={po.transmision_equipo ? `Transmitido por ${po.equipo || 'equipo'}` : 'Captura manual'}>
+                                        {''}
+                                      </span>
+                                    )}
+                                    {(po.critico || flag?.critical) && (
+                                      <span className="lab-badge-critico" title="Resultado en rango CRÍTICO">Crí</span>
+                                    )}
+                                    {po.repeticiones > 0 && (
+                                      <span className="lab-badge-rep" title={`${po.repeticiones} repetición(es)`}>×{po.repeticiones}</span>
+                                    )}
                                     {po.corregida && <span className="lab-tag-corregida" title="Resultado corregido">C</span>}
+                                    {po.equipo_observaciones && (
+                                      <span className="lab-badge-equipo-obs" title={`Obs. equipo: ${po.equipo_observaciones}`}>!</span>
+                                    )}
                                     <button
                                       className={`lab-nota-btn ${nota ? 'has-nota' : ''}`}
                                       onClick={() => toggleNota(po.id)}
@@ -934,10 +1281,26 @@ export default function OrdenLabPage() {
                                       <IcoNote />
                                     </button>
                                   </div>
-                                  {showNota && (
-                                    <input className="lab-nota-input" placeholder="Nota..." value={nota}
-                                      onChange={e => setNota(po.id, e.target.value)} />
-                                  )}
+                                  {showNota ? (
+                                    <>
+                                      <input className="lab-nota-input" placeholder="Nota..." value={nota}
+                                        onChange={e => setNota(po.id, e.target.value)} />
+                                      {predefinedNotes.length > 0 && (
+                                        <div className="lab-notas-predefinidas">
+                                          {predefinedNotes.map(n => (
+                                            <button key={n.id} className="lab-nota-pred-btn" title={n.texto}
+                                              onClick={() => setNota(po.id, nota ? `${nota}. ${n.texto}` : n.texto)}>
+                                              {n.titulo}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </>
+                                  ) : nota ? (
+                                    <div className="lab-nota-visible" onClick={() => toggleNota(po.id)} title="Click para editar nota">
+                                      {nota}
+                                    </div>
+                                  ) : null}
                                 </td>
                                 <td>
                                   {po.tipo === 'NUM' ? (
@@ -953,7 +1316,7 @@ export default function OrdenLabPage() {
                                         const { number } = parseNumInput(e.target.value)
                                         if (po.formato && number) setResultado(po.id, formatNumericValue(number, po.formato))
                                       }}
-                                      readOnly={isValidado || !canLab}
+                                      readOnly={isValidado || !canLab || areaEnEspera}
                                       placeholder={po.valor_por_defecto || ''} />
                                   ) : po.tipo === 'SEL' ? (
                                     <select className="lab-input lab-select" value={val}
@@ -968,7 +1331,7 @@ export default function OrdenLabPage() {
                                   ) : po.tipo === 'TXT' ? (
                                     <div>
                                       <textarea className="lab-textarea-inline" value={val} maxLength={400} rows={2}
-                                        onChange={e => setResultado(po.id, e.target.value)} readOnly={isValidado || !canLab}
+                                        onChange={e => setResultado(po.id, e.target.value)} readOnly={isValidado || !canLab || areaEnEspera}
                                         placeholder={po.valor_por_defecto || ''} />
                                       <span className="lab-textarea-counter">{(val || '').length}/400</span>
                                     </div>
@@ -978,12 +1341,12 @@ export default function OrdenLabPage() {
                                     </div>
                                   ) : po.tipo === 'ALF' ? (
                                     <input className="lab-input" type="text" value={val}
-                                      onChange={e => setResultado(po.id, e.target.value)} readOnly={isValidado || !canLab}
+                                      onChange={e => setResultado(po.id, e.target.value)} readOnly={isValidado || !canLab || areaEnEspera}
                                       placeholder={po.valor_por_defecto || ''} />
                                   ) : po.tipo === 'AYU' ? (
                                     <div>
                                       <textarea className="lab-textarea-inline" value={val} rows={2}
-                                        onChange={e => setResultado(po.id, e.target.value)} readOnly={isValidado || !canLab} />
+                                        onChange={e => setResultado(po.id, e.target.value)} readOnly={isValidado || !canLab || areaEnEspera} />
                                       {po.opciones?.length > 0 && !isValidado && canLab && (
                                         <select className="lab-input lab-select" style={{ marginTop: 2, fontSize: 10 }}
                                           value="" onChange={e => { if (e.target.value) { setResultado(po.id, (val ? val + ' ' : '') + e.target.value); e.target.value = '' } }}>
@@ -995,12 +1358,27 @@ export default function OrdenLabPage() {
                                   ) : (
                                     <div style={{ display: 'flex', alignItems: 'center' }}>
                                       <input className="lab-input" type="text" value={val}
-                                        onChange={e => setResultado(po.id, e.target.value)} readOnly={isValidado || !canLab} />
+                                        onChange={e => setResultado(po.id, e.target.value)} readOnly={isValidado || !canLab || areaEnEspera} />
                                       <span className="lab-type-badge">{po.tipo}</span>
                                     </div>
                                   )}
                                 </td>
-                                <td className="lab-td-flag"><FlagBadge flag={flag} /></td>
+                                <td className="lab-td-flag">
+                                  <FlagBadge flag={flag} />
+                                  {po.tipo === 'NUM' && val && po.prev_valor != null && (() => {
+                                    const curr = parseFloat(val)
+                                    const prev = po.prev_valor
+                                    if (isNaN(curr) || prev === 0) return null
+                                    const pct = Math.abs((curr - prev) / prev * 100)
+                                    const inRange = pct < 30
+                                    return (
+                                      <span className={`lab-delta ${inRange ? 'lab-delta-ok' : 'lab-delta-alert'} lab-tip`}
+                                        data-tip={`Anterior: ${prev} → Actual: ${curr} (${curr > prev ? '+' : ''}${(curr - prev).toFixed(1)})`}>
+                                        {pct < 1 ? '=' : `${curr > prev ? '↑' : '↓'}${pct.toFixed(0)}%`}
+                                      </span>
+                                    )
+                                  })()}
+                                </td>
                                 <td className="lab-td-unidad">{po.unidad}</td>
                                 <td>
                                   <div className="lab-ref-text">{po.referencia?.texto || ''}</div>
@@ -1011,7 +1389,10 @@ export default function OrdenLabPage() {
                                 <td style={{ textAlign: 'center' }}>
                                   <div className="lab-td-actions">
                                     <input type="checkbox" className="lab-checkbox" checked={isValidado}
-                                      onChange={() => toggleValidado(po.id, isValidado)} disabled={!canLab} />
+                                      onChange={() => toggleValidado(po.id, isValidado)} disabled={!canLab || areaEnEspera} />
+                                    {isValidado && po.verificado && (
+                                      <span className="lab-verificado-badge" title="Verificado por supervisor">✓✓</span>
+                                    )}
                                     {isValidado && canLab && (
                                       <button className="lab-corregir-btn" onClick={() => openCorreccion(po)} title="Corregir resultado validado">
                                         <IcoEdit />
@@ -1057,20 +1438,39 @@ export default function OrdenLabPage() {
                     </table>
 
                     {/* Validation bar at bottom of table */}
-                    <div className="lab-validation-bar">
-                      <button className="lab-btn lab-btn-primary lab-btn-sm" onClick={handleAutovalidar}>Autovalidar</button>
-                      <button className="lab-btn lab-btn-ghost lab-btn-sm" onClick={handleInvalidarTodo}><IcoX /> Invalidar</button>
-                      <div className="lab-toolbar-spacer" />
-                      <button className="lab-btn lab-btn-danger lab-btn-sm" onClick={(e) => { addRipple(e); handleValidarTodo() }}>
-                        <IcoCheck /> Validar Todo
-                      </button>
-                    </div>
+                    {(() => {
+                      const allVal = currentArea?.pruebas?.every(po => getValidado(po))
+                      const someVal = currentArea?.pruebas?.some(po => getValidado(po))
+                      const allVerified = currentArea?.pruebas?.every(po => po.verificado || !(po.status_id === 4 || po.status_id === 7))
+                      const canVerify = userInfo?.roles?.some(r => ['ADM', 'COORD'].includes(r))
+                      const canAuto = currentArea?.pruebas?.some(po => {
+                        if (getValidado(po)) return false
+                        const val = getVal(po)
+                        if (!val) return false
+                        if (po.tipo !== 'NUM' && po.tipo !== 'CAL') return true
+                        const f = calcFlag(val, po.referencia)
+                        return f && f.flag === 'N'
+                      })
+                      if (allVal && !someVal) return null
+                      return (
+                        <div className="lab-validation-bar">
+                          {canAuto && <button className="lab-btn lab-btn-primary lab-btn-sm" onClick={handleAutovalidar}>Autovalidar</button>}
+                          {someVal && <button className="lab-btn lab-btn-ghost lab-btn-sm" onClick={handleInvalidarTodo}><IcoX /> Invalidar</button>}
+                          <div className="lab-toolbar-spacer" />
+                          {!allVal && (
+                            <button className="lab-btn lab-btn-danger lab-btn-sm" onClick={(e) => { addRipple(e); handleValidarTodo() }}>
+                              <IcoCheck /> Validar Todo
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
 
                 {/* Sidebar is rendered as 3rd child of lab-3col below */}
               </>
-            )}
+            )})()}
 
             {/* Bottom toolbar */}
             <div className="lab-toolbar">
@@ -1101,13 +1501,25 @@ export default function OrdenLabPage() {
                 </>
               ) : (
                 <>
-                  <button className="lab-btn lab-btn-ghost" onClick={() => navigate('/ordenes')}>
+                  <button className="lab-btn lab-btn-outline" onClick={() => navigate('/ordenes')}>
                     <IcoList /> Volver a Lista
                   </button>
-                  <button className="lab-btn lab-btn-ghost" onClick={() => navigate(`/ordenes/${numero}`)}>
+                  <button className="lab-btn lab-btn-outline" onClick={() => navigate(`/ordenes/${numero}`)}>
                     <IcoEye /> Ver Detalles
                   </button>
                   <div className="lab-toolbar-spacer" />
+                  {canVerify && someVal && !allVerified && (
+                    <button className="lab-btn lab-btn-outline" onClick={async () => {
+                      const ids = currentArea?.pruebas?.filter(po => (po.status_id === 4 || po.status_id === 7) && !po.verificado).map(po => po.id)
+                      if (!ids?.length) return
+                      try {
+                        await verificarResultados(numero, ids, true)
+                        setToast({ type: 'success', msg: 'Área verificada' })
+                        const d = await getOrdenLab(numero)
+                        setData(d)
+                      } catch (e) { setToast({ type: 'error', msg: e.message }) }
+                    }}>✓✓ Verificar Área</button>
+                  )}
                   <button
                     className="lab-btn lab-btn-success"
                     disabled={saving || !hasDirty}
@@ -1235,6 +1647,21 @@ export default function OrdenLabPage() {
                             <span className="lab-side-info-val">{transmitidas} de {currentArea.pruebas.length}</span>
                           </div>
                         )}
+                        {(() => {
+                          const withObs = currentArea.pruebas.filter(po => po.equipo_observaciones)
+                          if (withObs.length === 0) return null
+                          return (
+                            <div className="lab-equipo-obs-section">
+                              <div className="lab-equipo-obs-title">Observaciones de Equipo</div>
+                              {withObs.map(po => (
+                                <div key={po.id} className="lab-equipo-obs-item">
+                                  <span className="lab-equipo-obs-prueba">{po.prueba}</span>
+                                  <span className="lab-equipo-obs-text">{po.equipo_observaciones}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        })()}
                       </CollapsibleCard>
                     )
                   })()}
@@ -1284,6 +1711,22 @@ export default function OrdenLabPage() {
 
                   {/* Observaciones */}
                   <CollapsibleCard title="Observaciones">
+                    {predefinedNotes.length > 0 && (
+                      <select className="lab-input lab-select" style={{ marginBottom: 6, fontSize: 10 }}
+                        value="" onChange={e => {
+                          if (e.target.value) {
+                            setObsArea(prev => ({
+                              ...prev,
+                              [currentArea.id]: (prev[currentArea.id] || '') + (prev[currentArea.id] ? '\n' : '') + e.target.value
+                            }))
+                          }
+                        }}>
+                        <option value="">+ Agregar nota predefinida...</option>
+                        {predefinedNotes.map(n => (
+                          <option key={n.id} value={n.texto}>{n.titulo || n.texto?.substring(0, 50)}</option>
+                        ))}
+                      </select>
+                    )}
                     <textarea
                       className="lab-obs-textarea"
                       placeholder={`Notas para ${currentArea.nombre}...`}
@@ -1353,6 +1796,46 @@ export default function OrdenLabPage() {
               {validation?.muestras?.length > 0 ? 'Selecciona una muestra de la lista' : 'Selecciona un área y busca muestras para comenzar'}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal de confirmación (blank/panic warnings) */}
+      {confirmModal && (
+        <div className="lab-modal-overlay" onClick={() => setConfirmModal(null)}>
+          <div className={`lab-modal lab-confirm-modal ${confirmModal.type === 'panic' ? 'lab-confirm-panic' : confirmModal.type === 'invalidate' ? 'lab-confirm-invalidate' : ''}`} onClick={e => e.stopPropagation()}>
+            <div className="lab-modal-header">
+              <span className="lab-modal-title">{confirmModal.title}</span>
+              <button className="lab-modal-close" onClick={() => setConfirmModal(null)}>&times;</button>
+            </div>
+            <div className="lab-modal-body">
+              <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 8 }}>{confirmModal.message}</p>
+              {confirmModal.items.length > 0 && (
+                <ul className="lab-confirm-list">
+                  {confirmModal.items.map((item, i) => <li key={i}>{item}</li>)}
+                </ul>
+              )}
+              {confirmModal.type === 'invalidate' && (
+                <textarea className="lab-confirm-razon" rows={3} placeholder="Razón de invalidación (obligatorio)..."
+                  value={confirmModal.razon || ''}
+                  onChange={e => setConfirmModal(prev => ({ ...prev, razon: e.target.value }))}
+                  autoFocus />
+              )}
+            </div>
+            <div className="lab-modal-footer">
+              <button className="lab-btn lab-btn-ghost" onClick={() => setConfirmModal(null)}>Cancelar</button>
+              {confirmModal.type === 'invalidate' ? (
+                <button className="lab-btn lab-btn-danger" disabled={!confirmModal.razon?.trim()}
+                  onClick={() => confirmModal.onConfirm(confirmModal.razon.trim())}>
+                  Invalidar Área
+                </button>
+              ) : (
+                <button className={`lab-btn ${confirmModal.type === 'panic' ? 'lab-btn-danger' : 'lab-btn-warning'}`}
+                  onClick={confirmModal.onConfirm}>
+                  {confirmModal.type === 'panic' ? 'Confirmar Pánico' : 'Validar Sin Resultado'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

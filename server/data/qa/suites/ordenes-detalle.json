@@ -1,0 +1,216 @@
+{
+  "id": "ordenes-detalle",
+  "nombre": "Detalle de Orden de Trabajo",
+  "modulo": "ordenes",
+  "descripcion": "Verificar navegación, datos del paciente, datos de la orden, acciones e impresión",
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "od-01",
+      "seccion": "Navegación",
+      "titulo": "Acceso desde lista de OTs",
+      "descripcion": "Click en ícono ojo navega al detalle",
+      "pasos": [
+        "Ir a /ordenes",
+        "Click ícono ojo en cualquier OT"
+      ],
+      "resultado_esperado": "Se navega a /ordenes/{numero} con todos los datos de la OT",
+      "prioridad": "critico",
+      "orden": 1
+    },
+    {
+      "id": "od-02",
+      "seccion": "Navegación",
+      "titulo": "Acceso directo por URL",
+      "descripcion": "Escribir URL directo con un número de OT válido",
+      "pasos": [
+        "Escribir en barra: /ordenes/XXXXX (número real)"
+      ],
+      "resultado_esperado": "Se carga el detalle de esa OT",
+      "prioridad": "alto",
+      "orden": 2
+    },
+    {
+      "id": "od-03",
+      "seccion": "Navegación",
+      "titulo": "OT inexistente muestra error",
+      "descripcion": "Número de OT que no existe",
+      "pasos": [
+        "Navegar a /ordenes/9999999"
+      ],
+      "resultado_esperado": "Mensaje de error 'Orden no encontrada' o similar",
+      "prioridad": "alto",
+      "orden": 3
+    },
+    {
+      "id": "od-04",
+      "seccion": "Datos Paciente",
+      "titulo": "Nombre completo del paciente",
+      "descripcion": "Se muestra nombre y apellido del paciente",
+      "pasos": [
+        "Abrir detalle de cualquier OT"
+      ],
+      "resultado_esperado": "Nombre y apellido visibles en la sección de paciente",
+      "prioridad": "critico",
+      "orden": 4
+    },
+    {
+      "id": "od-05",
+      "seccion": "Datos Paciente",
+      "titulo": "CI del paciente",
+      "descripcion": "Se muestra la cédula/CI del paciente",
+      "pasos": [
+        "Ver sección paciente"
+      ],
+      "resultado_esperado": "CI visible. Si no tiene CI, mostrar 'Sin CI' o campo vacío",
+      "prioridad": "alto",
+      "orden": 5
+    },
+    {
+      "id": "od-06",
+      "seccion": "Datos Paciente",
+      "titulo": "Sexo y edad del paciente",
+      "descripcion": "Sexo y edad calculada visibles",
+      "pasos": [
+        "Ver sección paciente"
+      ],
+      "resultado_esperado": "Sexo (M/F) y edad en años visible",
+      "prioridad": "alto",
+      "orden": 6
+    },
+    {
+      "id": "od-07",
+      "seccion": "Datos Orden",
+      "titulo": "Número de OT visible",
+      "descripcion": "El número de la OT se muestra prominente",
+      "pasos": [
+        "Abrir detalle"
+      ],
+      "resultado_esperado": "Número de OT visible en el header o título de la página",
+      "prioridad": "critico",
+      "orden": 7
+    },
+    {
+      "id": "od-08",
+      "seccion": "Datos Orden",
+      "titulo": "Fecha de creación",
+      "descripcion": "Fecha y hora de creación de la OT",
+      "pasos": [
+        "Ver datos de la orden"
+      ],
+      "resultado_esperado": "Fecha formateada legible (ej: '04/Mar/2026 10:30')",
+      "prioridad": "alto",
+      "orden": 8
+    },
+    {
+      "id": "od-09",
+      "seccion": "Datos Orden",
+      "titulo": "Procedencia y servicio",
+      "descripcion": "Procedencia y servicio médico visibles",
+      "pasos": [
+        "Ver datos de la orden"
+      ],
+      "resultado_esperado": "Nombre de procedencia y servicio mostrados",
+      "prioridad": "alto",
+      "orden": 9
+    },
+    {
+      "id": "od-10",
+      "seccion": "Datos Orden",
+      "titulo": "Estado con badge de color",
+      "descripcion": "Estado de la OT con badge coloreado",
+      "pasos": [
+        "Ver datos de la orden"
+      ],
+      "resultado_esperado": "Badge con el estado correcto y color correspondiente",
+      "prioridad": "alto",
+      "orden": 10
+    },
+    {
+      "id": "od-11",
+      "seccion": "Datos Orden",
+      "titulo": "Lista de pruebas",
+      "descripcion": "Se muestran las pruebas/grupos de la OT",
+      "pasos": [
+        "Scroll a sección de pruebas/estudios"
+      ],
+      "resultado_esperado": "Tabla o lista con nombre de prueba, área, precio",
+      "prioridad": "critico",
+      "orden": 11
+    },
+    {
+      "id": "od-12",
+      "seccion": "Datos Orden",
+      "titulo": "Médico asignado",
+      "descripcion": "Nombre del médico si está asignado",
+      "pasos": [
+        "Ver datos de la orden"
+      ],
+      "resultado_esperado": "Nombre del médico o 'Sin médico' si no tiene",
+      "prioridad": "medio",
+      "orden": 12
+    },
+    {
+      "id": "od-13",
+      "seccion": "Acciones",
+      "titulo": "Botón REPORTAR navega a Lab",
+      "descripcion": "Botón para ir al ingreso de resultados",
+      "pasos": [
+        "Click en botón REPORTAR o Ingresar Resultados"
+      ],
+      "resultado_esperado": "Navega a /ordenes/{numero}/lab",
+      "prioridad": "critico",
+      "orden": 13
+    },
+    {
+      "id": "od-14",
+      "seccion": "Acciones",
+      "titulo": "Botón Imprimir OT",
+      "descripcion": "Genera vista de impresión",
+      "pasos": [
+        "Click en botón Imprimir"
+      ],
+      "resultado_esperado": "Se abre vista de impresión con formato adecuado",
+      "prioridad": "alto",
+      "orden": 14
+    },
+    {
+      "id": "od-15",
+      "seccion": "Acciones",
+      "titulo": "Botón Abortar OT",
+      "descripcion": "Permite cancelar/abortar la OT",
+      "pasos": [
+        "Click en Abortar",
+        "Confirmar en el modal"
+      ],
+      "resultado_esperado": "Estado cambia a Abortada. El cambio se refleja inmediatamente",
+      "prioridad": "alto",
+      "orden": 15
+    },
+    {
+      "id": "od-16",
+      "seccion": "Impresión",
+      "titulo": "Print preview tiene datos correctos",
+      "descripcion": "La vista de impresión muestra toda la info necesaria",
+      "pasos": [
+        "Click imprimir",
+        "Revisar el preview"
+      ],
+      "resultado_esperado": "Se ven: logo, datos lab, datos paciente, pruebas, resultados si existen",
+      "prioridad": "alto",
+      "orden": 16
+    }
+  ],
+  "archivos": {
+    "frontend": [
+      "src/pages/OrdenDetallePage.jsx"
+    ],
+    "backend": [
+      "server/routes/ordenes.js"
+    ],
+    "api": [
+      "src/services/api.js — getOrden"
+    ],
+    "ruta": "/ordenes/:numero"
+  }
+}

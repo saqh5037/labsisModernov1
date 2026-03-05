@@ -5265,13 +5265,79 @@
 
   /* Hidden state */
   body.hide-codes .code-tag { display: none !important; }
+
+  /* Code-tag context tooltip */
+  .code-tooltip {
+    position: fixed;
+    z-index: 99999;
+    background: #1a365d;
+    color: #fff;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    line-height: 1.5;
+    max-width: 340px;
+    min-width: 200px;
+    box-shadow: 0 8px 32px rgba(30,58,95,0.25), 0 0 0 1px rgba(255,255,255,0.08) inset;
+    pointer-events: auto;
+    animation: tooltipIn 150ms ease-out;
+    backdrop-filter: blur(12px);
+  }
+  @keyframes tooltipIn {
+    from { opacity: 0; transform: translateY(4px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .code-tooltip-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #93c5fd;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .code-tooltip-category {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .code-tooltip-desc {
+    color: rgba(255,255,255,0.9);
+    margin-top: 6px;
+  }
+  .code-tooltip-specs {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.55);
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    word-break: break-all;
+  }
+  .code-tooltip-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 4px;
+    line-height: 1;
+  }
+  .code-tooltip-close:hover { color: #fff; }
 </style>
 </head>
 <body>
 
 <!-- ========== NAVIGATION ========== -->
 <nav class="nav">
-  <div class="nav-inner">
+  <div class="nav-inner"><span class="code-tag" style="position:absolute;top:4px;left:4px;z-index:10;">NAV-001</span>
     <a href="#" class="nav-brand">
       <svg viewBox="0 0 30 30" fill="none" width="20" height="20">
         <circle cx="15" cy="15" r="12" stroke="#3b82f6" stroke-width="1.8" fill="none" opacity="0.3"/>
@@ -5285,7 +5351,7 @@
       </svg>
       labsis <span>3.0 <span class="code-tag">TAB-007</span></span>
     </a>
-    <ul class="nav-links">
+    <ul class="nav-links"><span class="code-tag">NAV-002</span>
       <li><a href="#principios">Principios</a></li>
       <li><a href="#logo">Logo</a></li>
       <li><a href="#colores">Colores</a></li>
@@ -5320,19 +5386,19 @@
       <li><a href="#templates">Templates</a></li>
       <li><a href="#liquid-glass">Glass</a></li>
     </ul>
-    <button class="nav-codes-toggle" id="codesToggle" title="Mostrar/ocultar códigos de referencia">
+    <button class="nav-codes-toggle" id="codesToggle" title="Mostrar/ocultar códigos de referencia"><span class="code-tag">NAV-003</span>
       &lt;/&gt; Códigos
     </button>
   </div>
 </nav>
-<div class="scroll-progress" id="scrollProgress"></div>
+<div class="scroll-progress" id="scrollProgress"><span class="code-tag">NAV-004</span></div>
 
 <!-- ========== HERO ========== -->
-<header class="hero">
+<header class="hero"><span class="code-tag" style="position:absolute;top:8px;left:8px;z-index:5;">HRO-001</span>
   <div class="hero-aurora"></div>
   <div class="hero-particles-3"></div>
   <div class="page-wrapper">
-    <div class="hero-glass">
+    <div class="hero-glass"><span class="code-tag" style="position:absolute;top:4px;right:4px;z-index:5;">HRO-002</span>
       <div class="hero-logo">
         <svg viewBox="0 0 30 30" fill="none" width="72" height="72">
           <circle cx="15" cy="15" r="12" stroke="#3b82f6" stroke-width="1.8" fill="none" opacity="0.3"/>
@@ -5345,10 +5411,10 @@
           <circle cx="9.5" cy="24.5" r="2" fill="#93c5fd"/>
         </svg>
       </div>
-      <h1 class="hero-title"><strong>labsis</strong> <span class="hero-version">v3</span></h1>
-      <p class="hero-subtitle">Manual de Marca &mdash; Liquid Glass Edition</p>
+      <h1 class="hero-title"><strong>labsis</strong> <span class="hero-version">v3</span> <span class="code-tag">HRO-003</span></h1>
+      <p class="hero-subtitle">Manual de Marca &mdash; Liquid Glass Edition <span class="code-tag">HRO-004</span></p>
       <p class="hero-meta">Sistema de Gestión de Laboratorio Clínico &middot; Marzo 2026</p>
-      <div class="hero-stats">
+      <div class="hero-stats"><span class="code-tag" style="position:absolute;top:4px;right:4px;">HRO-005</span>
         <div class="hero-stat">
           <div class="hero-stat-number" data-count="32">0</div>
           <div class="hero-stat-label">Secciones</div>
@@ -5362,7 +5428,7 @@
           <div class="hero-stat-label">Colores</div>
         </div>
       </div>
-      <div class="hero-scroll-hint">
+      <div class="hero-scroll-hint"><span class="code-tag">HRO-006</span>
         Scroll para explorar
         <span class="arrow">&#8595;</span>
       </div>
@@ -5476,7 +5542,7 @@
   <div class="color-group">
     <h3 class="color-group-title">
       <span class="dot" style="background:#3b82f6"></span>
-      Familia Azul Primaria
+      Familia Azul Primaria <span class="code-tag">COL-008</span>
     </h3>
     <div class="color-swatches">
       <div class="swatch">
@@ -5541,7 +5607,7 @@
   <div class="color-group">
     <h3 class="color-group-title">
       <span class="dot" style="background:#1a365d"></span>
-      Navy (Identidad)
+      Navy (Identidad) <span class="code-tag">COL-012</span>
     </h3>
     <div class="color-swatches">
       <div class="swatch">
@@ -5566,7 +5632,7 @@
   <div class="color-group">
     <h3 class="color-group-title">
       <span class="dot" style="background:#d97706"></span>
-      Secundario Gold
+      Secundario Gold <span class="code-tag">COL-022</span>
     </h3>
     <div class="color-swatches">
       <div class="swatch">
@@ -5591,7 +5657,7 @@
   <div class="color-group">
     <h3 class="color-group-title">
       <span class="dot" style="background:#e53e3e"></span>
-      Solo Logo
+      Solo Logo <span class="code-tag">COL-026</span>
     </h3>
     <div class="color-swatches">
       <div class="swatch" style="border-color: rgba(229,62,62,0.15);">
@@ -5610,7 +5676,7 @@
   <div class="color-group">
     <h3 class="color-group-title">
       <span class="dot" style="background: linear-gradient(135deg, #059669, #dc2626, #d97706);"></span>
-      Colores Semanticos
+      Colores Semanticos <span class="code-tag">COL-036</span>
     </h3>
     <div class="color-swatches">
       <div class="swatch">
@@ -5667,7 +5733,7 @@
   <div class="color-group">
     <h3 class="color-group-title">
       <span class="dot" style="background:#64748b"></span>
-      Neutrales y Superficies
+      Neutrales y Superficies <span class="code-tag">COL-044</span>
     </h3>
     <div class="color-swatches">
       <div class="swatch">
@@ -5732,7 +5798,7 @@
     <p class="section-desc">Inter como tipografía principal: excelente legibilidad en pantalla, caracteres abiertos que no se confunden. JetBrains Mono para datos numericos y codigos.</p>
   </div>
 
-  <h3 class="subsection-title">Inter &mdash; Encabezados y Cuerpo</h3>
+  <h3 class="subsection-title">Inter &mdash; Encabezados y Cuerpo <span class="code-tag">TYP-020</span></h3>
   <div class="type-specimen">
     <div class="type-row">
       <div class="type-meta">
@@ -5785,7 +5851,7 @@
     </div>
   </div>
 
-  <h3 class="subsection-title">JetBrains Mono &mdash; Datos y Codigos</h3>
+  <h3 class="subsection-title">JetBrains Mono &mdash; Datos y Codigos <span class="code-tag">TYP-021</span></h3>
   <div class="type-specimen" style="font-family:'JetBrains Mono',monospace;">
     <div class="type-row">
       <div class="type-meta">
@@ -5974,7 +6040,7 @@
   </div>
 
   <!-- Formulario completo de ejemplo -->
-  <h3 style="font-size:14px; font-weight:600; color:var(--navy); margin: 24px 0 12px;">Formulario de Registro de Orden</h3>
+  <h3 style="font-size:14px; font-weight:600; color:var(--navy); margin: 24px 0 12px;">Formulario de Registro de Orden <span class="code-tag">FRM-011</span></h3>
   <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-atmospheric);">
     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;"> <span class="code-tag">FRM-010</span>
       <div>
@@ -6031,7 +6097,7 @@
         </div>
       </div>
     </div>
-    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px; padding-top:16px; border-top:1px solid var(--border);"><span class="code-tag">FRM-012</span>
       <button class="btn btn-ghost form-toggle-btn" data-active="false" style="font-size:13px;">Cancelar</button>
       <button class="btn btn-secondary form-toggle-btn" data-active="false" style="font-size:13px;">Guardar borrador</button>
       <button class="btn btn-primary form-toggle-btn" data-active="false" style="font-size:13px;">
@@ -6089,7 +6155,7 @@
 
   <!-- Tabla estándar: Resultados individuales -->
   <h3 style="font-size:14px; font-weight:600; color:var(--navy); margin-bottom:12px;">Tabla de resultados (vista plana) <span class="code-tag">TBL-001</span></h3>
-  <div class="table-container">
+  <div class="table-container"><span class="code-tag" style="position:absolute;top:4px;right:4px;">TBL-016</span>
     <div class="table-card">
       <table class="floating-table">
         <thead>
@@ -6209,7 +6275,7 @@
   </div>
 
   <!-- Tabla agrupada por perfil -->
-  <h3 style="font-size:14px; font-weight:600; color:var(--navy); margin: 24px 0 12px;">Tabla agrupada por perfil (vista recomendada)</h3>
+  <h3 style="font-size:14px; font-weight:600; color:var(--navy); margin: 24px 0 12px;">Tabla agrupada por perfil (vista recomendada) <span class="code-tag">TBL-015</span></h3>
   <div style="display:flex; flex-direction:column; gap:16px;">
     <div class="result-group"><span class="code-tag" style="position:absolute;top:4px;right:4px;">TBL-009</span>
       <div class="result-group-header"><span class="code-tag">TBL-010</span> 
@@ -6444,7 +6510,7 @@
   </div>
 
   <div class="table-philosophy" style="margin-top:16px;">
-    <strong>Filosofía de tabla:</strong> Sin header oscuro pesado. Sin bordes gruesos entre columnas. Las filas se distinguen por fondos alternados casi imperceptibles. El hover es un tinte azul suave que indica fila activa. Los valores fuera de rango se marcan en rojo solo en el dato, no en toda la fila. Las sparklines muestran tendencia histórica. Los botones de acción son contextuales: "Validar" para pendientes, "Revisar" para críticos. El resultado: la vista puede escanear rápido sin que los bordes compitan con los datos.
+    <span class="code-tag">TBL-014</span> <strong>Filosofía de tabla:</strong> Sin header oscuro pesado. Sin bordes gruesos entre columnas. Las filas se distinguen por fondos alternados casi imperceptibles. El hover es un tinte azul suave que indica fila activa. Los valores fuera de rango se marcan en rojo solo en el dato, no en toda la fila. Las sparklines muestran tendencia histórica. Los botones de acción son contextuales: "Validar" para pendientes, "Revisar" para críticos. El resultado: la vista puede escanear rápido sin que los bordes compitan con los datos.
   </div>
 </section>
 
@@ -6705,7 +6771,7 @@
   <div class="comparison-grid">
     <div class="comparison-col">
       <div class="comparison-col-header" style="background:var(--surface-raised); color:var(--text-primary);">
-        Light Mode
+        Light Mode <span class="code-tag">MOD-007</span>
       </div>
       <div class="comparison-preview" style="background:#f8faff;">
         <div class="mini-header" style="background:var(--surface); border:1px solid var(--border); color:var(--text-primary);"><span class="code-tag">MOD-002</span> 
@@ -6729,7 +6795,7 @@
     </div>
     <div class="comparison-col">
       <div class="comparison-col-header" style="background:var(--navy); color:#fff;">
-        Dark Mode
+        Dark Mode <span class="code-tag">MOD-008</span>
       </div>
       <div class="comparison-preview" style="background:#0f172a;">
         <div class="mini-header" style="background:#1e293b; border:1px solid rgba(255,255,255,0.06); color:#e2e8f0;"><span class="code-tag">MOD-005</span> 
@@ -7040,15 +7106,15 @@
     <div style="border-left: 1px solid var(--border); height: 40px; margin: 0 8px;"></div>
     <div class="flag-col">
       <span class="badge badge-success" style="font-size:11px; padding:3px 9px;"><span class="badge-dot"></span>Validado</span>
-      <span class="btn-label">Estado aprobado</span>
+      <span class="btn-label">Estado aprobado <span class="code-tag">FLG-007</span></span>
     </div>
     <div class="flag-col">
       <span class="badge badge-warning" style="font-size:11px; padding:3px 9px;"><span class="badge-dot"></span>Pendiente</span>
-      <span class="btn-label">Esperando validación</span>
+      <span class="btn-label">Esperando validación <span class="code-tag">FLG-008</span></span>
     </div>
     <div class="flag-col">
       <span class="badge badge-error" style="font-size:11px; padding:3px 9px;"><span class="badge-dot"></span>Rechazado</span>
-      <span class="btn-label">Requiere reproceso</span>
+      <span class="btn-label">Requiere reproceso <span class="code-tag">FLG-009</span></span>
     </div>
   </div>
 </section>
@@ -7127,7 +7193,7 @@
   </div>
 
   <div class="table-philosophy" style="margin-top:16px;">
-    <strong>Principio:</strong> El bioanalista no necesita leer la etiqueta para saber qué tipo de dato esta viendo. Un número en JetBrains Mono es un resultado. Texto itálico gris es una nota. Un pill dorado es un ID de orden. Estas marcas visuales son como señales de tránsito: se reconocen por forma y color, no por texto.
+    <span class="code-tag">MRK-013</span> <strong>Principio:</strong> El bioanalista no necesita leer la etiqueta para saber qué tipo de dato esta viendo. Un número en JetBrains Mono es un resultado. Texto itálico gris es una nota. Un pill dorado es un ID de orden. Estas marcas visuales son como señales de tránsito: se reconocen por forma y color, no por texto.
   </div>
 </section>
 
@@ -7219,7 +7285,7 @@
   </div>
 
   <div class="table-philosophy" style="margin-top:16px;">
-    <strong>Regla de animaciónes:</strong> Las animaciónes nunca deben distraer del trabajo. Se usan solo para 3 propósitos: (1) llamar atención a valores críticos, (2) indicar que algo está cargando, y (3) anunciar nuevos datos. Siempre suaves, nunca intermitentes agresivos. El pulso de un valor crítico es como un latido tranquilo, no una alarma estridente.
+    <span class="code-tag">ANI-011</span> <strong>Regla de animaciónes:</strong> Las animaciónes nunca deben distraer del trabajo. Se usan solo para 3 propósitos: (1) llamar atención a valores críticos, (2) indicar que algo está cargando, y (3) anunciar nuevos datos. Siempre suaves, nunca intermitentes agresivos. El pulso de un valor crítico es como un latido tranquilo, no una alarma estridente.
   </div>
 </section>
 
@@ -7323,11 +7389,11 @@
       Exportar PDF
     </div>
     <div class="tooltip-target">
-      <div class="tooltip-bubble">Copiar al portapapeles</div>
+      <div class="tooltip-bubble"><span class="code-tag">TTP-002</span> Copiar al portapapeles</div>
       95.4 mg/dL
     </div>
     <div class="tooltip-target">
-      <div class="tooltip-bubble">Ver historial del paciente</div>
+      <div class="tooltip-bubble"><span class="code-tag">TTP-003</span> Ver historial del paciente</div>
       Historial
     </div>
   </div>
@@ -7463,7 +7529,7 @@
       <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
         <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:11px; color:var(--text-muted); width:50px; text-align:right;">QC</span>
-          <div class="progress-bar-track" style="flex:1;">
+          <div class="progress-bar-track" style="flex:1;"><span class="code-tag">CHT-005</span>
             <div class="progress-bar-fill" style="width:85%;"></div>
           </div>
           <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-secondary); width:28px;">85</span>
@@ -7553,16 +7619,16 @@
   </div>
 
   <div class="table-philosophy" style="margin-top:16px;">
-    <strong>Regla del menu:</strong> El menu principal es persistente en todas las vistas. El submenu cambia según la sección activa. Items con notificaciónes muestran badge numerico. La busqueda global es accesible con <span style="font-family:'JetBrains Mono',monospace; font-size:11px; background:var(--surface-sunken); padding:2px 6px; border-radius:4px;">Ctrl+K</span>.
+    <span class="code-tag">MNU-010</span> <strong>Regla del menu:</strong> El menu principal es persistente en todas las vistas. El submenu cambia según la sección activa. Items con notificaciónes muestran badge numerico. La busqueda global es accesible con <span style="font-family:'JetBrains Mono',monospace; font-size:11px; background:var(--surface-sunken); padding:2px 6px; border-radius:4px;">Ctrl+K</span>.
   </div>
 
   <!-- Menu lateral desplegable -->
-  <h3 class="subsection-title">Menu Lateral Desplegable</h3>
+  <h3 class="subsection-title">Menu Lateral Desplegable <span class="code-tag">MNU-009</span></h3>
   <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">Sidebar de navegación con items desplegables. Header azul con breadcrumb de ubicación. Items con flecha <strong>&rsaquo;</strong> abren submenú. Items con iconos especiales (corazón, estrella) indican secciones frecuentes.</p>
 
   <div class="sidebar-menu-demo" style="position:relative;"><span class="code-tag" style="position:absolute;top:4px;right:4px;z-index:5;">MNU-008</span>
-    <div class="sidebar-menu-panel">
-      <div class="sidebar-menu-header">
+    <div class="sidebar-menu-panel"><span class="code-tag" style="position:absolute;top:4px;left:4px;z-index:5;">MNU-012</span>
+      <div class="sidebar-menu-header"><span class="code-tag">MNU-013</span>
         <div class="sidebar-menu-breadcrumb">
           INICIO <span class="bc-sep">&#9654;</span> LABORATORIO <span class="bc-sep">&#9654;</span> <span class="bc-current">MICROBIOLOGÍA</span>
         </div>
@@ -7580,7 +7646,7 @@
           </span>
           Pacientes
         </div>
-        <div class="sidebar-menu-sep"></div>
+        <div class="sidebar-menu-sep"><span class="code-tag">MNU-014</span></div>
         <div class="sidebar-menu-item">
           <span class="menu-item-icon">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9"/></svg>
@@ -7588,7 +7654,7 @@
           Reporte Ordenes de Trabajo
         </div>
         <div class="sidebar-menu-sep"></div>
-        <div class="sidebar-menu-item has-children">
+        <div class="sidebar-menu-item has-children"><span class="code-tag">MNU-015</span>
           Perfiles
           <span class="menu-item-arrow">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -7597,7 +7663,7 @@
         <div class="sidebar-menu-item">
           Muestras Referidas
         </div>
-        <div class="sidebar-menu-item active">
+        <div class="sidebar-menu-item active"><span class="code-tag">MNU-016</span>
           Alícuotas de Muestra
         </div>
         <div class="sidebar-menu-sep"></div>
@@ -7679,7 +7745,7 @@
   </div>
 
   <div class="table-philosophy" style="margin-top:16px;">
-    <strong>Regla del sidebar:</strong> El menu lateral se despliega al dar clic en un modulo de la barra superior. El header azul muestra la ruta de navegación (breadcrumb). Items con flecha <strong>&rsaquo;</strong> tienen submenús que reemplazan el listado actual al dar clic. El item activo se marca con barra azul a la izquierda. Iconos especiales (corazón, estrella, punto) distinguen secciones frecuentes.
+    <span class="code-tag">MNU-011</span> <strong>Regla del sidebar:</strong> El menu lateral se despliega al dar clic en un modulo de la barra superior. El header azul muestra la ruta de navegación (breadcrumb). Items con flecha <strong>&rsaquo;</strong> tienen submenús que reemplazan el listado actual al dar clic. El item activo se marca con barra azul a la izquierda. Iconos especiales (corazón, estrella, punto) distinguen secciones frecuentes.
   </div>
 </section>
 
@@ -7997,10 +8063,10 @@
 
   <div class="filter-bar-demo">
     <div class="filter-quick-tabs">
-      <div class="filter-quick-tab active">
+      <div class="filter-quick-tab active"><span class="code-tag">FLT-018</span>
         Todos <span class="tab-count">248</span>
       </div>
-      <div class="filter-quick-tab">
+      <div class="filter-quick-tab"><span class="code-tag">FLT-019</span>
         Pendientes <span class="tab-count">23</span>
       </div>
       <div class="filter-quick-tab">
@@ -8132,7 +8198,7 @@
   </div>
 
   <div class="table-philosophy" style="margin-top:16px;">
-    <strong>Regla de filtros:</strong> Los filtros son persistentes dentro de la sesión — si el usuario navega a otra pantalla y vuelve, los filtros se mantienen. El botón <em>Limpiar</em> resetea a los valores por defecto. Los chips muestran claramente qué filtros están activos y permiten eliminarlos individualmente. Siempre mostrar el conteo de resultados filtrados.
+    <span class="code-tag">FLT-017</span> <strong>Regla de filtros:</strong> Los filtros son persistentes dentro de la sesión — si el usuario navega a otra pantalla y vuelve, los filtros se mantienen. El botón <em>Limpiar</em> resetea a los valores por defecto. Los chips muestran claramente qué filtros están activos y permiten eliminarlos individualmente. Siempre mostrar el conteo de resultados filtrados.
   </div>
 </section>
 
@@ -8146,7 +8212,7 @@
     <p class="section-desc">Sistema de iconos basado en Lucide (outline, 2px stroke, round caps). Consistente en tamaño, peso y estilo. Nunca filled, siempre outline para mantener ligereza visual clínica.</p>
   </div>
 
-  <h3 style="font-size:14px; font-weight:600; color:var(--navy); margin-bottom:12px;">Iconos del sistema</h3>
+  <h3 style="font-size:14px; font-weight:600; color:var(--navy); margin-bottom:12px;">Iconos del sistema <span class="code-tag">ICO-011</span></h3>
   <div class="icon-grid">
     <span class="code-tag" style="grid-column: 1/-1; justify-self: start;">ICO-001</span>
     <div class="icon-cell">
@@ -8235,7 +8301,7 @@
     </div>
   </div>
 
-  <h3 style="font-size:14px; font-weight:600; color:var(--navy); margin: 24px 0 12px;">Tamaños permitidos</h3>
+  <h3 style="font-size:14px; font-weight:600; color:var(--navy); margin: 24px 0 12px;">Tamaños permitidos <span class="code-tag">ICO-012</span></h3>
   <div class="icon-size-demo">
     <div class="icon-size-item">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -8243,7 +8309,7 @@
     </div>
     <div class="icon-size-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-      <span class="icon-size-label">16px</span>
+      <span class="icon-size-label">16px <span class="code-tag">ICO-006</span></span>
     </div>
     <div class="icon-size-item">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -8255,28 +8321,28 @@
     </div>
     <div class="icon-size-item">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-      <span class="icon-size-label">32px</span>
+      <span class="icon-size-label">32px <span class="code-tag">ICO-007</span></span>
     </div>
   </div>
 
-  <h3 style="font-size:14px; font-weight:600; color:var(--navy); margin: 24px 0 12px;">Reglas de uso</h3>
+  <h3 style="font-size:14px; font-weight:600; color:var(--navy); margin: 24px 0 12px;">Reglas de uso <span class="code-tag">ICO-013</span></h3>
   <div class="icon-rules-demo">
     <div class="icon-rule-card" style="border-color: var(--success);">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-      <div class="icon-rule-label" style="color:var(--success);">stroke-width: 2px siempre</div>
+      <div class="icon-rule-label" style="color:var(--success);">stroke-width: 2px siempre <span class="code-tag">ICO-008</span></div>
     </div>
     <div class="icon-rule-card" style="border-color: var(--success);">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-      <div class="icon-rule-label" style="color:var(--success);">stroke-linecap: round</div>
+      <div class="icon-rule-label" style="color:var(--success);">stroke-linecap: round <span class="code-tag">ICO-009</span></div>
     </div>
     <div class="icon-rule-card" style="border-color: var(--error);">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="#3b82f6" stroke="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
-      <div class="icon-rule-label" style="color:var(--error);">Nunca filled</div>
+      <div class="icon-rule-label" style="color:var(--error);">Nunca filled <span class="code-tag">ICO-010</span></div>
     </div>
   </div>
 
   <div class="table-philosophy" style="margin-top:16px;">
-    <strong>Libreria:</strong> Todos los iconos provienen de <span style="font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--surface-sunken); padding:2px 6px; border-radius:4px;">Lucide Icons</span> (lucide.dev). Stroke de 2px, caps redondeados, tamaño base 20px. Color hereda del padre via <span style="font-family:'JetBrains Mono',monospace; font-size:11px;">stroke="currentColor"</span>. En hover, los iconos cambian a <span style="font-family:'JetBrains Mono',monospace; font-size:11px;">var(--primary)</span>.
+    <span class="code-tag">ICO-005</span> <strong>Libreria:</strong> Todos los iconos provienen de <span style="font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--surface-sunken); padding:2px 6px; border-radius:4px;">Lucide Icons</span> (lucide.dev). Stroke de 2px, caps redondeados, tamaño base 20px. Color hereda del padre via <span style="font-family:'JetBrains Mono',monospace; font-size:11px;">stroke="currentColor"</span>. En hover, los iconos cambian a <span style="font-family:'JetBrains Mono',monospace; font-size:11px;">var(--primary)</span>.
   </div>
 </section>
 
@@ -8606,7 +8672,7 @@
   </div>
 
   <div class="table-philosophy" style="margin-top:16px;">
-    <strong>Nota sobre templates:</strong> Estos mockups combinan <strong>todos</strong> los componentes del manual (badges, tablas, iconos, alertas, flags, colores). Los químicos pueden ajustar el tamaño de fuente desde la barra de herramientas. Cada template debe lucir idéntico en producción &mdash; no inventar, respetar el manual.
+    <span class="code-tag">TPL-019</span> <strong>Nota sobre templates:</strong> Estos mockups combinan <strong>todos</strong> los componentes del manual (badges, tablas, iconos, alertas, flags, colores). Los químicos pueden ajustar el tamaño de fuente desde la barra de herramientas. Cada template debe lucir idéntico en producción &mdash; no inventar, respetar el manual.
   </div>
 
   <!-- ====== PANTALLAS COMPLETAS (STANDALONE) ====== -->
@@ -9105,7 +9171,7 @@
     </div>
 
     <!-- 31.1 Glass Levels Demo -->
-    <h3 class="subsection-title">Tres niveles de Glass</h3>
+    <h3 class="subsection-title">Tres niveles de Glass <span class="code-tag">GLS-011</span></h3>
     <div class="glass-demo-bg">
       <div class="glass-levels-grid">
         <!-- Glass Level 1 -->
@@ -9139,7 +9205,7 @@
     </div>
 
     <!-- 31.2 CSS Variables Code Block -->
-    <h3 class="subsection-title">Variables CSS</h3>
+    <h3 class="subsection-title">Variables CSS <span class="code-tag">GLS-012</span></h3>
     <div class="glass-code-block">
       <span class="glass-code-label">CSS Variables</span>
 <pre style="margin:0; white-space:pre; tab-size:2;"><span class="code-comment">/* Glass Level 1 — Structural (navbar, sidebar) */</span>
@@ -9175,7 +9241,7 @@
     </div>
 
     <!-- 31.3 CSS Classes Code Block -->
-    <h3 class="subsection-title">Clases CSS copiables</h3>
+    <h3 class="subsection-title">Clases CSS copiables <span class="code-tag">GLS-013</span></h3>
     <div class="glass-code-block">
       <span class="glass-code-label">CSS Classes</span>
 <pre style="margin:0; white-space:pre; tab-size:2;"><span class="code-selector">.glass-surface-1</span> {
@@ -9415,10 +9481,10 @@
     </div>
 
     <!-- 31.8 Mockup: Sidebar Glass -->
-    <h3 class="subsection-title">Mockup: Sidebar Glass</h3>
+    <h3 class="subsection-title">Mockup: Sidebar Glass <span class="code-tag">GLS-014</span></h3>
     <div class="glass-mockup-wrapper">
       <div class="glass-sidebar-mockup-wrapper">
-        <div class="glass-sidebar-panel">
+        <div class="glass-sidebar-panel"><span class="code-tag" style="position:absolute;top:4px;left:4px;z-index:5;">GLS-017</span>
           <div class="glass-sidebar-logo">
             <svg viewBox="0 0 30 30" fill="none" width="18" height="18">
               <circle cx="15" cy="15" r="12" stroke="#3b82f6" stroke-width="1.8" fill="none" opacity="0.3"/>
@@ -9461,9 +9527,9 @@
     </div>
 
     <!-- 31.9 Mockup: Modal Glass -->
-    <h3 class="subsection-title">Mockup: Modal Glass</h3>
-    <div class="glass-modal-overlay">
-      <div class="glass-modal-panel">
+    <h3 class="subsection-title">Mockup: Modal Glass <span class="code-tag">GLS-015</span></h3>
+    <div class="glass-modal-overlay"><span class="code-tag" style="position:absolute;top:8px;left:8px;z-index:5;">GLS-018</span>
+      <div class="glass-modal-panel"><span class="code-tag" style="position:absolute;top:4px;right:4px;z-index:5;">GLS-019</span>
         <div class="glass-modal-header">
           <div class="glass-modal-title">Confirmar Validacion</div>
           <div class="glass-modal-close">&times;</div>
@@ -9525,7 +9591,7 @@
     </div>
 
     <!-- 31.12 Quick Reference -->
-    <h3 class="subsection-title">Referencia rapida</h3>
+    <h3 class="subsection-title">Referencia rapida <span class="code-tag">GLS-016</span></h3>
     <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:10px;">
       <div style="padding:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:13px; line-height:1.8;">
         <div style="font-weight:600; color:var(--navy); margin-bottom:8px;">Usar Glass cuando:</div>
@@ -9557,7 +9623,7 @@
   <section class="section" id="css-tokens-ref">
     <h2 class="section-title" style="color:var(--navy);">
       <span class="section-number">32</span>
-      Tokens CSS de Referencia
+      Tokens CSS de Referencia <span class="code-tag">REF-001</span>
     </h2>
     <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px;">
       Códigos para tokens definidos en CSS custom properties, sin demo visual dedicada.
@@ -10065,7 +10131,449 @@
     }
   });
 
-  // ─── 19. CODE TAGS — Toggle visibility ───
+  // ─── 19. CODE TAGS — Right-click tooltip with description ───
+  var codeDescriptions = {
+    // Filosofía
+    'PHI-001': { cat: 'Filosofía', name: 'Fatiga Visual Zero', desc: 'Contrastes calibrados, colores fríos, tipografía legible. 8+ horas sin fatiga' },
+    'PHI-002': { cat: 'Filosofía', name: 'Separación Sutil', desc: 'Zonas distinguidas sin bordes pesados. Espaciado, fondo y elevación' },
+    'PHI-003': { cat: 'Filosofía', name: 'Información que Flota', desc: 'Filas flotan con fondos alternados ultra-sutiles, líneas casi invisibles' },
+    // Logo
+    'LOG-001': { cat: 'Logo', name: 'Logo fondo oscuro', desc: 'Átomo: órbitas azules (#3b82f6, #60a5fa), núcleo rojo (#e53e3e)', specs: 'SVG, stroke 1.8px' },
+    'LOG-002': { cat: 'Logo', name: 'Logo fondo claro', desc: 'Órbitas navy (#1a365d) + blue (#3b82f6), núcleo rojo', specs: 'SVG, stroke 1.8px' },
+    'LOG-003': { cat: 'Logo', name: 'Logo gradiente', desc: 'Órbitas blancas translúcidas, núcleo rojo' },
+    'LOG-004': { cat: 'Logo', name: 'Regla logo', desc: 'Rojo (#e53e3e) SOLO en logo. NUNCA en UI' },
+    // Colores - Azul Primaria
+    'COL-001': { cat: 'Color', name: 'Primary', desc: 'CTAs, links, estados activos', specs: '#3b82f6 · --primary' },
+    'COL-002': { cat: 'Color', name: 'Primary Hover', desc: 'Hover en botones primarios', specs: '#2563eb · --primary-hover' },
+    'COL-003': { cat: 'Color', name: 'Primary Light', desc: 'Acentos secundarios', specs: '#60a5fa · --primary-light' },
+    'COL-004': { cat: 'Color', name: 'Primary Lightest', desc: 'Acentos terciarios', specs: '#93c5fd · --primary-lightest' },
+    'COL-005': { cat: 'Color', name: 'Primary Dark', desc: 'CTAs prominentes', specs: '#1e40af · --primary-dark' },
+    'COL-006': { cat: 'Color', name: 'Primary Darkest', desc: 'Deep hover states', specs: '#1e3a8a · --primary-darkest' },
+    'COL-007': { cat: 'Color', name: 'Primary BG', desc: 'Fondos, badges, hovers', specs: '#f0f5ff · --primary-bg' },
+    'COL-008': { cat: 'Color', name: 'Familia Azul Primaria', desc: 'Grupo de colores azul primario (COL-001 a COL-007)' },
+    'COL-010': { cat: 'Color', name: 'Navy', desc: 'Header, sidebar, texto principal', specs: '#1a365d · --navy' },
+    'COL-011': { cat: 'Color', name: 'Navy Light', desc: 'Header gradient end', specs: '#234876 · --navy-light' },
+    'COL-012': { cat: 'Color', name: 'Navy (Identidad)', desc: 'Grupo de colores navy (COL-010 a COL-011)' },
+    'COL-020': { cat: 'Color', name: 'Gold', desc: 'CTAs secundarios, badges de orden', specs: '#d97706 · --gold' },
+    'COL-021': { cat: 'Color', name: 'Gold Dark', desc: 'Gold hover', specs: '#b45309 · --gold-dark' },
+    'COL-022': { cat: 'Color', name: 'Secundario Gold', desc: 'Grupo de colores gold (COL-020 a COL-021)' },
+    'COL-025': { cat: 'Color', name: 'Red Logo', desc: 'SOLO en logo. PROHIBIDO en UI', specs: '#e53e3e' },
+    'COL-026': { cat: 'Color', name: 'Solo Logo', desc: 'Grupo: rojo reservado exclusivamente para logo' },
+    'COL-030': { cat: 'Color', name: 'Success', desc: 'Validado, resultados normales', specs: '#059669 · --success' },
+    'COL-031': { cat: 'Color', name: 'Success BG', desc: 'Fondo sutil de éxito', specs: '#ecfdf5 · --success-bg' },
+    'COL-032': { cat: 'Color', name: 'Error', desc: 'Errores, alertas críticas', specs: '#dc2626 · --error' },
+    'COL-033': { cat: 'Color', name: 'Error BG', desc: 'Fondo sutil de error', specs: '#fef2f2 · --error-bg' },
+    'COL-034': { cat: 'Color', name: 'Warning', desc: 'Advertencias, pendientes', specs: '#d97706 · --warning' },
+    'COL-035': { cat: 'Color', name: 'Warning BG', desc: 'Fondo sutil de warning', specs: '#fffbeb · --warning-bg' },
+    'COL-036': { cat: 'Color', name: 'Colores Semánticos', desc: 'Grupo: success, error, warning y sus fondos' },
+    'COL-040': { cat: 'Color', name: 'Text Primary', desc: 'Texto principal (no negro puro)', specs: '#1e293b · --text-primary' },
+    'COL-041': { cat: 'Color', name: 'Text Secondary', desc: 'Labels, texto secundario', specs: '#64748b · --text-secondary' },
+    'COL-042': { cat: 'Color', name: 'Text Muted', desc: 'Placeholders, hints', specs: '#94a3b8 · --text-muted' },
+    'COL-043': { cat: 'Color', name: 'Text Hint', desc: 'Hints ultra-sutiles', specs: '#cbd5e1 · --text-hint' },
+    'COL-044': { cat: 'Color', name: 'Neutrales y Superficies', desc: 'Grupo: textos, superficies y borders' },
+    'COL-050': { cat: 'Color', name: 'Surface', desc: 'Fondo principal', specs: '#ffffff · --surface' },
+    'COL-051': { cat: 'Color', name: 'Surface Raised', desc: 'Table headers, fondos elevados', specs: '#f8fafc · --surface-raised' },
+    'COL-052': { cat: 'Color', name: 'Surface Sunken', desc: 'Fondos hundidos, input bg', specs: '#f1f5f9 · --surface-sunken' },
+    'COL-053': { cat: 'Color', name: 'Page BG', desc: 'Fondo general de la app', specs: '#f8faff · --bg-page' },
+    'COL-060': { cat: 'Color', name: 'Border', desc: 'Borde por defecto', specs: 'rgba(15,23,42,0.06) · --border' },
+    'COL-061': { cat: 'Color', name: 'Border Light', desc: 'Borde sutil', specs: 'rgba(15,23,42,0.04) · --border-light' },
+    'COL-062': { cat: 'Color', name: 'Border Focus', desc: 'Borde de foco', specs: 'rgba(59,130,246,0.4) · --border-focus' },
+    'COL-063': { cat: 'Color', name: 'Input Border', desc: 'Borde de inputs', specs: 'rgba(15,23,42,0.1) · --input-border' },
+    // Tipografía
+    'TYP-001': { cat: 'Tipografía', name: 'Título H1', desc: 'Títulos principales', specs: 'Inter 28px 700 Bold · -0.5px' },
+    'TYP-002': { cat: 'Tipografía', name: 'Subtítulo H2', desc: 'Subtítulos de sección', specs: 'Inter 22px 600 SemiBold · -0.3px' },
+    'TYP-003': { cat: 'Tipografía', name: 'Título grupo', desc: 'Títulos de grupo/perfil', specs: 'Inter 16px 600 SemiBold' },
+    'TYP-004': { cat: 'Tipografía', name: 'Cuerpo', desc: 'Cuerpo principal', specs: 'Inter 14px 500 Medium' },
+    'TYP-005': { cat: 'Tipografía', name: 'Texto secundario', desc: 'Fechas, metadatos', specs: 'Inter 13px 400 Regular' },
+    'TYP-006': { cat: 'Tipografía', name: 'Labels', desc: 'Labels uppercase, ref. values', specs: 'Inter 11px 500 · uppercase · 0.5px' },
+    'TYP-010': { cat: 'Tipografía', name: 'ID de orden', desc: 'IDs (ORD-2026-001458)', specs: 'JetBrains Mono 14px 600' },
+    'TYP-011': { cat: 'Tipografía', name: 'Resultados numéricos', desc: 'Resultados, rangos', specs: 'JetBrains Mono 13px 500' },
+    'TYP-012': { cat: 'Tipografía', name: 'Metadata', desc: 'Caracteres de prueba', specs: 'JetBrains Mono 11px 400' },
+    'TYP-013': { cat: 'Tipografía', name: 'Códigos paciente', desc: 'CURP, códigos', specs: 'JetBrains Mono 12px 500' },
+    'TYP-014': { cat: 'Tipografía', name: 'Metadata labels', desc: 'Uppercase, spacing 1px', specs: 'JetBrains Mono 10px 500' },
+    'TYP-020': { cat: 'Tipografía', name: 'Inter — Encabezados y Cuerpo', desc: 'Subsección de fuente Inter' },
+    'TYP-021': { cat: 'Tipografía', name: 'JetBrains Mono — Datos', desc: 'Subsección de fuente mono' },
+    // Botones
+    'BTN-001': { cat: 'Botón', name: 'Primary', desc: 'CTAs principales: Guardar, Validar', specs: 'bg:#3b82f6 color:#fff radius:8px 13px 500' },
+    'BTN-002': { cat: 'Botón', name: 'Secondary', desc: 'Nueva Orden, acciones secundarias', specs: 'bg:#f0f5ff color:#3b82f6 border:1px' },
+    'BTN-003': { cat: 'Botón', name: 'Validate', desc: 'Validar Todo', specs: 'bg:#059669 color:#fff' },
+    'BTN-004': { cat: 'Botón', name: 'Outline', desc: 'Exportar PDF', specs: 'bg:transparent border:1px color:#1e293b' },
+    'BTN-005': { cat: 'Botón', name: 'Ghost', desc: 'Cancelar', specs: 'bg:transparent color:#64748b' },
+    'BTN-006': { cat: 'Botón', name: 'Danger', desc: 'Eliminar', specs: 'bg:#dc2626 color:#fff' },
+    'BTN-007': { cat: 'Botón', name: 'Disabled', desc: 'No disponible', specs: 'bg:#f1f5f9 color:#94a3b8' },
+    'BTN-008': { cat: 'Botón', name: 'Primary oscuro', desc: 'Acción sobre fondo navy', specs: 'bg:#3b82f6 color:#fff' },
+    'BTN-009': { cat: 'Botón', name: 'Outline invertido', desc: 'Outline sobre oscuro', specs: 'border:rgba(255,255,255,0.25)' },
+    'BTN-010': { cat: 'Botón', name: 'Ghost invertido', desc: 'Ghost sobre oscuro', specs: 'color:rgba(255,255,255,0.7)' },
+    // Badges
+    'BDG-001': { cat: 'Badge', name: 'Success', desc: 'Validado, Normal', specs: 'bg:#ecfdf5 color:#059669' },
+    'BDG-002': { cat: 'Badge', name: 'Warning', desc: 'Pendiente', specs: 'bg:#fffbeb color:#d97706' },
+    'BDG-003': { cat: 'Badge', name: 'Error', desc: 'Error, Crítico, Rechazado', specs: 'bg:#fef2f2 color:#dc2626' },
+    'BDG-004': { cat: 'Badge', name: 'Info', desc: 'En proceso', specs: 'bg:#f0f5ff color:#3b82f6' },
+    'BDG-005': { cat: 'Badge', name: 'Order', desc: 'ORD-2026-001458', specs: 'pill gold outline, JetBrains 12px' },
+    'BDG-006': { cat: 'Badge', name: 'Result Normal', desc: 'Badge mini resultado normal', specs: '11px, 3px 9px' },
+    'BDG-007': { cat: 'Badge', name: 'Result Fuera Rango', desc: 'Badge mini resultado alto', specs: '11px, 3px 9px' },
+    // Formularios
+    'FRM-001': { cat: 'Formulario', name: 'Input normal', desc: 'Input base', specs: 'bg:#f8fafc border:rgba(15,23,42,0.1) radius:8px 13px' },
+    'FRM-002': { cat: 'Formulario', name: 'Input focus', desc: 'Input con foco', specs: 'border:#3b82f6 shadow-focus bg:#fff' },
+    'FRM-003': { cat: 'Formulario', name: 'Input error', desc: 'Input con error', specs: 'border:#dc2626 shadow error' },
+    'FRM-004': { cat: 'Formulario', name: 'Label', desc: 'Label de campo', specs: '12px 500 color:#64748b' },
+    'FRM-005': { cat: 'Formulario', name: 'Select', desc: 'Select con flecha chevron', specs: 'Igual que input + chevron' },
+    'FRM-006': { cat: 'Formulario', name: 'Textarea', desc: 'Área de texto', specs: 'height:60px resize:none' },
+    'FRM-007': { cat: 'Formulario', name: 'Search input', desc: 'Con icono lupa', specs: 'padding-left:36px icon 15px' },
+    'FRM-008': { cat: 'Formulario', name: 'Error text', desc: 'Mensaje de error', specs: '11px color:#dc2626' },
+    'FRM-009': { cat: 'Formulario', name: 'Toggle buttons', desc: 'Grupo seleccionable (Rutina/Urgente/STAT)' },
+    'FRM-010': { cat: 'Formulario', name: 'Form layout', desc: 'Grid 3 columnas, gap 16px' },
+    'FRM-011': { cat: 'Formulario', name: 'Formulario completo', desc: 'Formulario de Registro de Orden' },
+    'FRM-012': { cat: 'Formulario', name: 'Action bar', desc: 'Barra de acciones: Cancelar / Guardar / Enviar' },
+    // Cards
+    'CRD-001': { cat: 'Card', name: 'Estándar', desc: 'Card base', specs: 'bg:white border shadow-sm radius:16px' },
+    'CRD-002': { cat: 'Card', name: 'Elevada (Glass)', desc: 'Para modales/flotantes', specs: 'backdrop-filter borde translúcido' },
+    'CRD-003': { cat: 'Card', name: 'Oscura', desc: 'Fondo navy, texto blanco' },
+    // Tablas
+    'TBL-001': { cat: 'Tabla', name: 'Tabla plana', desc: 'Floating table sin header pesado' },
+    'TBL-002': { cat: 'Tabla', name: 'Header', desc: 'Header de tabla', specs: 'bg:#f8fafc 11px 600 uppercase' },
+    'TBL-003': { cat: 'Tabla', name: 'Fila normal', desc: 'Fila estándar', specs: 'padding:10px 12px border-bottom' },
+    'TBL-004': { cat: 'Tabla', name: 'Fila hover', desc: 'Estado hover de fila', specs: 'bg:rgba(59,130,246,0.03)' },
+    'TBL-005': { cat: 'Tabla', name: 'Fila alarma', desc: 'Fila con resultado fuera de rango', specs: 'bg:rgba(220,38,38,0.04) border-left:3px error' },
+    'TBL-006': { cat: 'Tabla', name: 'Celda mono', desc: 'Para resultados numéricos', specs: 'JetBrains Mono 13px 500' },
+    'TBL-007': { cat: 'Tabla', name: 'Celda estudio', desc: 'Nombre del estudio', specs: 'Inter 500 text-primary' },
+    'TBL-008': { cat: 'Tabla', name: 'Celda crítica', desc: 'Valor crítico con animación', specs: 'JetBrains 600 color:error value-flash' },
+    'TBL-009': { cat: 'Tabla', name: 'Tabla agrupada', desc: 'Grupo con header colapsable y badges' },
+    'TBL-010': { cat: 'Tabla', name: 'Group header', desc: 'Header de grupo', specs: 'bg:#f8fafc border-left:3px primary' },
+    'TBL-011': { cat: 'Tabla', name: 'Sparkline', desc: 'Gráfico de tendencia inline', specs: 'SVG 50x16 stroke:1.5px' },
+    'TBL-012': { cat: 'Tabla', name: 'Acción Validar', desc: 'Botón mini Validar', specs: 'BTN-001 mini 10px 3px 8px' },
+    'TBL-013': { cat: 'Tabla', name: 'Acción Revisar', desc: 'Botón mini Revisar', specs: 'BTN-006 mini 10px 3px 8px' },
+    'TBL-014': { cat: 'Tabla', name: 'Filosofía de tabla', desc: 'Principios de diseño para tablas de datos' },
+    'TBL-015': { cat: 'Tabla', name: 'Tabla agrupada por perfil', desc: 'Vista recomendada para resultados' },
+    'TBL-016': { cat: 'Tabla', name: 'Table container', desc: 'Contenedor externo de tabla plana' },
+    // Zonas
+    'ZON-001': { cat: 'Zona', name: 'Header', desc: 'Blanco, borde inferior 1px, sticky' },
+    'ZON-002': { cat: 'Zona', name: 'Filtros', desc: 'Tono más gris (#f8fafc), chips de filtro' },
+    'ZON-003': { cat: 'Zona', name: 'Tabla', desc: 'Blanco, área principal donde el ojo pasa más tiempo' },
+    'ZON-004': { cat: 'Zona', name: 'Acciones', desc: 'Blanco, borde superior sutil, botones a la derecha' },
+    'ZON-005': { cat: 'Zona', name: 'Footer', desc: 'Hundido (#f1f5f9), info secundaria' },
+    'ZON-006': { cat: 'Zona', name: 'Hover behavior', desc: 'Hover: padding-left 28px, inset 4px primary' },
+    // Preview
+    'PRV-001': { cat: 'Preview', name: 'Wrapper', desc: 'Contenedor exterior', specs: 'gradient bg radius:20px padding:32px' },
+    'PRV-002': { cat: 'Preview', name: 'App container', desc: 'Panel principal', specs: 'glass-2 radius:16px shadow-lg' },
+    'PRV-003': { cat: 'Preview', name: 'Zone header', desc: 'Barra superior preview', specs: 'padding:12px 20px bg:surface' },
+    'PRV-004': { cat: 'Preview', name: 'Filter zone', desc: 'Zona de filtros', specs: 'bg:surface-raised radius:12px' },
+    'PRV-005': { cat: 'Preview', name: 'Filter chip', desc: 'Chip de filtro activo', specs: '12px 500 radius:9999px' },
+    'PRV-006': { cat: 'Preview', name: 'Results zone', desc: 'Zona de resultados', specs: 'radius:12px border:1px' },
+    'PRV-007': { cat: 'Preview', name: 'Actions zone', desc: 'Zona de acciones', specs: 'flex end border-top bg:surface' },
+    'PRV-008': { cat: 'Preview', name: 'Mini table', desc: 'Tabla miniatura', specs: '12px th:10px uppercase' },
+    // Sombras
+    'SHD-001': { cat: 'Sombra', name: 'XS', desc: 'Sombra mínima', specs: '0 1px 2px rgba(30,58,95,0.04)' },
+    'SHD-002': { cat: 'Sombra', name: 'SM', desc: 'Sombra pequeña', specs: '0 1px 4px rgba(30,58,95,0.05)' },
+    'SHD-003': { cat: 'Sombra', name: 'Default', desc: 'Sombra estándar', specs: '0 2px 8px rgba(30,58,95,0.06)' },
+    'SHD-004': { cat: 'Sombra', name: 'MD', desc: 'Sombra media', specs: '0 4px 16px rgba(30,58,95,0.07)' },
+    'SHD-005': { cat: 'Sombra', name: 'LG', desc: 'Sombra grande', specs: '0 8px 32px rgba(30,58,95,0.10)' },
+    'SHD-006': { cat: 'Sombra', name: 'Focus', desc: 'Anillo de foco', specs: '0 0 0 3px rgba(59,130,246,0.15)' },
+    'SHD-007': { cat: 'Sombra', name: 'Atmospheric', desc: 'Multi-layer navy-tinted' },
+    'SHD-008': { cat: 'Sombra', name: 'Elevated', desc: 'Multi-layer elevada' },
+    // Radius
+    'RAD-001': { cat: 'Radius', name: 'XS', desc: 'Badges, chips pequeños', specs: '6px · --radius-xs' },
+    'RAD-002': { cat: 'Radius', name: 'SM', desc: 'Botones, inputs', specs: '8px · --radius-sm' },
+    'RAD-003': { cat: 'Radius', name: 'Default', desc: 'Cards, dropdowns', specs: '12px · --radius' },
+    'RAD-004': { cat: 'Radius', name: 'LG', desc: 'Cards grandes, modales', specs: '16px · --radius-lg' },
+    'RAD-005': { cat: 'Radius', name: 'XL', desc: 'Contenedores hero', specs: '20px · --radius-xl' },
+    'RAD-006': { cat: 'Radius', name: 'Full', desc: 'Pill badges, avatares', specs: '9999px · --radius-full' },
+    'RAD-007': { cat: 'Radius', name: 'None', desc: 'Sin radio', specs: '0 · --radius-none' },
+    // Espaciado
+    'SPC-001': { cat: 'Espaciado', name: '4px', desc: 'Gap mínimo entre elementos inline' },
+    'SPC-002': { cat: 'Espaciado', name: '6px', desc: 'Padding badge, gap chips' },
+    'SPC-003': { cat: 'Espaciado', name: '8px', desc: 'Base unit. Gap items, padding inputs' },
+    'SPC-004': { cat: 'Espaciado', name: '12px', desc: 'Gap entre campos de formulario' },
+    'SPC-005': { cat: 'Espaciado', name: '16px', desc: 'Gap entre secciones, padding cards' },
+    'SPC-006': { cat: 'Espaciado', name: '20px', desc: 'Padding lateral de contenedores' },
+    'SPC-007': { cat: 'Espaciado', name: '24px', desc: 'Padding de secciones grandes' },
+    'SPC-008': { cat: 'Espaciado', name: '32px', desc: 'Separación entre zonas principales' },
+    // Modos
+    'MOD-001': { cat: 'Modo', name: 'Light sidebar', desc: 'Sidebar claro', specs: 'bg:glass-2 active:primary-bg' },
+    'MOD-002': { cat: 'Modo', name: 'Light header', desc: 'Header claro', specs: 'bg:surface text:navy' },
+    'MOD-003': { cat: 'Modo', name: 'Light content', desc: 'Contenido claro', specs: 'bg:surface text:text-primary' },
+    'MOD-004': { cat: 'Modo', name: 'Dark sidebar', desc: 'Sidebar oscuro', specs: 'bg:navy items:rgba(255,255,255,0.6)' },
+    'MOD-005': { cat: 'Modo', name: 'Dark header', desc: 'Header oscuro', specs: 'bg:navy color:#fff' },
+    'MOD-006': { cat: 'Modo', name: 'Dark content', desc: 'Contenido oscuro', specs: 'bg:#0f172a color:rgba(255,255,255,0.85)' },
+    'MOD-007': { cat: 'Modo', name: 'Light Mode', desc: 'Columna de comparación modo claro' },
+    'MOD-008': { cat: 'Modo', name: 'Dark Mode', desc: 'Columna de comparación modo oscuro' },
+    // Controles
+    'CTR-001': { cat: 'Control', name: 'Checkbox unchecked', desc: 'Checkbox sin marcar', specs: '16x16 border:1.5px radius:4px' },
+    'CTR-002': { cat: 'Control', name: 'Checkbox checked', desc: 'Checkbox marcado', specs: 'bg:primary icon check blanco' },
+    'CTR-003': { cat: 'Control', name: 'Checkbox indeterminate', desc: 'Checkbox indeterminado', specs: 'bg:primary línea horizontal' },
+    'CTR-004': { cat: 'Control', name: 'Checkbox disabled', desc: 'Checkbox deshabilitado', specs: 'bg:#f1f5f9 cursor:not-allowed' },
+    'CTR-005': { cat: 'Control', name: 'Radio selected', desc: 'Radio seleccionado', specs: '16x16 border:2px primary dot:8px' },
+    'CTR-006': { cat: 'Control', name: 'Radio unselected', desc: 'Radio sin seleccionar', specs: '16x16 border:1.5px' },
+    'CTR-007': { cat: 'Control', name: 'Radio disabled', desc: 'Radio deshabilitado' },
+    'CTR-008': { cat: 'Control', name: 'Toggle on', desc: 'Toggle activado', specs: '40x22px bg:primary knob:18px white' },
+    'CTR-009': { cat: 'Control', name: 'Toggle off', desc: 'Toggle desactivado', specs: '40x22px bg:#d1d5db' },
+    'CTR-010': { cat: 'Control', name: 'Toggle disabled', desc: 'Toggle deshabilitado', specs: 'opacity:0.5' },
+    // Tabs
+    'TAB-001': { cat: 'Tab', name: 'Tab activo (línea)', desc: 'Con border-bottom 2px primary', specs: 'color:primary' },
+    'TAB-002': { cat: 'Tab', name: 'Tab inactivo', desc: 'Sin border-bottom', specs: 'color:text-muted' },
+    'TAB-003': { cat: 'Tab', name: 'Pill activo', desc: 'Pill seleccionado', specs: 'bg:primary color:white radius:20px' },
+    'TAB-004': { cat: 'Tab', name: 'Pill inactivo', desc: 'Pill sin seleccionar', specs: 'bg:surface-raised color:text-secondary' },
+    'TAB-005': { cat: 'Tab', name: 'Breadcrumb item', desc: 'Link de breadcrumb', specs: 'color:primary 13px hover:underline' },
+    'TAB-006': { cat: 'Tab', name: 'Breadcrumb current', desc: 'Breadcrumb actual', specs: 'color:text-primary font-weight:600' },
+    'TAB-007': { cat: 'Tab', name: 'Breadcrumb separator', desc: 'Separador /', specs: 'color:text-hint' },
+    // Sidebar
+    'SDB-001': { cat: 'Sidebar', name: 'Sidebar dark', desc: 'Sidebar oscuro', specs: 'bg:navy width:240px' },
+    'SDB-002': { cat: 'Sidebar', name: 'Sidebar light', desc: 'Sidebar claro', specs: 'bg:white border-right:1px' },
+    'SDB-003': { cat: 'Sidebar', name: 'Item activo dark', desc: 'Item seleccionado (dark)', specs: 'bg:rgba(59,130,246,0.15) border-left:3px' },
+    'SDB-004': { cat: 'Sidebar', name: 'Item activo light', desc: 'Item seleccionado (light)', specs: 'bg:primary-bg color:primary' },
+    'SDB-005': { cat: 'Sidebar', name: 'Item inactivo', desc: 'Item no seleccionado' },
+    'SDB-006': { cat: 'Sidebar', name: 'Sección label', desc: 'Etiqueta de sección', specs: '10px 600 uppercase spacing:1px' },
+    'SDB-007': { cat: 'Sidebar', name: 'Notif badge', desc: 'Badge de notificación', specs: '18x18 bg:primary color:white 10px 700' },
+    // Stat Cards
+    'STC-001': { cat: 'Stat Card', name: 'Container', desc: 'Card de estadística', specs: 'radius:16px shadow:atmospheric padding:20px' },
+    'STC-002': { cat: 'Stat Card', name: 'Icon container', desc: 'Contenedor de icono', specs: '40x40 radius:10px bg:10% opacity' },
+    'STC-003': { cat: 'Stat Card', name: 'Label', desc: 'Etiqueta', specs: 'Inter 12px 500 text-secondary' },
+    'STC-004': { cat: 'Stat Card', name: 'Value', desc: 'Valor principal', specs: 'Inter 28px 700 text-primary' },
+    'STC-005': { cat: 'Stat Card', name: 'Trend up/down', desc: 'Indicador de tendencia', specs: '12px color:error/success' },
+    'STC-006': { cat: 'Stat Card', name: 'Trend stable', desc: 'Tendencia estable', specs: '12px color:text-muted →' },
+    'STC-007': { cat: 'Stat Card', name: 'Countdown', desc: 'Timer de cuenta regresiva', specs: 'JetBrains 10px 600' },
+    'STC-008': { cat: 'Stat Card', name: 'Live dot', desc: 'Punto animado "en vivo"', specs: '6px bg:error animation:pulse' },
+    // Flags
+    'FLG-001': { cat: 'Flag', name: 'Normal (N)', desc: 'Resultado normal', specs: 'bg:#ecfdf5 color:#059669' },
+    'FLG-002': { cat: 'Flag', name: 'Alto (H)', desc: 'Resultado alto', specs: 'bg:#fef2f2 color:#dc2626' },
+    'FLG-003': { cat: 'Flag', name: 'Bajo (L)', desc: 'Resultado bajo', specs: 'bg:#eff6ff color:#3b82f6' },
+    'FLG-004': { cat: 'Flag', name: 'Crítico (C)', desc: 'Resultado crítico con pulse', specs: 'bg:#fef2f2 color:#dc2626 animation' },
+    'FLG-005': { cat: 'Flag', name: 'Muy Alto (HH)', desc: 'Resultado muy alto', specs: 'bg:#fef2f2 color:#dc2626' },
+    'FLG-006': { cat: 'Flag', name: 'Muy Bajo (LL)', desc: 'Resultado muy bajo', specs: 'bg:#eff6ff color:#3b82f6' },
+    'FLG-007': { cat: 'Flag', name: 'Estado aprobado', desc: 'Badge de estado validado' },
+    'FLG-008': { cat: 'Flag', name: 'Esperando validación', desc: 'Badge de estado pendiente' },
+    'FLG-009': { cat: 'Flag', name: 'Requiere reproceso', desc: 'Badge de estado rechazado' },
+    // Marcas Visuales
+    'MRK-001': { cat: 'Marca Visual', name: 'Nombre paciente', desc: 'Nombre del paciente', specs: 'Inter 14px 600 #1e293b' },
+    'MRK-002': { cat: 'Marca Visual', name: 'ID Paciente', desc: 'Código de paciente', specs: 'JetBrains 12px 500 #d97706 pill' },
+    'MRK-003': { cat: 'Marca Visual', name: 'Resultado numérico', desc: 'Valor numérico', specs: 'JetBrains 14px 500 tabular' },
+    'MRK-004': { cat: 'Marca Visual', name: 'Resultado crítico', desc: 'Valor fuera de rango', specs: 'JetBrains 14px 600 #dc2626' },
+    'MRK-005': { cat: 'Marca Visual', name: 'Unidad', desc: 'mg/dL, mEq/L, etc.', specs: 'Inter 13px 400 #64748b' },
+    'MRK-006': { cat: 'Marca Visual', name: 'Valor referencia', desc: 'Rango normal', specs: 'JetBrains 12px 400 #94a3b8' },
+    'MRK-007': { cat: 'Marca Visual', name: 'Nombre estudio', desc: 'Glucosa, Hemoglobina...', specs: 'Inter 13.5px 500' },
+    'MRK-008': { cat: 'Marca Visual', name: 'Número de orden', desc: 'ORD-2026-001458', specs: 'JetBrains 12px 500 pill gold' },
+    'MRK-009': { cat: 'Marca Visual', name: 'Fecha/hora', desc: 'Timestamps', specs: 'Inter 13px 400 #64748b' },
+    'MRK-010': { cat: 'Marca Visual', name: 'Notas/Obs', desc: 'Observaciones del analista', specs: 'Inter 12px 400 italic #94a3b8' },
+    'MRK-011': { cat: 'Marca Visual', name: 'Área/sección', desc: 'HEMATOLOGÍA, QUÍMICA...', specs: 'Inter 11px 500 uppercase #94a3b8' },
+    'MRK-012': { cat: 'Marca Visual', name: 'Metadato label', desc: 'Labels metadata', specs: 'JetBrains 10px 500 uppercase 1px' },
+    'MRK-013': { cat: 'Marca Visual', name: 'Principio marcas', desc: 'Filosofía: el bioanalista no necesita interpretar el color' },
+    // Animaciones
+    'ANI-001': { cat: 'Animación', name: 'Valor crítico pulse', desc: 'Pulso suave en valores críticos', specs: 'opacity 0.7↔1, 3s' },
+    'ANI-002': { cat: 'Animación', name: 'Typing dots', desc: 'Dots tipo Telegram', specs: '3 dots 5px bounce secuencial' },
+    'ANI-003': { cat: 'Animación', name: 'Slide-in', desc: 'Nuevo resultado desde la derecha', specs: 'translateX(30px)→0 opacity' },
+    'ANI-004': { cat: 'Animación', name: 'Spinner', desc: 'Loading spinner', specs: '24px border 2.5px spin 0.8s' },
+    'ANI-005': { cat: 'Animación', name: 'Skeleton', desc: 'Skeleton shimmer', specs: 'gradient shimmer 1.5s radius:4px' },
+    'ANI-006': { cat: 'Animación', name: 'Progress ring', desc: 'Anillo de progreso SVG', specs: 'SVG circle stroke-dasharray' },
+    'ANI-007': { cat: 'Animación', name: 'Progress bar', desc: 'Barra de progreso', specs: 'track:#f1f5f9 fill:primary' },
+    'ANI-008': { cat: 'Animación', name: 'Attention pulse', desc: 'Borde/sombra pulsa rojo en valores críticos' },
+    'ANI-009': { cat: 'Animación', name: 'Value flash', desc: 'Color oscila entre normal y rojo' },
+    'ANI-010': { cat: 'Animación', name: 'Status wave', desc: '4 bars verticales animadas' },
+    'ANI-011': { cat: 'Animación', name: 'Regla de animaciones', desc: 'Principio: solo donde agrega valor clínico' },
+    // Modales
+    'MDL-001': { cat: 'Modal', name: 'Overlay', desc: 'Fondo oscuro del modal', specs: 'bg:rgba(0,0,0,0.4)' },
+    'MDL-002': { cat: 'Modal', name: 'Container', desc: 'Contenedor del modal', specs: 'bg:white radius:16px shadow-lg max-w:460px' },
+    'MDL-003': { cat: 'Modal', name: 'Header', desc: 'Cabecera del modal', specs: 'padding:20px 24px border-bottom' },
+    'MDL-004': { cat: 'Modal', name: 'Body', desc: 'Cuerpo del modal', specs: 'padding:20px 24px 14px' },
+    'MDL-005': { cat: 'Modal', name: 'Footer', desc: 'Pie del modal', specs: 'padding:16px 24px border-top botones' },
+    'MDL-006': { cat: 'Modal', name: 'Close button', desc: 'Botón cerrar ×', specs: '32px hover:surface-raised' },
+    // Toasts
+    'TST-001': { cat: 'Toast', name: 'Success', desc: 'Resultados validados', specs: 'icon bg:success-bg' },
+    'TST-002': { cat: 'Toast', name: 'Error', desc: 'Error de conexión', specs: 'icon bg:error-bg' },
+    'TST-003': { cat: 'Toast', name: 'Warning', desc: 'Valor crítico detectado', specs: 'icon bg:warning-bg' },
+    'TST-004': { cat: 'Toast', name: 'Info', desc: 'Nuevo resultado recibido', specs: 'icon bg:primary-bg' },
+    // Tooltips
+    'TTP-001': { cat: 'Tooltip', name: 'Tooltip', desc: 'Tooltip informativo', specs: 'bg:navy color:white radius:6px 12px delay:200ms' },
+    'TTP-002': { cat: 'Tooltip', name: 'Copiar', desc: 'Tooltip "Copiar al portapapeles"' },
+    'TTP-003': { cat: 'Tooltip', name: 'Historial', desc: 'Tooltip "Ver historial del paciente"' },
+    // Dropdowns
+    'DRP-001': { cat: 'Dropdown', name: 'Container', desc: 'Contenedor dropdown', specs: 'bg:white radius:12px shadow-lg' },
+    'DRP-002': { cat: 'Dropdown', name: 'Item normal', desc: 'Opción de dropdown', specs: 'padding:7px 12px 13px hover:surface-raised' },
+    'DRP-003': { cat: 'Dropdown', name: 'Item activo', desc: 'Opción seleccionada', specs: 'icon check color:primary' },
+    'DRP-004': { cat: 'Dropdown', name: 'Item danger', desc: 'Opción peligrosa', specs: 'color:error' },
+    'DRP-005': { cat: 'Dropdown', name: 'Separator', desc: 'Línea divisoria', specs: '1px border margin:4px 0' },
+    'DRP-006': { cat: 'Dropdown', name: 'Trigger', desc: 'Botón que abre dropdown', specs: '13px 500 icon chevron-down' },
+    // Paginación
+    'PAG-001': { cat: 'Paginación', name: 'Contenedor', desc: 'Wrapper de paginación' },
+    'PAG-002': { cat: 'Paginación', name: 'Página activa', desc: 'Página actual', specs: 'bg:primary color:white' },
+    'PAG-003': { cat: 'Paginación', name: 'Página inactiva', desc: 'Página no seleccionada', specs: 'hover:surface-raised' },
+    'PAG-004': { cat: 'Paginación', name: 'Ellipsis', desc: 'Indicador "…"', specs: 'color:text-muted' },
+    'PAG-005': { cat: 'Paginación', name: 'Page info', desc: '"1-25 de 294 resultados"', specs: '12px text-muted' },
+    // Gráficas
+    'CHT-001': { cat: 'Gráfica', name: 'Sparkline', desc: 'Línea de tendencia', specs: 'SVG stroke:2px linecap:round' },
+    'CHT-002': { cat: 'Gráfica', name: 'Reference band', desc: 'Banda de rango de referencia', specs: 'SVG rect fill:success-bg' },
+    'CHT-003': { cat: 'Gráfica', name: 'Bar chart', desc: 'Gráfico de barras horizontal', specs: 'track:#f1f5f9 fill:primary 6px' },
+    'CHT-004': { cat: 'Gráfica', name: 'Chart card', desc: 'Card contenedora de gráfica', specs: 'Igual a CRD-001 con título y leyenda' },
+    'CHT-005': { cat: 'Gráfica', name: 'Progress bar track', desc: 'Barra de progreso horizontal' },
+    // Menú
+    'MNU-001': { cat: 'Menú', name: 'Top bar', desc: 'Barra superior', specs: 'height:56px bg:white border-bottom' },
+    'MNU-002': { cat: 'Menú', name: 'Item activo', desc: 'Menú seleccionado', specs: 'color:primary font-weight:600 border-bottom:2px' },
+    'MNU-003': { cat: 'Menú', name: 'Item inactivo', desc: 'Menú no seleccionado', specs: 'color:text-secondary 13px 500' },
+    'MNU-004': { cat: 'Menú', name: 'Search bar', desc: 'Barra de búsqueda', specs: 'bg:surface-sunken radius:8px Ctrl+K' },
+    'MNU-005': { cat: 'Menú', name: 'Notif bell', desc: 'Campana de notificaciones', specs: '18px icon + badge count' },
+    'MNU-006': { cat: 'Menú', name: 'Avatar', desc: 'Avatar de usuario', specs: '32px circle bg:primary initials 12px' },
+    'MNU-007': { cat: 'Menú', name: 'Submenu', desc: 'Submenú desplegable', specs: 'bg:surface-raised pills TAB-003/004' },
+    'MNU-008': { cat: 'Menú', name: 'Sidebar lateral', desc: 'Panel con breadcrumb e items' },
+    'MNU-009': { cat: 'Menú', name: 'Menu Lateral Desplegable', desc: 'Subsección de menú lateral' },
+    'MNU-010': { cat: 'Menú', name: 'Regla del menu', desc: 'Filosofía: navegación clara y predecible' },
+    'MNU-011': { cat: 'Menú', name: 'Regla del sidebar', desc: 'Filosofía del sidebar' },
+    'MNU-012': { cat: 'Menú', name: 'Sidebar panel', desc: 'Contenedor del sidebar desplegable' },
+    'MNU-013': { cat: 'Menú', name: 'Sidebar header', desc: 'Barra azul con breadcrumb' },
+    'MNU-014': { cat: 'Menú', name: 'Sidebar separator', desc: 'Línea divisoria del menú' },
+    'MNU-015': { cat: 'Menú', name: 'Item expandable', desc: 'Menú con subítems (flecha)' },
+    'MNU-016': { cat: 'Menú', name: 'Item activo sidebar', desc: 'Ítem seleccionado en sidebar' },
+    // Filtros
+    'FLT-001': { cat: 'Filtro', name: 'Filtros desplegados', desc: 'Panel completo de filtros', specs: 'Grid 6 cols labels inputs' },
+    'FLT-002': { cat: 'Filtro', name: 'Campo input', desc: 'Input de filtro', specs: '12px 7px 10px bg:surface-raised' },
+    'FLT-003': { cat: 'Filtro', name: 'Campo select', desc: 'Select de filtro + chevron' },
+    'FLT-004': { cat: 'Filtro', name: 'Multi-select', desc: 'Checkbox dropdown', specs: 'focus ring border:primary shadow' },
+    'FLT-005': { cat: 'Filtro', name: 'Campo fecha', desc: 'Input de fecha', specs: 'icon calendario JetBrains 13px' },
+    'FLT-006': { cat: 'Filtro', name: 'Botón Buscar', desc: 'Botón de búsqueda', specs: 'bg:primary icon lupa 13px 600' },
+    'FLT-007': { cat: 'Filtro', name: 'Barra compacta', desc: 'Filtro en 1 fila', specs: 'bg:glass-2 radius:16px' },
+    'FLT-008': { cat: 'Filtro', name: 'Tabs filtro rápido', desc: 'Todos/Pendientes/Validados/Críticos' },
+    'FLT-009': { cat: 'Filtro', name: 'Panel lateral', desc: 'Sidebar de filtros', specs: 'Grid 240px + 1fr' },
+    'FLT-010': { cat: 'Filtro', name: 'Chip de filtro', desc: 'Pill con ×', specs: 'bg:primary-bg color:primary radius:9999px' },
+    'FLT-011': { cat: 'Filtro', name: 'Chip status', desc: 'Chip verde de estado', specs: 'bg:rgba(16,185,129,0.08)' },
+    'FLT-012': { cat: 'Filtro', name: 'Chip warning', desc: 'Chip amarillo', specs: 'bg:rgba(245,158,11,0.08)' },
+    'FLT-013': { cat: 'Filtro', name: 'Chip clear', desc: '"Limpiar todo"', specs: 'hover:color error' },
+    'FLT-014': { cat: 'Filtro', name: 'Dropdown abierto', desc: 'Panel dropdown de multi-select' },
+    'FLT-015': { cat: 'Filtro', name: 'Range input', desc: 'Input de rango numérico', specs: 'width:70px JetBrains 12px center' },
+    'FLT-016': { cat: 'Filtro', name: 'Panel checkbox', desc: 'Panel de checkboxes', specs: '16x16 radius:3px selected:primary' },
+    'FLT-017': { cat: 'Filtro', name: 'Regla de filtros', desc: 'Filosofía: filtrar sin perderse' },
+    'FLT-018': { cat: 'Filtro', name: 'Quick tab activo', desc: 'Tab de filtro rápido seleccionado' },
+    'FLT-019': { cat: 'Filtro', name: 'Quick tab inactivo', desc: 'Tab de filtro rápido sin seleccionar' },
+    // Iconografía
+    'ICO-001': { cat: 'Icono', name: 'Lucide outline 2px', desc: 'Estilo por defecto para toda la app', specs: '16px (nav), 14px (inline)' },
+    'ICO-002': { cat: 'Icono', name: '14px', desc: 'Dentro de badges y chips' },
+    'ICO-003': { cat: 'Icono', name: '20px', desc: 'Sidebar, stat cards (recomendado)' },
+    'ICO-004': { cat: 'Icono', name: '24px', desc: 'Empty states, acciones destacadas' },
+    'ICO-005': { cat: 'Icono', name: 'Librería', desc: 'Todos los iconos de Lucide icons' },
+    'ICO-006': { cat: 'Icono', name: '16px', desc: 'Tamaño estándar de navegación' },
+    'ICO-007': { cat: 'Icono', name: '32px', desc: 'Tamaño grande decorativo' },
+    'ICO-008': { cat: 'Icono', name: 'Regla stroke', desc: 'stroke-width: 2px siempre' },
+    'ICO-009': { cat: 'Icono', name: 'Regla linecap', desc: 'stroke-linecap: round' },
+    'ICO-010': { cat: 'Icono', name: 'Regla filled', desc: 'Nunca usar iconos filled' },
+    'ICO-011': { cat: 'Icono', name: 'Iconos del sistema', desc: 'Subsección: catálogo de iconos usados' },
+    'ICO-012': { cat: 'Icono', name: 'Tamaños permitidos', desc: 'Subsección: tamaños permitidos' },
+    'ICO-013': { cat: 'Icono', name: 'Reglas de uso', desc: 'Subsección: reglas de uso de iconos' },
+    // Templates
+    'TPL-001': { cat: 'Template', name: 'OT Resultados', desc: 'Pantalla de resultados agrupada por perfil' },
+    'TPL-002': { cat: 'Template', name: 'OT Búsqueda', desc: 'Pantalla de búsqueda de órdenes' },
+    'TPL-003': { cat: 'Template', name: 'OT Lab', desc: 'Template base de resultados de laboratorio' },
+    'TPL-004': { cat: 'Template', name: 'Topbar', desc: 'Barra superior 44px', specs: 'logo + icons 30x30 + search 160px' },
+    'TPL-005': { cat: 'Template', name: 'Tab bar', desc: 'Barra de tabs centrada', specs: '11px 600 uppercase active:border-bottom' },
+    'TPL-006': { cat: 'Template', name: 'Title bar', desc: 'Barra de título', specs: 'h4 14px 700 border-left:3px primary' },
+    'TPL-007': { cat: 'Template', name: 'Section bar', desc: 'Barra de sección', specs: 'h5 12px 700 border-left:3px gold' },
+    'TPL-008': { cat: 'Template', name: 'Form grid', desc: 'Grid de formulario', specs: 'gap:12px variantes 2/3/4/6 cols' },
+    'TPL-009': { cat: 'Template', name: 'Field', desc: 'Campo de formulario', specs: 'label:10px 600 uppercase input:12px' },
+    'TPL-010': { cat: 'Template', name: 'Status dot', desc: 'Punto de estado', specs: '10x10px red/green/blue' },
+    'TPL-011': { cat: 'Template', name: 'Action icons', desc: 'Iconos de acción', specs: 'flex gap:4px 24x24 radius:6px' },
+    'TPL-012': { cat: 'Template', name: 'Link', desc: 'Link de referencia', specs: 'JetBrains 11px 500 color:primary' },
+    'TPL-013': { cat: 'Template', name: 'Pagination', desc: 'Paginación centrada', specs: '4px 10px 11px active:primary' },
+    'TPL-014': { cat: 'Template', name: 'Footer', desc: 'Pie de página', specs: '10px muted bg:surface-sunken' },
+    'TPL-015': { cat: 'Template', name: 'Patient info bar', desc: 'Barra de info del paciente', specs: 'flex wrap gap:16px radius:12px' },
+    'TPL-016': { cat: 'Template', name: 'Patient label', desc: 'Label de info paciente', specs: '10px uppercase 0.5px muted' },
+    'TPL-017': { cat: 'Template', name: 'Patient value', desc: 'Valor de info paciente', specs: '13px 500 text-primary' },
+    'TPL-018': { cat: 'Template', name: 'Font size buttons', desc: 'Botones A/Aa/aA', specs: '32x32 radius:8px active:primary' },
+    'TPL-019': { cat: 'Template', name: 'Nota templates', desc: 'Filosofía sobre diseño de templates' },
+    // Glass
+    'GLS-001': { cat: 'Glass', name: 'Level 1', desc: 'Navbar, sidebar', specs: 'opacity:0.45 blur:28px saturate:200%' },
+    'GLS-002': { cat: 'Glass', name: 'Level 2', desc: 'Cards, modales', specs: 'opacity:0.55 blur:20px saturate:180%' },
+    'GLS-003': { cat: 'Glass', name: 'Level 3', desc: 'Tooltips, dropdowns', specs: 'opacity:0.65 blur:16px saturate:160%' },
+    'GLS-004': { cat: 'Glass', name: 'Shine effect', desc: 'Efecto de brillo en hover', specs: 'linear-gradient 135deg ::after' },
+    'GLS-005': { cat: 'Glass', name: 'Dark Mode', desc: 'Preparación para dark glass' },
+    'GLS-006': { cat: 'Glass', name: 'Glass radius', desc: 'Variables de border-radius glass', specs: '--glass-r: 16px/20px/24px' },
+    'GLS-007': { cat: 'Glass', name: 'Navy shadows', desc: 'Sombras navy-tinted para glass' },
+    'GLS-008': { cat: 'Glass', name: 'SI/NO Glass', desc: 'Guía: dónde usar y no usar glass' },
+    'GLS-009': { cat: 'Glass', name: 'Fondos de página', desc: 'Opciones de fondo para glass' },
+    'GLS-010': { cat: 'Glass', name: 'Navbar Glass', desc: 'Mockup de navbar con glass' },
+    'GLS-011': { cat: 'Glass', name: 'Tres niveles', desc: 'Subsección: los 3 niveles de glass' },
+    'GLS-012': { cat: 'Glass', name: 'Variables CSS', desc: 'Subsección: variables CSS de glass' },
+    'GLS-013': { cat: 'Glass', name: 'Clases copiables', desc: 'Subsección: clases CSS para copiar' },
+    'GLS-014': { cat: 'Glass', name: 'Sidebar Glass', desc: 'Mockup de sidebar con glass' },
+    'GLS-015': { cat: 'Glass', name: 'Modal Glass', desc: 'Mockup de modal con glass' },
+    'GLS-016': { cat: 'Glass', name: 'Referencia rápida', desc: 'Subsección: referencia rápida de glass' },
+    'GLS-017': { cat: 'Glass', name: 'Sidebar panel', desc: 'Panel sidebar en mockup glass' },
+    'GLS-018': { cat: 'Glass', name: 'Modal overlay', desc: 'Overlay del modal glass' },
+    'GLS-019': { cat: 'Glass', name: 'Modal panel', desc: 'Panel del modal glass' },
+    // Tokens de referencia
+    'TRN-001': { cat: 'Transición', name: 'Fast', desc: 'Duración rápida', specs: '150ms · --duration-fast' },
+    'TRN-002': { cat: 'Transición', name: 'Default', desc: 'Duración normal', specs: '200ms · --duration' },
+    'TRN-003': { cat: 'Transición', name: 'Slow', desc: 'Duración lenta', specs: '300ms · --duration-slow' },
+    'TRN-004': { cat: 'Transición', name: 'Ease out', desc: 'Curva ease-out', specs: 'cubic-bezier(0.16,1,0.3,1)' },
+    'TRN-005': { cat: 'Transición', name: 'Ease in-out', desc: 'Curva ease-in-out', specs: 'cubic-bezier(0.4,0,0.2,1)' },
+    'TRN-006': { cat: 'Transición', name: 'Spring', desc: 'Curva spring/bounce', specs: 'cubic-bezier(0.34,1.56,0.64,1)' },
+    'LOD-001': { cat: 'Loading', name: 'Spinner', desc: 'Alias de ANI-004', specs: '28x28 border spin 0.8s' },
+    'LOD-002': { cat: 'Loading', name: 'Skeleton', desc: 'Alias de ANI-005', specs: 'shimmer gradient 1.5s' },
+    'LOD-003': { cat: 'Loading', name: 'Progress ring', desc: 'Alias de ANI-006', specs: 'SVG 56x56 stroke 4px' },
+    'LOD-004': { cat: 'Loading', name: 'Progress bar', desc: 'Alias de ANI-007', specs: 'track 6px fill gradient' },
+    'BKG-001': { cat: 'Background', name: 'Mesh gradient', desc: 'Fondo principal glass', specs: '#edf2ff + 6 radial-gradients' },
+    'BKG-002': { cat: 'Background', name: 'Section blobs impares', desc: 'Blobs sutiles en secciones impares' },
+    'BKG-003': { cat: 'Background', name: 'Section blobs pares', desc: 'Blobs más fuertes en secciones pares' },
+    'BKG-004': { cat: 'Background', name: 'Flat fallback', desc: 'Fondo plano sin glass', specs: '#f8fafc' },
+    'ACC-001': { cat: 'Accesibilidad', name: 'Reduced transparency', desc: 'Glass → bg sólido, sin backdrop-filter' },
+    'ACC-002': { cat: 'Accesibilidad', name: 'Reduced motion', desc: 'Shine effects → display none' },
+    // Hero
+    'HRO-001': { cat: 'Hero', name: 'Hero container', desc: 'Sección principal de bienvenida' },
+    'HRO-002': { cat: 'Hero', name: 'Glass card', desc: 'Panel glass del hero' },
+    'HRO-003': { cat: 'Hero', name: 'Título principal', desc: 'labsis v3' },
+    'HRO-004': { cat: 'Hero', name: 'Subtítulo', desc: 'Manual de Marca — Liquid Glass Edition' },
+    'HRO-005': { cat: 'Hero', name: 'Stats counter', desc: 'Contadores: secciones / componentes / colores' },
+    'HRO-006': { cat: 'Hero', name: 'Scroll hint', desc: 'Indicador de scroll' },
+    // Nav
+    'NAV-001': { cat: 'Nav', name: 'Nav inner', desc: 'Contenedor interno del navbar' },
+    'NAV-002': { cat: 'Nav', name: 'Nav links', desc: 'Lista de links de navegación' },
+    'NAV-003': { cat: 'Nav', name: 'Codes toggle', desc: 'Botón mostrar/ocultar etiquetas' },
+    'NAV-004': { cat: 'Nav', name: 'Scroll progress', desc: 'Barra de progreso de lectura' },
+    // REF
+    'REF-001': { cat: 'Referencia', name: 'CSS Tokens', desc: 'Sección de tokens CSS conceptuales' }
+  };
+
+  var activeTooltip = null;
+  document.addEventListener('contextmenu', function(e) {
+    if (e.target.classList.contains('code-tag')) {
+      e.preventDefault();
+      if (activeTooltip) { activeTooltip.remove(); activeTooltip = null; }
+      var code = e.target.textContent.trim().replace('Copiado ✓', e.target.dataset.original || '');
+      var info = codeDescriptions[code];
+      if (!info) {
+        info = { cat: code.substring(0, 3), name: code, desc: 'Sin descripción disponible' };
+      }
+      var tooltip = document.createElement('div');
+      tooltip.className = 'code-tooltip';
+      tooltip.innerHTML = '<button class="code-tooltip-close" onclick="this.parentElement.remove()">&times;</button>' +
+        '<div class="code-tooltip-code">' + code + ' <span class="code-tooltip-category">' + info.cat + '</span></div>' +
+        '<div style="font-weight:600; font-size:13px; margin-bottom:2px;">' + info.name + '</div>' +
+        '<div class="code-tooltip-desc">' + info.desc + '</div>' +
+        (info.specs ? '<div class="code-tooltip-specs">' + info.specs + '</div>' : '');
+      document.body.appendChild(tooltip);
+      // Position near the click
+      var x = e.clientX + 8;
+      var y = e.clientY + 8;
+      if (x + 350 > window.innerWidth) x = e.clientX - 350;
+      if (y + 200 > window.innerHeight) y = e.clientY - 200;
+      if (x < 8) x = 8;
+      if (y < 8) y = 8;
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = y + 'px';
+      activeTooltip = tooltip;
+    }
+  });
+  // Close tooltip on click elsewhere
+  document.addEventListener('click', function(e) {
+    if (activeTooltip && !activeTooltip.contains(e.target) && !e.target.classList.contains('code-tag')) {
+      activeTooltip.remove();
+      activeTooltip = null;
+    }
+  });
+  // Close tooltip on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && activeTooltip) {
+      activeTooltip.remove();
+      activeTooltip = null;
+    }
+  });
+
+  // ─── 20. CODE TAGS — Toggle visibility ───
   var codesToggle = document.getElementById('codesToggle');
   if (codesToggle) {
     codesToggle.addEventListener('click', function() {

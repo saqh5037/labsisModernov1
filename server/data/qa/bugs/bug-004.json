@@ -1,0 +1,29 @@
+{
+  "id": 4,
+  "runId": 6,
+  "testCaseId": "lab-04",
+  "titulo": "[Auto] Fallo en: Ingresar valor alfanumérico",
+  "descripcion": "",
+  "comportamientoEsperado": "El texto se acepta sin validación de rango",
+  "comportamientoActual": "No se describió el comportamiento actual.",
+  "pasosReproducir": "1. Encontrar prueba alfanumérica\n2. Escribir texto (ej: 'Negativo')",
+  "severidad": "mayor",
+  "estado": "abierto",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+  "tipoError": "funcionalidad",
+  "codigoError": "",
+  "dondeOcurre": "Sección: Ingreso — Test: Ingresar valor alfanumérico",
+  "queEsperabas": "El texto se acepta sin validación de rango",
+  "contextoExtra": "",
+  "brandTokens": [],
+  "zonaPantalla": "",
+  "reportadoPor": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-05T04:01:00.834Z",
+  "updatedAt": "2026-03-05T04:01:00.834Z"
+}

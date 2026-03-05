@@ -4,7 +4,8 @@ import {
   getOTEditNew, getOTEdit, searchPruebasOT,
   getGrupoPruebas, createOT, updateOT, facturarOT,
   resolveServicio, recalcPrecios,
-  searchPacienteOT, searchMedicoOT, createMedicoOT
+  searchPacienteOT, searchMedicoOT, createMedicoOT,
+  getOTDescuentos
 } from '../../services/api.js'
 
 /* ── Helpers ── */
@@ -100,6 +101,9 @@ export default function useOTEditState() {
 
   // Descuento & cantidades
   const [descuento, setDescuento] = useState({ porcentaje: 0, esManual: false })
+  const [descuentoCategorias, setDescuentoCategorias] = useState([])
+  const [selectedCategoriaId, setSelectedCategoriaId] = useState(null)
+  const [ivaPorcentaje, setIvaPorcentaje] = useState(0)
   const [grupoCantidades, setGrupoCantidades] = useState({}) // { gpId: cantidad }
 
   // Search pruebas
@@ -407,7 +411,7 @@ export default function useOTEditState() {
     setSelectedPruebas(prev => prev.filter(p => p.gp_id !== gpId))
   }
 
-  // ── Update descuento when servicioInfo changes ──
+  // ── Update descuento + load categories when servicioInfo changes ──
   useEffect(() => {
     if (servicioInfo?.descuento_activo) {
       const pctFijo = parseFloat(servicioInfo.porcentaje_descuento_activo)
@@ -416,14 +420,47 @@ export default function useOTEditState() {
       } else {
         setDescuento(prev => ({ ...prev, esManual: true }))
       }
+      // Load descuento categories for this servicio
+      getOTDescuentos(servicioInfo.id).then(data => {
+        setDescuentoCategorias(data.categorias || [])
+        setIvaPorcentaje(data.ivaPorcentaje || 0)
+      }).catch(() => {
+        setDescuentoCategorias([])
+      })
     } else {
       setDescuento({ porcentaje: 0, esManual: false })
+      setDescuentoCategorias([])
+      setSelectedCategoriaId(null)
+      // Still load IVA even without descuento
+      if (servicioInfo?.id) {
+        getOTDescuentos(servicioInfo.id).then(data => {
+          setIvaPorcentaje(data.ivaPorcentaje || 0)
+        }).catch(() => {})
+      }
     }
   }, [servicioInfo])
 
   const updateDescuento = useCallback((pct) => {
     setDescuento(prev => ({ ...prev, porcentaje: Math.max(0, Math.min(100, parseFloat(pct) || 0)) }))
   }, [])
+
+  const selectDescuentoCategoria = useCallback((catId) => {
+    if (!catId) {
+      setSelectedCategoriaId(null)
+      // Reset to servicio default or manual
+      if (servicioInfo?.descuento_activo) {
+        const pctFijo = parseFloat(servicioInfo.porcentaje_descuento_activo) || 0
+        setDescuento(pctFijo > 0 ? { porcentaje: pctFijo, esManual: false } : { porcentaje: 0, esManual: true })
+      }
+      return
+    }
+    setSelectedCategoriaId(catId)
+    const cat = descuentoCategorias.find(c => c.id === parseInt(catId))
+    if (cat) {
+      const pct = parseFloat(cat.porcentaje_servicio || cat.limite) || 0
+      setDescuento({ porcentaje: pct, esManual: true })
+    }
+  }, [descuentoCategorias, servicioInfo])
 
   const updateGrupoCantidad = useCallback((gpId, cantidad) => {
     setGrupoCantidades(prev => ({ ...prev, [gpId]: Math.max(1, Math.min(99, parseInt(cantidad) || 1)) }))
@@ -449,19 +486,25 @@ export default function useOTEditState() {
       ? parseFloat((subtotalConDesc * (100 - copagoPct) / 100).toFixed(2))
       : subtotalConDesc
 
+    // IVA (tabla iva)
+    const ivaPct = ivaPorcentaje || 0
+    const ivaMonto = ivaPct > 0 ? parseFloat((montoPaciente * ivaPct / 100).toFixed(2)) : 0
+
+    // IGTF (laboratorio — impuesto adicional en divisas)
     const aplicarIgtf = servicioInfo?.aplicar_igtf || false
     const igtfPct = aplicarIgtf ? (parseFloat(servicioInfo?.igtf_porcentaje) || 0) : 0
     const igtfMonto = igtfPct > 0 ? parseFloat((montoPaciente * igtfPct / 100).toFixed(2)) : 0
 
-    const total = montoPaciente + igtfMonto
+    const total = montoPaciente + ivaMonto + igtfMonto
 
     return {
       subtotal, descPct, descMonto, subtotalConDesc,
       copagoPct, montoPaciente,
+      ivaPct, ivaMonto,
       aplicarIgtf, igtfPct, igtfMonto,
       total
     }
-  }, [selectedPruebas, selectedGrupos, grupoCantidades, descuento, servicioInfo])
+  }, [selectedPruebas, selectedGrupos, grupoCantidades, descuento, servicioInfo, ivaPorcentaje])
 
   // Keep totalPrice as alias for compatibility
   const totalPrice = calcTotales.subtotal
@@ -670,7 +713,8 @@ export default function useOTEditState() {
     // Computed
     totalPrice, calcTotales, muestrasPreview, stepStatus,
     // Descuento & cantidades
-    descuento, updateDescuento, grupoCantidades, updateGrupoCantidad,
+    descuento, updateDescuento, descuentoCategorias, selectedCategoriaId, selectDescuentoCategoria,
+    grupoCantidades, updateGrupoCantidad,
     getSearchItemFlatIdx, anyDropdownOpen,
     // Keyboard nav
     procKb, pacKb, medKb, searchKb,

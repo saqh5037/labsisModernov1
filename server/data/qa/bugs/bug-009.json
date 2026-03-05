@@ -1,0 +1,31 @@
+{
+  "id": 9,
+  "runId": 8,
+  "testCaseId": "pac-01",
+  "titulo": "Fallo en: Página carga con pacientes",
+  "descripcion": "",
+  "comportamientoEsperado": "Tabla con pacientes. Columnas: CI, Nombre, Sexo, Edad, Teléfono, Email",
+  "comportamientoActual": "Problema ",
+  "pasosReproducir": "1. Login\n2. Navegar a /pacientes",
+  "severidad": "mayor",
+  "estado": "en_progreso",
+  "screenshots": [
+    "1772693051598-771737286.jpg"
+  ],
+  "logs": "",
+  "browserInfo": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_3_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/145.0.7632.108 Mobile/15E148 Safari/604.1",
+  "tipoError": "no_carga",
+  "codigoError": "",
+  "dondeOcurre": "Sección: Lista — Página carga con pacientes",
+  "queEsperabas": "",
+  "contextoExtra": "Reportado desde móvil",
+  "brandTokens": [],
+  "zonaPantalla": "",
+  "reportadoPor": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-05T06:44:11.564Z",
+  "updatedAt": "2026-03-05T06:44:56.276Z"
+}

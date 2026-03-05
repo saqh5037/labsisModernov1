@@ -1,0 +1,284 @@
+{
+  "id": "ordenes-lista",
+  "nombre": "Lista de Órdenes de Trabajo",
+  "modulo": "ordenes",
+  "descripcion": "Verificar búsqueda, filtros, paginación, acciones y estados en /ordenes",
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "ol-01",
+      "seccion": "Carga Inicial",
+      "titulo": "Página carga con datos",
+      "descripcion": "Al navegar a /ordenes, la tabla muestra OTs reales",
+      "pasos": [
+        "Login con rol REC",
+        "Navegar a /ordenes",
+        "Esperar carga"
+      ],
+      "resultado_esperado": "Tabla con OTs. Columnas: Número, Fecha, Paciente, Procedencia, Estado, Acciones",
+      "prioridad": "critico",
+      "orden": 1
+    },
+    {
+      "id": "ol-02",
+      "seccion": "Carga Inicial",
+      "titulo": "Status badges con colores",
+      "descripcion": "Cada OT muestra badge de estado con color correcto",
+      "pasos": [
+        "Ver la columna Estado en la tabla"
+      ],
+      "resultado_esperado": "Activo=azul, Iniciada=amarillo, Validado=verde, Abortada=rojo",
+      "prioridad": "alto",
+      "orden": 2
+    },
+    {
+      "id": "ol-03",
+      "seccion": "Filtros",
+      "titulo": "Filtro por número de OT",
+      "descripcion": "Escribir número parcial filtra resultados",
+      "pasos": [
+        "Escribir '100' en campo Número",
+        "Presionar Enter o click Buscar"
+      ],
+      "resultado_esperado": "Solo se muestran OTs cuyo número contiene '100'",
+      "prioridad": "critico",
+      "orden": 3
+    },
+    {
+      "id": "ol-04",
+      "seccion": "Filtros",
+      "titulo": "Filtro por cédula paciente",
+      "descripcion": "Buscar por CI del paciente",
+      "pasos": [
+        "Escribir CI en campo Cédula",
+        "Click Buscar"
+      ],
+      "resultado_esperado": "Solo OTs del paciente con esa CI",
+      "prioridad": "critico",
+      "orden": 4
+    },
+    {
+      "id": "ol-05",
+      "seccion": "Filtros",
+      "titulo": "Filtro por rango de fechas",
+      "descripcion": "Seleccionar fecha desde/hasta",
+      "pasos": [
+        "Abrir date picker Desde",
+        "Seleccionar hace 7 días",
+        "Abrir date picker Hasta",
+        "Seleccionar hoy",
+        "Click Buscar"
+      ],
+      "resultado_esperado": "Solo OTs dentro del rango de fechas seleccionado",
+      "prioridad": "alto",
+      "orden": 5
+    },
+    {
+      "id": "ol-06",
+      "seccion": "Filtros",
+      "titulo": "Filtro por estado",
+      "descripcion": "Seleccionar un estado específico",
+      "pasos": [
+        "Abrir dropdown Estado",
+        "Seleccionar 'Validado'",
+        "Click Buscar"
+      ],
+      "resultado_esperado": "Solo OTs con estado Validado",
+      "prioridad": "alto",
+      "orden": 6
+    },
+    {
+      "id": "ol-07",
+      "seccion": "Filtros",
+      "titulo": "Filtro por procedencia",
+      "descripcion": "Seleccionar procedencia del dropdown",
+      "pasos": [
+        "Abrir dropdown Procedencia",
+        "Seleccionar cualquier procedencia",
+        "Click Buscar"
+      ],
+      "resultado_esperado": "Solo OTs de esa procedencia",
+      "prioridad": "medio",
+      "orden": 7
+    },
+    {
+      "id": "ol-08",
+      "seccion": "Filtros",
+      "titulo": "Filtro por área",
+      "descripcion": "Seleccionar área de laboratorio",
+      "pasos": [
+        "Abrir dropdown Área",
+        "Seleccionar cualquier área",
+        "Click Buscar"
+      ],
+      "resultado_esperado": "Solo OTs que tienen pruebas en esa área",
+      "prioridad": "medio",
+      "orden": 8
+    },
+    {
+      "id": "ol-09",
+      "seccion": "Filtros",
+      "titulo": "Limpiar filtros",
+      "descripcion": "Botón limpiar resetea todos los filtros",
+      "pasos": [
+        "Aplicar varios filtros",
+        "Click botón Limpiar"
+      ],
+      "resultado_esperado": "Todos los campos se vacían y la búsqueda se resetea",
+      "prioridad": "medio",
+      "orden": 9
+    },
+    {
+      "id": "ol-10",
+      "seccion": "Paginación",
+      "titulo": "Navegar entre páginas",
+      "descripcion": "Botones anterior/siguiente funcionan",
+      "pasos": [
+        "Buscar sin filtros (muchos resultados)",
+        "Click botón Siguiente"
+      ],
+      "resultado_esperado": "Se cargan los siguientes registros. El número de página se actualiza",
+      "prioridad": "alto",
+      "orden": 10
+    },
+    {
+      "id": "ol-11",
+      "seccion": "Paginación",
+      "titulo": "Contador de resultados",
+      "descripcion": "Se muestra el total de resultados y la página actual",
+      "pasos": [
+        "Observar el área de paginación"
+      ],
+      "resultado_esperado": "Texto tipo 'Mostrando 1-20 de 150' o similar",
+      "prioridad": "medio",
+      "orden": 11
+    },
+    {
+      "id": "ol-12",
+      "seccion": "Acciones",
+      "titulo": "Ícono ojo → Detalle",
+      "descripcion": "Click en ícono ojo navega al detalle de la OT",
+      "pasos": [
+        "Encontrar una OT en la tabla",
+        "Click en ícono de ojo"
+      ],
+      "resultado_esperado": "Navega a /ordenes/{numero} con el detalle completo",
+      "prioridad": "critico",
+      "orden": 12
+    },
+    {
+      "id": "ol-13",
+      "seccion": "Acciones",
+      "titulo": "Ícono lápiz → Lab",
+      "descripcion": "Click en ícono lápiz navega a ingreso de resultados",
+      "pasos": [
+        "Encontrar una OT con estado Activo o Iniciada",
+        "Click en ícono lápiz"
+      ],
+      "resultado_esperado": "Navega a /ordenes/{numero}/lab con el formulario de resultados",
+      "prioridad": "critico",
+      "orden": 13
+    },
+    {
+      "id": "ol-14",
+      "seccion": "Acciones",
+      "titulo": "Ícono impresora → Print",
+      "descripcion": "Click en ícono impresora abre vista de impresión",
+      "pasos": [
+        "Click en ícono impresora de cualquier OT"
+      ],
+      "resultado_esperado": "Se abre /ordenes/{numero}/print en nueva pestaña o navega a print view",
+      "prioridad": "alto",
+      "orden": 14
+    },
+    {
+      "id": "ol-15",
+      "seccion": "Acciones",
+      "titulo": "Ícono etiqueta → Barcode",
+      "descripcion": "Click en ícono de barcode muestra etiqueta",
+      "pasos": [
+        "Click en ícono de barcode"
+      ],
+      "resultado_esperado": "Navega a vista de etiqueta con código de barras",
+      "prioridad": "medio",
+      "orden": 15
+    },
+    {
+      "id": "ol-16",
+      "seccion": "Estados",
+      "titulo": "OT Abortada muestra acciones limitadas",
+      "descripcion": "Una OT abortada no debe tener acción de editar resultados",
+      "pasos": [
+        "Buscar una OT con estado Abortada",
+        "Revisar sus íconos de acción"
+      ],
+      "resultado_esperado": "El ícono de lápiz (lab) no aparece o está deshabilitado",
+      "prioridad": "medio",
+      "orden": 16
+    },
+    {
+      "id": "ol-17",
+      "seccion": "Responsive",
+      "titulo": "Vista en pantalla pequeña",
+      "descripcion": "La tabla se adapta a pantalla de tablet",
+      "pasos": [
+        "Reducir ancho del navegador a ~768px",
+        "Verificar la tabla"
+      ],
+      "resultado_esperado": "La tabla es scrolleable horizontalmente o se adapta sin romper el layout",
+      "prioridad": "bajo",
+      "orden": 17
+    },
+    {
+      "id": "ol-18",
+      "seccion": "Carga Inicial",
+      "titulo": "Loading state visible",
+      "descripcion": "Mientras carga se muestra indicador de loading",
+      "pasos": [
+        "Recargar la página",
+        "Observar durante la carga"
+      ],
+      "resultado_esperado": "Se muestra un spinner, skeleton o texto 'Cargando...' mientras se obtienen datos",
+      "prioridad": "medio",
+      "orden": 18
+    },
+    {
+      "id": "ol-19",
+      "seccion": "Filtros",
+      "titulo": "Enter dispara búsqueda en campo número",
+      "descripcion": "Presionar Enter en el campo número ejecuta la búsqueda",
+      "pasos": [
+        "Escribir un número en campo Número",
+        "Presionar Enter"
+      ],
+      "resultado_esperado": "La búsqueda se ejecuta sin necesidad de click en Buscar",
+      "prioridad": "medio",
+      "orden": 19
+    },
+    {
+      "id": "ol-20",
+      "seccion": "Filtros",
+      "titulo": "Enter dispara búsqueda en campo cédula",
+      "descripcion": "Presionar Enter en el campo cédula ejecuta la búsqueda",
+      "pasos": [
+        "Escribir CI en campo Cédula",
+        "Presionar Enter"
+      ],
+      "resultado_esperado": "La búsqueda se ejecuta sin necesidad de click en Buscar",
+      "prioridad": "medio",
+      "orden": 20
+    }
+  ],
+  "archivos": {
+    "frontend": [
+      "src/pages/Ordenes.jsx"
+    ],
+    "backend": [
+      "server/routes/ordenes.js"
+    ],
+    "api": [
+      "src/services/api.js — getOrdenes, getOrdenCount"
+    ],
+    "ruta": "/ordenes"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": 6,
+  "runId": 6,
+  "testCaseId": "lab-18",
+  "titulo": "[Auto] Fallo en: Tab navega entre campos",
+  "descripcion": "",
+  "comportamientoEsperado": "El foco se mueve al siguiente campo de resultado (no a otro elemento de UI)",
+  "comportamientoActual": "No se describió el comportamiento actual.",
+  "pasosReproducir": "1. Posicionarse en un campo de resultado\n2. Presionar Tab",
+  "severidad": "mayor",
+  "estado": "abierto",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+  "tipoError": "funcionalidad",
+  "codigoError": "",
+  "dondeOcurre": "Sección: Ingreso — Test: Tab navega entre campos",
+  "queEsperabas": "El foco se mueve al siguiente campo de resultado (no a otro elemento de UI)",
+  "contextoExtra": "",
+  "brandTokens": [],
+  "zonaPantalla": "",
+  "reportadoPor": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-05T04:01:00.860Z",
+  "updatedAt": "2026-03-05T04:01:00.860Z"
+}

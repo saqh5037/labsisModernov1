@@ -1,0 +1,66 @@
+{
+  "id": 2,
+  "suiteId": "auth",
+  "suiteName": "Autenticación y Permisos",
+  "tester": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "estado": "completado",
+  "progreso": 100,
+  "notas": "",
+  "startedAt": "2026-03-05T02:58:33.551Z",
+  "completedAt": "2026-03-05T02:59:23.048Z",
+  "results": {
+    "auth-01": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T02:58:37.909Z"
+    },
+    "auth-02": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T02:58:41.756Z"
+    },
+    "auth-03": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T02:58:43.609Z"
+    },
+    "auth-04": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T02:58:46.747Z"
+    },
+    "auth-05": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T02:58:59.121Z"
+    },
+    "auth-06": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T02:59:01.844Z"
+    },
+    "auth-07": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T02:59:17.429Z"
+    },
+    "auth-08": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T02:59:18.397Z"
+    },
+    "auth-09": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T02:59:19.020Z"
+    },
+    "auth-10": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T02:58:54.698Z"
+    }
+  }
+}

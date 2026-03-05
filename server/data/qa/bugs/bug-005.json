@@ -1,0 +1,29 @@
+{
+  "id": 5,
+  "runId": 6,
+  "testCaseId": "lab-05",
+  "titulo": "[Auto] Fallo en: Seleccionar de opciones predefinidas",
+  "descripcion": "",
+  "comportamientoEsperado": "Se selecciona la opción y se guarda el valor",
+  "comportamientoActual": "No se describió el comportamiento actual.",
+  "pasosReproducir": "1. Encontrar prueba con opciones\n2. Seleccionar una opción del dropdown",
+  "severidad": "mayor",
+  "estado": "abierto",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+  "tipoError": "funcionalidad",
+  "codigoError": "",
+  "dondeOcurre": "Sección: Ingreso — Test: Seleccionar de opciones predefinidas",
+  "queEsperabas": "Se selecciona la opción y se guarda el valor",
+  "contextoExtra": "",
+  "brandTokens": [],
+  "zonaPantalla": "",
+  "reportadoPor": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-05T04:01:00.847Z",
+  "updatedAt": "2026-03-05T04:01:00.847Z"
+}

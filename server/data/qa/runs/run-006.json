@@ -1,0 +1,116 @@
+{
+  "id": 6,
+  "suiteId": "ordenes-lab",
+  "suiteName": "Ingreso de Resultados (Lab)",
+  "tester": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "estado": "completado",
+  "progreso": 55,
+  "notas": "",
+  "startedAt": "2026-03-05T04:00:03.870Z",
+  "completedAt": "2026-03-05T04:01:00.897Z",
+  "results": {
+    "lab-01": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T04:00:21.914Z"
+    },
+    "lab-02": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T04:00:26.343Z"
+    },
+    "lab-03": {
+      "resultado": "fail",
+      "observaciones": "",
+      "testedAt": "2026-03-05T04:00:35.806Z"
+    },
+    "lab-04": {
+      "resultado": "fail",
+      "observaciones": "",
+      "testedAt": "2026-03-05T04:00:36.821Z"
+    },
+    "lab-05": {
+      "resultado": "fail",
+      "observaciones": "",
+      "testedAt": "2026-03-05T04:00:38.417Z"
+    },
+    "lab-06": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T04:00:40.694Z"
+    },
+    "lab-07": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T04:00:41.465Z"
+    },
+    "lab-08": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T04:00:42.044Z"
+    },
+    "lab-09": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T04:00:43.548Z"
+    },
+    "lab-10": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "lab-11": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "lab-12": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "lab-13": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "lab-14": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "lab-15": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "lab-16": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "lab-17": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "lab-18": {
+      "resultado": "fail",
+      "observaciones": "",
+      "testedAt": "2026-03-05T04:00:39.047Z"
+    },
+    "lab-19": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "lab-20": {
+      "resultado": "fail",
+      "observaciones": "",
+      "testedAt": "2026-03-05T04:00:30.942Z"
+    }
+  }
+}

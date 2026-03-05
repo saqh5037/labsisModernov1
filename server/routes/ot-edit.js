@@ -67,6 +67,46 @@ async function getServicioInfo(conn, servicioId) {
 }
 
 /**
+ * Obtiene categorías de descuento disponibles para un servicio,
+ * info de descuento del servicio, e IVA del laboratorio.
+ */
+router.get('/descuentos/:servicioId', async (req, res) => {
+  try {
+    const { servicioId } = req.params
+
+    // 1. Categorías de descuento activas vinculadas al servicio
+    const descuentos = await pool.query(`
+      SELECT dc.id, dc.nombre, dc.codigo, dc.limite,
+             dc.is_compatible_con, dc.condiciones,
+             shd.descuento_porcentaje AS porcentaje_servicio
+      FROM descuento_categoria dc
+      JOIN servicio_has_descuento shd ON shd.area_comercial_id = dc.id
+      WHERE shd.servicio_id = $1 AND dc.is_activo = true
+      ORDER BY dc.nombre
+    `, [servicioId])
+
+    // 2. Info descuento del servicio
+    const servicio = await pool.query(`
+      SELECT descuento_activo, porcentaje_descuento_activo,
+             porcentaje_pago_servicio, mostrar_descuentos_factura
+      FROM servicio WHERE id = $1
+    `, [servicioId])
+
+    // 3. IVA del laboratorio (tabla iva)
+    const iva = await pool.query(`SELECT valor_iva FROM iva WHERE activo = true LIMIT 1`)
+
+    res.json({
+      categorias: descuentos.rows,
+      servicioDescuento: servicio.rows[0] || {},
+      ivaPorcentaje: parseFloat(iva.rows[0]?.valor_iva || 0)
+    })
+  } catch (err) {
+    console.error('Error GET descuentos:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
  * Calcula el precio de una prueba con la cascada de 3 niveles.
  * 1. servicio_has_prueba (precio directo en servicio)
  * 2. lista_precios_has_prueba (precio en lista de precios del servicio)
@@ -312,16 +352,18 @@ router.get('/resolve-servicio', async (req, res) => {
     if (!servicioId) return res.json({ servicio: null })
 
     const info = await getServicioInfo(pool, servicioId)
-    // Agregar tasa_cambio + IGTF del laboratorio
+    // Agregar tasa_cambio + IGTF del laboratorio + IVA
     const labRow = await pool.query(`SELECT tasa_cambio, is_facturacion_con_divisas, aplicar_igtf, igtf FROM laboratorio LIMIT 1`)
     const lab = labRow.rows[0] || {}
+    const ivaRow = await pool.query(`SELECT valor_iva FROM iva WHERE activo = true LIMIT 1`)
     res.json({
       servicio: info ? {
         ...info,
         tasa_cambio: parseFloat(lab.tasa_cambio) || 1,
         is_facturacion_con_divisas: lab.is_facturacion_con_divisas || false,
         aplicar_igtf: lab.aplicar_igtf || false,
-        igtf_porcentaje: parseFloat(lab.igtf) || 0
+        igtf_porcentaje: parseFloat(lab.igtf) || 0,
+        iva_porcentaje: parseFloat(ivaRow.rows[0]?.valor_iva || 0)
       } : null
     })
   } catch (err) {
@@ -1203,7 +1245,14 @@ router.post('/:numero/facturar', async (req, res) => {
       ? parseFloat((precioConDescDivisa * (100 - copagoPct) / 100).toFixed(2))
       : precioConDescDivisa
 
-    // IGTF
+    // IVA (tabla iva)
+    const ivaResult = await client.query(`SELECT valor_iva FROM iva WHERE activo = true LIMIT 1`)
+    const ivaPct = parseFloat(ivaResult.rows[0]?.valor_iva || 0)
+    const ivaMontoDivisa = ivaPct > 0
+      ? parseFloat((montoPacienteDivisa * ivaPct / 100).toFixed(2))
+      : 0
+
+    // IGTF (laboratorio)
     let igtfPct = null
     let igtfMontoDivisa = 0
     if (lab.aplicar_igtf) {
@@ -1211,7 +1260,7 @@ router.post('/:numero/facturar', async (req, res) => {
       igtfMontoDivisa = parseFloat((montoPacienteDivisa * igtfPct / 100).toFixed(2))
     }
 
-    const totalDivisa = montoPacienteDivisa + igtfMontoDivisa
+    const totalDivisa = montoPacienteDivisa + ivaMontoDivisa + igtfMontoDivisa
 
     // Conversión a moneda local
     const montoTotalLocal = esConDivisas
@@ -1223,7 +1272,10 @@ router.post('/:numero/facturar', async (req, res) => {
     const baseImponibleLocal = esConDivisas
       ? parseFloat((montoPacienteDivisa * tasaCambio).toFixed(2))
       : montoPacienteDivisa
-    const ivaMonto = igtfPct
+    const ivaMontoLocal = ivaPct > 0
+      ? (esConDivisas ? parseFloat((ivaMontoDivisa * tasaCambio).toFixed(2)) : ivaMontoDivisa)
+      : 0
+    const igtfMontoLocal = igtfPct
       ? (esConDivisas ? parseFloat((igtfMontoDivisa * tasaCambio).toFixed(2)) : igtfMontoDivisa)
       : 0
     const totalFactura = esConDivisas
@@ -1239,7 +1291,7 @@ router.post('/:numero/facturar', async (req, res) => {
         clienteId = genResult.rows[0].id
       } else {
         const newClient = await client.query(`
-          INSERT INTO cliente (ci_rif, nombre, activo) VALUES ('GENERICO', 'Cliente Genérico', true) RETURNING id
+          INSERT INTO cliente (ci_rif, nombre) VALUES ('GENERICO', 'Cliente Genérico') RETURNING id
         `)
         clienteId = newClient.rows[0].id
       }
@@ -1276,11 +1328,11 @@ router.post('/:numero/facturar', async (req, res) => {
         $22
       ) RETURNING id, numero
     `, [
-      montoTotalLocal, descuentoLocal, baseImponibleLocal, igtfPct || 0, ivaMonto, totalFactura,
+      montoTotalLocal, descuentoLocal, baseImponibleLocal, ivaPct || 0, ivaMontoLocal, totalFactura,
       clienteId, userId, ot.servicio_id, cajaId,
       factMonedaId, factConversionMonedaId, factConversionMonedaId,
       factTipoCambio, factTipoCambioInverso,
-      tasaCambio, igtfPct, ivaMonto,
+      tasaCambio, igtfPct, igtfMontoLocal,
       lab.nombre, lab.rif,
       ot.centro_atencion_paciente_id || 1,
       isCopago
@@ -1328,7 +1380,7 @@ router.post('/:numero/facturar', async (req, res) => {
     const pruebasSueltas = await client.query(`
       SELECT po.id, po.prueba_id, po.precio, po.precio_sin_descuento,
              po.descuento_porcentaje AS p_desc_pct, po.descuento_monto AS p_desc_monto,
-             pr.nombre, pr.codigo, pr.codigo_caja
+             pr.nombre, pr.codigo_caja
       FROM prueba_orden po
       LEFT JOIN prueba pr ON po.prueba_id = pr.id
       WHERE po.orden_id = $1 AND po.gp_id IS NULL
@@ -1350,7 +1402,7 @@ router.post('/:numero/facturar', async (req, res) => {
           VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8, $9, $10)
         `, [facturaId, p.nombre, montoLocal, psdLocal,
             descPct || 0, descLocal,
-            p.codigo_caja || p.codigo || null, p.prueba_id,
+            p.codigo_caja || null, p.prueba_id,
             esConDivisas ? precioConDesc : null,
             esConDivisas ? precioSinDesc : null])
       }
@@ -1394,39 +1446,39 @@ router.get('/factura/:ref', async (req, res) => {
     const { ref } = req.params
 
     // Try by ID first, then by numero
-    let factResult = await pool.query(`
+    const factQuery = `
       SELECT f.*, c.nombre AS cliente_nombre, c.ci_rif AS cliente_ci,
              c.direccion AS cliente_direccion, c.telefono AS cliente_telefono,
-             sf.status AS status_nombre
+             sf.status AS status_nombre,
+             m.nombre AS moneda_nombre
       FROM factura f
       LEFT JOIN cliente c ON f.cliente_id = c.id
       LEFT JOIN status_factura sf ON f.status_id = sf.id
-      WHERE f.id = $1
-    `, [ref])
+      LEFT JOIN moneda m ON f.moneda_id = m.id`
+    let factResult = await pool.query(factQuery + ` WHERE f.id = $1`, [ref])
     if (!factResult.rows.length) {
-      factResult = await pool.query(`
-        SELECT f.*, c.nombre AS cliente_nombre, c.ci_rif AS cliente_ci,
-               c.direccion AS cliente_direccion, c.telefono AS cliente_telefono,
-               sf.status AS status_nombre
-        FROM factura f
-        LEFT JOIN cliente c ON f.cliente_id = c.id
-        LEFT JOIN status_factura sf ON f.status_id = sf.id
-        WHERE f.numero = $1
-      `, [ref])
+      factResult = await pool.query(factQuery + ` WHERE f.numero = $1`, [ref])
     }
     if (!factResult.rows.length) return res.status(404).json({ error: 'Factura no encontrada' })
 
+    const facturaId = factResult.rows[0].id
+
     const itemsResult = await pool.query(`
       SELECT * FROM item_factura WHERE factura_id = $1 ORDER BY id
-    `, [factResult.rows[0].id])
+    `, [facturaId])
 
+    // Include ALL pagos (anulados too) so frontend can show history
     const pagosResult = await pool.query(`
-      SELECT fp.*, tp.tipo AS tipo_pago_nombre, tp.codigo AS tipo_pago_codigo
+      SELECT fp.id, fp.factura_id, fp.tipo_pago_id, fp.monto, fp.num_documento,
+             fp.anulado, fp.fecha, fp.usuario_id, fp.monto_recibido,
+             fp.monto_cambio_devuelto, fp.moneda_base, fp.moneda_de_transaccion,
+             fp.monto_moneda_extranjera,
+             tp.tipo AS tipo_pago_nombre, tp.codigo AS tipo_pago_codigo
       FROM factura_pago fp
       LEFT JOIN tipo_pago tp ON fp.tipo_pago_id = tp.id
-      WHERE fp.factura_id = $1 AND fp.anulado = false
+      WHERE fp.factura_id = $1
       ORDER BY fp.fecha
-    `, [factResult.rows[0].id])
+    `, [facturaId])
 
     const otsResult = await pool.query(`
       SELECT ot.numero, ot.precio,
@@ -1434,7 +1486,18 @@ router.get('/factura/:ref', async (req, res) => {
       FROM orden_trabajo ot
       LEFT JOIN paciente p ON ot.paciente_id = p.id
       WHERE ot.factura_id = $1
-    `, [factResult.rows[0].id])
+    `, [facturaId])
+
+    // Notas de crédito/débito asociadas
+    const notasResult = await pool.query(`
+      SELECT ndc.id, ndc.tipo_nota, ndc.numero, ndc.monto_total, ndc.total_nota,
+             ndc.fecha, ndc.observaciones, ndc.status_id,
+             sf2.status AS status_nombre
+      FROM nota_debito_credito ndc
+      LEFT JOIN status_factura sf2 ON ndc.status_id = sf2.id
+      WHERE ndc.factura_id = $1
+      ORDER BY ndc.fecha
+    `, [facturaId])
 
     const tiposPago = await pool.query(`SELECT * FROM tipo_pago WHERE activo = true ORDER BY id`)
     const lab = await pool.query(`SELECT aplicar_igtf, igtf, tasa_cambio, moneda_id, nombre, rif FROM laboratorio LIMIT 1`)
@@ -1444,6 +1507,7 @@ router.get('/factura/:ref', async (req, res) => {
       items: itemsResult.rows,
       pagos: pagosResult.rows,
       ordenes: otsResult.rows,
+      notas: notasResult.rows,
       tiposPago: tiposPago.rows,
       lab: lab.rows[0]
     })
@@ -1506,6 +1570,168 @@ router.post('/factura/:id/pago', async (req, res) => {
   } catch(err) {
     await client.query('ROLLBACK')
     console.error('Error POST pago:', err)
+    res.status(500).json({ error: err.message })
+  } finally {
+    client.release()
+  }
+})
+
+// ═══════════════════════════════════════════════════════
+// POST /api/ot/factura/:id/pago/:pagoId/anular — Anular un pago
+// ═══════════════════════════════════════════════════════
+router.post('/factura/:id/pago/:pagoId/anular', async (req, res) => {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const facturaId = parseInt(req.params.id)
+    const pagoId = parseInt(req.params.pagoId)
+    const userId = req.user?.userId || null
+
+    // Verify pago exists and belongs to factura
+    const pagoCheck = await client.query(
+      'SELECT id, anulado FROM factura_pago WHERE id = $1 AND factura_id = $2',
+      [pagoId, facturaId]
+    )
+    if (!pagoCheck.rows.length) return res.status(404).json({ error: 'Pago no encontrado' })
+    if (pagoCheck.rows[0].anulado) return res.status(400).json({ error: 'Pago ya está anulado' })
+
+    await client.query('UPDATE factura_pago SET anulado = true WHERE id = $1', [pagoId])
+
+    // Recalculate status
+    const factCheck = await client.query('SELECT total_factura FROM factura WHERE id = $1', [facturaId])
+    const totalFactura = parseFloat(factCheck.rows[0].total_factura)
+    const pagosSum = await client.query(
+      'SELECT COALESCE(SUM(monto),0) AS total FROM factura_pago WHERE factura_id = $1 AND anulado = false',
+      [facturaId]
+    )
+    const totalPagado = parseFloat(pagosSum.rows[0].total)
+
+    let newStatus = 1 // Activa/Pendiente
+    if (totalPagado >= totalFactura - 0.01) newStatus = 3 // Pagada
+    else if (totalPagado > 0) newStatus = 2 // Pago Parcial
+
+    await client.query('UPDATE factura SET status_id = $1 WHERE id = $2', [newStatus, facturaId])
+
+    // Log
+    await client.query(
+      `INSERT INTO factura_log (usuario_id, accion, factura_id, realizado_timestamp, tipo)
+       VALUES ($1, $2, $3, NOW(), 'ANULACION')`,
+      [userId, `ANULACION PAGO #${pagoId}`, facturaId]
+    )
+
+    await client.query('COMMIT')
+    res.json({ ok: true })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error('Error anular pago:', err)
+    res.status(500).json({ error: err.message })
+  } finally {
+    client.release()
+  }
+})
+
+// ═══════════════════════════════════════════════════════
+// POST /api/ot/factura/:id/anular — Anular factura completa
+// ═══════════════════════════════════════════════════════
+router.post('/factura/:id/anular', async (req, res) => {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const facturaId = parseInt(req.params.id)
+    const { motivo } = req.body
+    const userId = req.user?.userId || null
+
+    const factCheck = await client.query('SELECT id, status_id FROM factura WHERE id = $1', [facturaId])
+    if (!factCheck.rows.length) return res.status(404).json({ error: 'Factura no encontrada' })
+    if (factCheck.rows[0].status_id === 4) return res.status(400).json({ error: 'Factura ya está anulada' })
+
+    await client.query(
+      'UPDATE factura SET status_id = 4, motivo_cancelacion = $1 WHERE id = $2',
+      [motivo || 'Anulada por usuario', facturaId]
+    )
+
+    await client.query(
+      `INSERT INTO factura_log (usuario_id, accion, factura_id, realizado_timestamp, tipo)
+       VALUES ($1, 'ANULACION FACTURA', $2, NOW(), 'ANULACION')`,
+      [userId, facturaId]
+    )
+
+    await client.query('COMMIT')
+    res.json({ ok: true })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error('Error anular factura:', err)
+    res.status(500).json({ error: err.message })
+  } finally {
+    client.release()
+  }
+})
+
+// ═══════════════════════════════════════════════════════
+// POST /api/ot/factura/:id/nota-credito — Crear nota de crédito
+// ═══════════════════════════════════════════════════════
+router.post('/factura/:id/nota-credito', async (req, res) => {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const facturaId = parseInt(req.params.id)
+    const { monto, observaciones } = req.body
+    const userId = req.user?.userId || null
+
+    if (!monto || parseFloat(monto) <= 0) {
+      return res.status(400).json({ error: 'Monto inválido' })
+    }
+
+    const factCheck = await client.query(
+      `SELECT f.id, f.total_factura, f.status_id, f.iva, f.razon_social,
+              f.razon_social_ci_rif, f.razon_social_direccion
+       FROM factura f WHERE f.id = $1`,
+      [facturaId]
+    )
+    if (!factCheck.rows.length) return res.status(404).json({ error: 'Factura no encontrada' })
+    if (factCheck.rows[0].status_id === 4) return res.status(400).json({ error: 'No se puede crear NC para factura anulada' })
+
+    const fact = factCheck.rows[0]
+    const montoNC = parseFloat(monto)
+    const ivaPct = parseFloat(fact.iva) || 0
+    const baseImponible = ivaPct > 0 ? parseFloat((montoNC / (1 + ivaPct / 100)).toFixed(2)) : montoNC
+    const ivaMonto = parseFloat((montoNC - baseImponible).toFixed(2))
+
+    const ncResult = await client.query(`
+      INSERT INTO nota_debito_credito
+        (factura_id, tipo_nota, monto_total, descuento, base_imponible,
+         iva, iva_monto, total_nota, status_id, fecha, fecha_modificacion,
+         observaciones, razon_social, razon_social_ci_rif, razon_social_direccion)
+      VALUES ($1, 1, $2, 0, $3, $4, $5, $2, 3, NOW(), CURRENT_DATE,
+              $6, $7, $8, $9)
+      RETURNING id, numero
+    `, [facturaId, montoNC, baseImponible, ivaPct, ivaMonto,
+        observaciones || null, fact.razon_social, fact.razon_social_ci_rif,
+        fact.razon_social_direccion])
+
+    const ncId = ncResult.rows[0].id
+
+    await client.query(`
+      INSERT INTO item_nota_debito_credito (nota_id, cantidad, nombre_item, monto)
+      VALUES ($1, 1, 'Nota de Crédito', $2)
+    `, [ncId, montoNC])
+
+    // If NC covers total, update factura status
+    if (montoNC >= parseFloat(fact.total_factura) - 0.01) {
+      await client.query('UPDATE factura SET status_id = 6 WHERE id = $1', [facturaId])
+    }
+
+    await client.query(
+      `INSERT INTO factura_log (usuario_id, accion, factura_id, realizado_timestamp, tipo)
+       VALUES ($1, $2, $3, NOW(), 'NOTA_CREDITO')`,
+      [userId, `NOTA CREDITO por ${montoNC}`, facturaId]
+    )
+
+    await client.query('COMMIT')
+    res.json({ ok: true, nota: ncResult.rows[0] })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error('Error crear nota crédito:', err)
     res.status(500).json({ error: err.message })
   } finally {
     client.release()

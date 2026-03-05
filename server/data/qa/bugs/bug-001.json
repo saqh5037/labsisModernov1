@@ -1,0 +1,27 @@
+{
+  "id": 1,
+  "runId": 4,
+  "testCaseId": "pac-03",
+  "titulo": "Botón Nuevo Paciente no responde al primer click",
+  "descripcion": "",
+  "comportamientoEsperado": "Navegar a /pacientes/nuevo al primer click",
+  "comportamientoActual": "El primer click no hace nada. El segundo click sí funciona.",
+  "pasosReproducir": "1. Ir a /pacientes\n2. Click en botón Nuevo Paciente\n3. No pasa nada\n4. Click de nuevo\n5. Ahora sí navega",
+  "severidad": "critico",
+  "estado": "en_progreso",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "Chrome 122.0.6261.94 macOS Sonoma",
+  "tipoError": "funcionalidad",
+  "codigoError": "No hay error en consola, simplemente no navega",
+  "dondeOcurre": "Pantalla de Lista de Pacientes (/pacientes), botón superior derecho \"Nuevo Paciente\"",
+  "queEsperabas": "Al hacer click en el botón debería navegar a /pacientes/nuevo inmediatamente",
+  "contextoExtra": "Solo pasa cuando la lista tiene más de 50 pacientes cargados",
+  "reportadoPor": {
+    "id": 107,
+    "nombre": "CHRISTIAN MIJARES"
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-05T03:33:57.396Z",
+  "updatedAt": "2026-03-05T03:34:24.301Z"
+}

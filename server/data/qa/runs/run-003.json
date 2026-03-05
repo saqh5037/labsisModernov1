@@ -1,0 +1,76 @@
+{
+  "id": 3,
+  "suiteId": "facturacion",
+  "suiteName": "Facturación y Cobro",
+  "tester": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "estado": "en_progreso",
+  "progreso": 8,
+  "notas": "",
+  "startedAt": "2026-03-05T03:00:13.885Z",
+  "completedAt": null,
+  "results": {
+    "fac-01": {
+      "resultado": "fail",
+      "observaciones": "",
+      "testedAt": "2026-03-05T03:00:18.438Z"
+    },
+    "fac-02": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "fac-03": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "fac-04": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "fac-05": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "fac-06": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "fac-07": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "fac-08": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "fac-09": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "fac-10": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "fac-11": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "fac-12": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    }
+  }
+}

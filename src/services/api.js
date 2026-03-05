@@ -39,6 +39,15 @@ export async function getServiciosMedicos() {
   return res.json()
 }
 
+export async function getDashboard(params = {}) {
+  const qs = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v !== '' && v != null)
+  ).toString()
+  const res = await fetch(`${BASE}/ordenes/dashboard${qs ? '?' + qs : ''}`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
 export async function getOrdenDetalle(numero) {
   const res = await fetch(`${BASE}/ordenes/${numero}`)
   if (!res.ok) throw new Error(await res.text())
@@ -184,10 +193,10 @@ export async function getOrdenLab(numero) {
   return res.json()
 }
 
-export async function saveResultados(numero, resultados) {
+export async function saveResultados(numero, resultados, observaciones_area) {
   const res = await fetch(`${BASE}/ordenes/${numero}/lab/resultados`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ resultados })
+    body: JSON.stringify({ resultados, observaciones_area })
   })
   if (!res.ok) throw new Error(await res.text())
   return res.json()
@@ -201,15 +210,21 @@ export async function getHistorico(numero, pruebaOrdenId) {
 
 export async function getLabQueue(filters = {}) {
   const params = new URLSearchParams()
-  Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v) })
+  Object.entries(filters).forEach(([k, v]) => { if (v != null && v !== '') params.append(k, String(v)) })
   const qs = params.toString()
   const res = await fetch(`${BASE}/ordenes/lab/queue${qs ? '?' + qs : ''}`)
   if (!res.ok) throw new Error(await res.text())
-  return res.json()
+  return res.json() // { rows, page, hasMore }
 }
 
 export async function getLabAreas() {
   const res = await fetch(`${BASE}/ordenes/lab/areas`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function labQuickSearch(q) {
+  const res = await fetch(`${BASE}/ordenes/lab/quick-search?q=${encodeURIComponent(q)}`)
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }
@@ -228,6 +243,30 @@ export async function corregirResultado(numero, data) {
 
 export async function getCorrecciones(numero, pruebaOrdenId) {
   const res = await fetch(`${BASE}/ordenes/${numero}/lab/correcciones/${pruebaOrdenId}`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function verificarResultados(numero, prueba_orden_ids, verificado) {
+  const res = await fetch(`${BASE}/ordenes/${numero}/lab/verificar`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prueba_orden_ids, verificado })
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function setAreaEspera(numero, areaId, en_espera) {
+  const res = await fetch(`${BASE}/ordenes/${numero}/lab/area/${areaId}/espera`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ en_espera })
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getNotasPredefinidas() {
+  const res = await fetch(`${BASE}/ordenes/lab/notas-predefinidas`)
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }
@@ -256,6 +295,18 @@ export async function getPaciente(id) {
 
 export async function getPacienteConfig() {
   const res = await fetch(`${BASE}/pacientes/config/campos`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getCatalogoRazas() {
+  const res = await fetch(`${BASE}/razas`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getCatalogoSaludos() {
+  const res = await fetch(`${BASE}/saludos`)
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }
@@ -415,6 +466,12 @@ export async function facturarOT(numero, data) {
   return res.json()
 }
 
+export async function getOTDescuentos(servicioId) {
+  const res = await fetch(`${BASE}/ot/descuentos/${servicioId}`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
 export async function getFacturaData(numero) {
   const res = await fetch(`${BASE}/ot/factura/${numero}`)
   if (!res.ok) throw new Error(await res.text())
@@ -423,6 +480,30 @@ export async function getFacturaData(numero) {
 
 export async function registrarPago(facturaId, data) {
   const res = await fetch(`${BASE}/ot/factura/${facturaId}/pago`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function anularPago(facturaId, pagoId) {
+  const res = await fetch(`${BASE}/ot/factura/${facturaId}/pago/${pagoId}/anular`, { method: 'POST' })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function anularFactura(facturaId, motivo) {
+  const res = await fetch(`${BASE}/ot/factura/${facturaId}/anular`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ motivo })
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function crearNotaCredito(facturaId, data) {
+  const res = await fetch(`${BASE}/ot/factura/${facturaId}/nota-credito`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
@@ -455,6 +536,218 @@ export async function saveVBResultados(numero, areaId, data) {
   const res = await fetch(`${BASE}/validacion/orden/${numero}/area/${areaId}/resultados`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+// ── QA Testing Module ────────────────────────────────────
+
+export async function getQADashboard() {
+  const res = await fetch(`${BASE}/qa/dashboard`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getQASuites() {
+  const res = await fetch(`${BASE}/qa/suites`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getQASuite(id) {
+  const res = await fetch(`${BASE}/qa/suites/${id}`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function createQARun(suiteId) {
+  const res = await fetch(`${BASE}/qa/runs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ suiteId }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getQARuns(params = {}) {
+  const qs = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v !== '' && v != null)
+  ).toString()
+  const res = await fetch(`${BASE}/qa/runs${qs ? '?' + qs : ''}`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getQARun(id) {
+  const res = await fetch(`${BASE}/qa/runs/${id}`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function updateQARun(id, data) {
+  const res = await fetch(`${BASE}/qa/runs/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function saveQAResults(runId, results) {
+  const res = await fetch(`${BASE}/qa/runs/${runId}/results`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ results }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getQABugs() {
+  const res = await fetch(`${BASE}/qa/bugs`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getQABug(id) {
+  const res = await fetch(`${BASE}/qa/bugs/${id}`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function createQABug(data) {
+  const res = await fetch(`${BASE}/qa/bugs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function updateQABug(id, data) {
+  const res = await fetch(`${BASE}/qa/bugs/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function uploadQAScreenshots(bugId, files) {
+  const formData = new FormData()
+  files.forEach(f => formData.append('screenshots', f))
+  const res = await fetch(`${BASE}/qa/bugs/${bugId}/screenshots`, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getQAUsers() {
+  const res = await fetch(`${BASE}/qa/users`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+export async function getQABugPrompt(bugId) {
+  const res = await fetch(`${BASE}/qa/bugs/${bugId}/prompt`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getQABrandTokens() {
+  const res = await fetch(`${BASE}/qa/brand-tokens`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+// ── QA Assignments ──
+export async function getQAAssignments() {
+  const res = await fetch(`${BASE}/qa/assignments`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function saveQAAssignments(assignments) {
+  const res = await fetch(`${BASE}/qa/assignments`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assignments }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getQAMyAssignments() {
+  const res = await fetch(`${BASE}/qa/assignments/me`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+// ── QA Team Dashboard ──
+export async function getQATeamDashboard() {
+  const res = await fetch(`${BASE}/qa/dashboard/team`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+// ── QA Notifications ──
+export async function getQANotifications(unread = false) {
+  const qs = unread ? '?unread=true' : ''
+  const res = await fetch(`${BASE}/qa/notifications${qs}`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function markQANotificationRead(id) {
+  const res = await fetch(`${BASE}/qa/notifications/${id}/read`, { method: 'PUT' })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function markAllQANotificationsRead() {
+  const res = await fetch(`${BASE}/qa/notifications/read-all`, { method: 'PUT' })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+// ── QA Mobile Sessions ──
+export async function createQASession(runId) {
+  const res = await fetch(`${BASE}/qa/sessions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ runId }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getQASession(token) {
+  const res = await fetch(`${BASE}/qa/sessions/${token}`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function saveQASessionResult(token, results) {
+  const res = await fetch(`${BASE}/qa/sessions/${token}/result`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ results }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function createQASessionBug(token, data) {
+  const res = await fetch(`${BASE}/qa/sessions/${token}/bug`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(await res.text())
   return res.json()

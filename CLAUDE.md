@@ -23,7 +23,7 @@ Reemplazar el frontend de Labsis (Java/Seam/XHTML de 2014) con React moderno.
 
 ## Referencia Labsis original
 - **XHTML:** `/Users/samuelquiroz/git/labsis/WebContent/`
-- **Brand manual:** `/Users/samuelquiroz/Documents/proyectos/labsis-modern/labsis-brand-manual-v2.html`
+- **Brand manual:** `/Users/samuelquiroz/Documents/proyectos/labsis-modern/labsis-brand-manual-v3.html`
 - **Video navegación:** `/Users/samuelquiroz/Downloads/Labsis - Sistema Integral de Laboratorios - 3 March 2026.mp4`
 
 ## Reglas de desarrollo
@@ -48,6 +48,20 @@ Reemplazar el frontend de Labsis (Java/Seam/XHTML de 2014) con React moderno.
 - **Problema:** CSS del detalle tiene parches y no se parece a Labsis. Necesita reescritura limpia.
 - **Solución:** El detalle usa `ot-shell` (NO `app-shell`) para evitar overflow:hidden
 - **Dev server:** `npm run dev` → Vite en 5173, Express en 3001
+
+## Sistema de Diseño (OBLIGATORIO para UI)
+
+**ANTES de escribir CSS o componentes de UI, LEE estos archivos:**
+1. `memory/labsis/_AGENT_DESIGN_GUIDE.md` — Guía rápida con top 30 códigos y restricciones
+2. `memory/labsis/_BRAND_CODES.md` — Catálogo completo de ~287 códigos
+3. `src/design-tokens.json` — Tokens en formato JSON consumible
+
+**Reglas:**
+- NUNCA inventes estilos. Busca si ya existe un código (BTN-001, TBL-005, etc.)
+- Si Samuel dice un código, aplica los specs EXACTOS de ese código
+- Antes de implementar UI, muestra un mini-plan con los códigos que vas a usar
+- Si necesitas algo que NO tiene código, pregunta antes de inventar
+- Brand manual visual: `/public/labsis-brand-manual-v3.html` (~287 códigos etiquetados)
 
 ## BD — Tablas principales
 - `orden_trabajo` (455K filas) — status_id, procedencia_id, usuario_id, paciente_id, medico_id

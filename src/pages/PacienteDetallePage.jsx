@@ -231,6 +231,12 @@ export default function PacienteDetallePage() {
             {p.telefono && <><span className="ot-fl">Teléfono</span><span className="ot-fv">{p.telefono}</span></>}
             {p.telefono_celular && <><span className="ot-fl">Celular</span><span className="ot-fv">{p.telefono_celular}</span></>}
             {p.email && <><span className="ot-fl">Email</span><span className="ot-fv">{p.email}</span></>}
+            {p.estado_civil && <><span className="ot-fl">Estado Civil</span><span className="ot-fv">{p.estado_civil}</span></>}
+            {p.nacionalidad && <><span className="ot-fl">Nacionalidad</span><span className="ot-fv">{p.nacionalidad}</span></>}
+            {p.lugar_nacimiento && <><span className="ot-fl">Lugar Nac.</span><span className="ot-fv">{p.lugar_nacimiento}</span></>}
+            {p.raza_nombre && <><span className="ot-fl">Raza</span><span className="ot-fv">{p.raza_nombre}</span></>}
+            {p.saludo_nombre && <><span className="ot-fl">Saludo</span><span className="ot-fv">{p.saludo_nombre}</span></>}
+            {p.num_historia && <><span className="ot-fl">Num. Historia</span><span className="ot-fv">{p.num_historia}</span></>}
           </div>
         </div>
 

@@ -1,0 +1,29 @@
+{
+  "id": 7,
+  "runId": 6,
+  "testCaseId": "lab-20",
+  "titulo": "[Auto] Fallo en: OT validada muestra resultados readonly",
+  "descripcion": "",
+  "comportamientoEsperado": "Los campos de resultado están readonly/disabled",
+  "comportamientoActual": "No se describió el comportamiento actual.",
+  "pasosReproducir": "1. Navegar al lab de una OT con estado Validado",
+  "severidad": "mayor",
+  "estado": "abierto",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+  "tipoError": "funcionalidad",
+  "codigoError": "",
+  "dondeOcurre": "Sección: Carga — Test: OT validada muestra resultados readonly",
+  "queEsperabas": "Los campos de resultado están readonly/disabled",
+  "contextoExtra": "",
+  "brandTokens": [],
+  "zonaPantalla": "",
+  "reportadoPor": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-05T04:01:00.873Z",
+  "updatedAt": "2026-03-05T04:01:00.873Z"
+}

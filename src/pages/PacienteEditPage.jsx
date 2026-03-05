@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getPaciente, getPacienteConfig, getPacientes, createPaciente, updatePaciente, validarCiPaciente, getVinculos } from '../services/api'
+import { getPaciente, getPacienteConfig, getPacientes, createPaciente, updatePaciente, validarCiPaciente, getVinculos, getCatalogoRazas, getCatalogoSaludos } from '../services/api'
 
 export default function PacienteEditPage() {
   const { id } = useParams()
@@ -12,7 +12,9 @@ export default function PacienteEditPage() {
     telefono: '', telefono_celular: '',
     direccion1: '', direccion2: '', direccion3: '', direccion4: '',
     codigo_postal: '', observaciones: '', vip: false,
-    paciente_representante_id: null, vinculo_representante_id: null
+    paciente_representante_id: null, vinculo_representante_id: null,
+    estado_civil: '', nacionalidad: '', raza_id: '', paciente_saludo_id: '',
+    lugar_nacimiento: '', num_historia: '', empresa: false
   })
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -22,6 +24,10 @@ export default function PacienteEditPage() {
   const [ciConflict, setCiConflict] = useState(null)
   const ciDebounceRef = useRef(null)
   const [editHistory, setEditHistory] = useState([])
+
+  // Catálogos demográficos
+  const [razas, setRazas] = useState([])
+  const [saludos, setSaludos] = useState([])
 
   // Representante state
   const [vinculos, setVinculos] = useState([])
@@ -34,12 +40,16 @@ export default function PacienteEditPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [cfg, vincs] = await Promise.all([
+        const [cfg, vincs, razasCat, saludosCat] = await Promise.all([
           getPacienteConfig(),
-          getVinculos()
+          getVinculos(),
+          getCatalogoRazas().catch(() => []),
+          getCatalogoSaludos().catch(() => [])
         ])
         setConfig(cfg)
         setVinculos(vincs)
+        setRazas(razasCat)
+        setSaludos(saludosCat)
 
         if (!isNew) {
           const data = await getPaciente(id)
@@ -62,7 +72,14 @@ export default function PacienteEditPage() {
             observaciones: p.observaciones || '',
             vip: p.vip || false,
             paciente_representante_id: p.paciente_representante_id || null,
-            vinculo_representante_id: p.vinculo_representante_id || null
+            vinculo_representante_id: p.vinculo_representante_id || null,
+            estado_civil: p.estado_civil || '',
+            nacionalidad: p.nacionalidad || '',
+            raza_id: p.raza_id || '',
+            paciente_saludo_id: p.paciente_saludo_id || '',
+            lugar_nacimiento: p.lugar_nacimiento || '',
+            num_historia: p.num_historia || '',
+            empresa: p.empresa || false
           })
           if (data.representante) {
             setSelectedRep(data.representante)
@@ -191,6 +208,12 @@ export default function PacienteEditPage() {
       direccion4: 'direccion_4',
       codigo_postal: 'codigo_postal',
       observaciones: true,
+      estado_civil: 'estado_civil',
+      nacionalidad: 'nacionalidad',
+      raza_id: 'raza',
+      paciente_saludo_id: 'saludo_paciente',
+      lugar_nacimiento: 'lugar_nacimiento',
+      num_historia: 'historia_medica',
     }
     const cfgKey = map[field]
     if (cfgKey === true) return true
@@ -313,6 +336,65 @@ export default function PacienteEditPage() {
                   <span className="pac-toggle-label">{form.vip ? 'VIP' : 'No VIP'}</span>
                 </label>
               </div>
+              <div className="pac-form-field">
+                <label>Empresa</label>
+                <label className={`pac-toggle ${form.empresa ? 'pac-toggle-active' : ''}`}>
+                  <input type="checkbox" checked={form.empresa} onChange={e => set('empresa', e.target.checked)} />
+                  <span className="pac-toggle-track">
+                    <span className="pac-toggle-thumb" />
+                  </span>
+                  <span className="pac-toggle-label">{form.empresa ? 'Es empresa' : 'Persona'}</span>
+                </label>
+              </div>
+              {show('estado_civil') && (
+                <div className="pac-form-field">
+                  <label>Estado Civil</label>
+                  <select value={form.estado_civil} onChange={e => set('estado_civil', e.target.value)}>
+                    <option value="">— Seleccionar —</option>
+                    <option value="Soltero">Soltero</option>
+                    <option value="Casado">Casado</option>
+                    <option value="Divorciado">Divorciado</option>
+                    <option value="Viudo">Viudo</option>
+                    <option value="Unión Libre">Unión Libre</option>
+                  </select>
+                </div>
+              )}
+              {show('nacionalidad') && (
+                <div className="pac-form-field">
+                  <label>Nacionalidad</label>
+                  <input value={form.nacionalidad} onChange={e => set('nacionalidad', e.target.value)} maxLength={20} placeholder="Ej: Mexicana" />
+                </div>
+              )}
+              {show('lugar_nacimiento') && (
+                <div className="pac-form-field">
+                  <label>Lugar de Nacimiento</label>
+                  <input value={form.lugar_nacimiento} onChange={e => set('lugar_nacimiento', e.target.value)} maxLength={20} />
+                </div>
+              )}
+              {show('raza_id') && razas.length > 0 && (
+                <div className="pac-form-field">
+                  <label>Raza</label>
+                  <select value={form.raza_id} onChange={e => set('raza_id', e.target.value)}>
+                    <option value="">— Seleccionar —</option>
+                    {razas.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                  </select>
+                </div>
+              )}
+              {show('paciente_saludo_id') && saludos.length > 0 && (
+                <div className="pac-form-field">
+                  <label>Saludo</label>
+                  <select value={form.paciente_saludo_id} onChange={e => set('paciente_saludo_id', e.target.value)}>
+                    <option value="">— Seleccionar —</option>
+                    {saludos.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                  </select>
+                </div>
+              )}
+              {show('num_historia') && (
+                <div className="pac-form-field">
+                  <label>Num. Historia</label>
+                  <input value={form.num_historia} onChange={e => set('num_historia', e.target.value)} placeholder="Número de expediente" />
+                </div>
+              )}
             </div>
           </div>
         </div>

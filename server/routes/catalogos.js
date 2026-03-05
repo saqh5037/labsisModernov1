@@ -103,4 +103,32 @@ router.get('/laboratorio', async (_req, res) => {
   }
 })
 
+// GET /api/razas — Catálogo de razas de paciente
+router.get('/razas', async (_req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, raza AS nombre, codigo, orden
+       FROM paciente_raza
+       ORDER BY orden, raza`
+    )
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/saludos — Catálogo de saludos de paciente
+router.get('/saludos', async (_req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, nombre, abreviacion, codigo
+       FROM paciente_saludo
+       ORDER BY nombre`
+    )
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 export default router

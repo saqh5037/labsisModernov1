@@ -205,16 +205,21 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params
 
-    // 1. Datos del paciente
+    // 1. Datos del paciente (incluye demográficos + JOINs raza/saludo)
     const pacResult = await pool.query(
       `SELECT p.*,
               pr.nombre AS provincia_nombre,
               ci.nombre AS ciudad_nombre,
-              mu.nombre AS municipio_nombre
+              mu.nombre AS municipio_nombre,
+              pra.raza AS raza_nombre,
+              psa.nombre AS saludo_nombre,
+              p.num_historia_old AS num_historia
        FROM paciente p
        LEFT JOIN direccion_provincia pr ON p.direccion_provincia_id = pr.id
        LEFT JOIN direccion_ciudad ci ON p.direccion_ciudad_id = ci.id
        LEFT JOIN direccion_municipio mu ON p.direccion_municipio_id = mu.id
+       LEFT JOIN paciente_raza pra ON pra.id = p.raza_id
+       LEFT JOIN paciente_saludo psa ON psa.id = p.paciente_saludo_id
        WHERE p.id = $1`,
       [id]
     )
@@ -330,7 +335,9 @@ router.post('/', async (req, res) => {
       sexo, fecha_nacimiento, email, telefono, telefono_celular,
       direccion1, direccion2, direccion3, direccion4,
       codigo_postal, observaciones, vip,
-      paciente_representante_id, vinculo_representante_id
+      paciente_representante_id, vinculo_representante_id,
+      estado_civil, nacionalidad, raza_id, paciente_saludo_id,
+      lugar_nacimiento, num_historia, empresa
     } = req.body
 
     // Validaciones
@@ -356,15 +363,20 @@ router.post('/', async (req, res) => {
         direccion1, direccion2, direccion3, direccion4,
         codigo_postal, observaciones, vip,
         paciente_representante_id, vinculo_representante_id,
+        estado_civil, nacionalidad, raza_id, paciente_saludo_id,
+        lugar_nacimiento, num_historia_old, empresa,
         activo
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18, true)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25, true)
       RETURNING id`,
       [
         ci_paciente?.trim() || null, nombre.trim(), apellido.trim(), apellido_segundo?.trim() || null,
         sexo, fecha_nacimiento || null, email?.trim() || null, telefono?.trim() || null, telefono_celular?.trim() || null,
         direccion1?.trim() || null, direccion2?.trim() || null, direccion3?.trim() || null, direccion4?.trim() || null,
         codigo_postal?.trim() || null, observaciones?.trim() || null, vip || false,
-        paciente_representante_id || null, vinculo_representante_id || null
+        paciente_representante_id || null, vinculo_representante_id || null,
+        estado_civil?.trim() || null, nacionalidad?.trim() || null,
+        raza_id ? parseInt(raza_id) : null, paciente_saludo_id ? parseInt(paciente_saludo_id) : null,
+        lugar_nacimiento?.trim() || null, num_historia?.trim() || null, empresa || false
       ]
     )
 
@@ -399,7 +411,9 @@ router.put('/:id', async (req, res) => {
       'sexo', 'fecha_nacimiento', 'email', 'telefono', 'telefono_celular',
       'direccion1', 'direccion2', 'direccion3', 'direccion4',
       'codigo_postal', 'observaciones', 'vip',
-      'paciente_representante_id', 'vinculo_representante_id'
+      'paciente_representante_id', 'vinculo_representante_id',
+      'estado_civil', 'nacionalidad', 'raza_id', 'paciente_saludo_id',
+      'lugar_nacimiento', 'empresa'
     ]
 
     const setClauses = []
@@ -417,6 +431,18 @@ router.put('/:id', async (req, res) => {
           changes.push(`${field}: "${oldVal ?? ''}" → "${newVal ?? ''}"`)
           paramIdx++
         }
+      }
+    }
+
+    // Mapeo especial: num_historia (UI) → num_historia_old (BD)
+    if ('num_historia' in fields) {
+      const newVal = fields.num_historia === '' ? null : fields.num_historia
+      const oldVal = old.num_historia_old
+      if (String(newVal ?? '') !== String(oldVal ?? '')) {
+        setClauses.push(`num_historia_old = $${paramIdx}`)
+        params.push(newVal)
+        changes.push(`num_historia: "${oldVal ?? ''}" → "${newVal ?? ''}"`)
+        paramIdx++
       }
     }
 

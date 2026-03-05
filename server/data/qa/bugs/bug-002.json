@@ -1,0 +1,47 @@
+{
+  "id": 2,
+  "runId": 4,
+  "testCaseId": "pac-05",
+  "titulo": "Botón Guardar usa color incorrecto",
+  "descripcion": "",
+  "comportamientoEsperado": "",
+  "comportamientoActual": "El botón aparece con un azul más oscuro tipo navy",
+  "pasosReproducir": "",
+  "severidad": "menor",
+  "estado": "abierto",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "Safari iPad 17.0",
+  "tipoError": "visual",
+  "codigoError": "",
+  "dondeOcurre": "Pantalla de editar paciente, footer de acciones",
+  "queEsperabas": "El botón Guardar debe ser BTN-001 (azul primario #3b82f6)",
+  "contextoExtra": "",
+  "brandTokens": [
+    {
+      "code": "BTN-001",
+      "name": "Primary",
+      "color": "#3b82f6",
+      "category": "Botones"
+    },
+    {
+      "code": "COL-001",
+      "name": "Primary",
+      "color": "#3b82f6",
+      "category": "Colores"
+    },
+    {
+      "code": "ZON-004",
+      "name": "Acciones",
+      "category": "Zonas / Layout"
+    }
+  ],
+  "zonaPantalla": "footer",
+  "reportadoPor": {
+    "id": 107,
+    "nombre": "CHRISTIAN MIJARES"
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-05T03:48:32.023Z",
+  "updatedAt": "2026-03-05T03:48:32.023Z"
+}

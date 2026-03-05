@@ -11,6 +11,8 @@ import pacientesRouter from './routes/pacientes.js'
 import otEditRouter from './routes/ot-edit.js'
 import validacionRouter from './routes/validacion.js'
 import devRouter from './routes/dev.js'
+import qaRouter from './routes/qa.js'
+import qaPublicRouter from './routes/qa-public.js'
 
 dotenv.config()
 
@@ -29,7 +31,15 @@ app.use('/api/ot', requireAuth, otEditRouter)
 app.use('/api/validacion', requireAuth, validacionRouter)
 app.use('/api/medicos', requireAuth, medicosRouter)
 app.use('/api/pacientes', requireAuth, pacientesRouter)
+app.use('/api/qa', qaPublicRouter)          // Public mobile session endpoints (no auth - MUST be before catalogos)
 app.use('/api', requireAuth, catalogosRouter)
+app.use('/api/qa', requireAuth, qaRouter)   // Protected QA endpoints
+
+// Static files for QA screenshots
+import { fileURLToPath } from 'url'
+import path from 'path'
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+app.use('/api/qa/screenshots', requireAuth, express.static(path.join(__dirname, 'data/qa/screenshots')))
 
 app.listen(PORT, () => {
   console.log(`API corriendo en http://localhost:${PORT}`)

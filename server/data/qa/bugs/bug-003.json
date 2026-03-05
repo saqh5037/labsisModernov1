@@ -1,0 +1,29 @@
+{
+  "id": 3,
+  "runId": 6,
+  "testCaseId": "lab-03",
+  "titulo": "[Auto] Fallo en: Ingresar valor numérico",
+  "descripcion": "",
+  "comportamientoEsperado": "El valor se acepta. Si está fuera de rango, se marca con flag H/L",
+  "comportamientoActual": "No se describió el comportamiento actual.",
+  "pasosReproducir": "1. Encontrar prueba numérica\n2. Escribir un valor (ej: 120)",
+  "severidad": "mayor",
+  "estado": "abierto",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+  "tipoError": "funcionalidad",
+  "codigoError": "",
+  "dondeOcurre": "Sección: Ingreso — Test: Ingresar valor numérico",
+  "queEsperabas": "El valor se acepta. Si está fuera de rango, se marca con flag H/L",
+  "contextoExtra": "",
+  "brandTokens": [],
+  "zonaPantalla": "",
+  "reportadoPor": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-05T04:01:00.825Z",
+  "updatedAt": "2026-03-05T04:01:00.825Z"
+}

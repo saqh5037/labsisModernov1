@@ -1,0 +1,279 @@
+{
+  "id": "pacientes",
+  "nombre": "Pacientes CRUD",
+  "modulo": "pacientes",
+  "descripcion": "Verificar lista, búsqueda, crear, editar, detalle, desactivar pacientes",
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "pac-01",
+      "seccion": "Lista",
+      "titulo": "Página carga con pacientes",
+      "descripcion": "Al navegar a /pacientes se muestra tabla con datos",
+      "pasos": [
+        "Login",
+        "Navegar a /pacientes"
+      ],
+      "resultado_esperado": "Tabla con pacientes. Columnas: CI, Nombre, Sexo, Edad, Teléfono, Email",
+      "prioridad": "critico",
+      "orden": 1
+    },
+    {
+      "id": "pac-02",
+      "seccion": "Búsqueda",
+      "titulo": "Búsqueda por nombre",
+      "descripcion": "Escribir nombre parcial filtra resultados",
+      "pasos": [
+        "Escribir 'Juan' en campo de búsqueda",
+        "Esperar resultado"
+      ],
+      "resultado_esperado": "Solo pacientes cuyo nombre contiene 'Juan'",
+      "prioridad": "critico",
+      "orden": 2
+    },
+    {
+      "id": "pac-03",
+      "seccion": "Búsqueda",
+      "titulo": "Búsqueda por CI",
+      "descripcion": "Buscar por número de cédula",
+      "pasos": [
+        "Escribir CI en campo búsqueda"
+      ],
+      "resultado_esperado": "Paciente con esa CI aparece en resultados",
+      "prioridad": "critico",
+      "orden": 3
+    },
+    {
+      "id": "pac-04",
+      "seccion": "Búsqueda",
+      "titulo": "Búsqueda multi-palabra",
+      "descripcion": "Buscar con nombre y apellido separados por espacio",
+      "pasos": [
+        "Escribir 'Juan Perez' en búsqueda"
+      ],
+      "resultado_esperado": "Encuentra pacientes que coincidan con ambas palabras",
+      "prioridad": "alto",
+      "orden": 4
+    },
+    {
+      "id": "pac-05",
+      "seccion": "Búsqueda",
+      "titulo": "Búsqueda sin acentos",
+      "descripcion": "Buscar 'Jose' encuentra 'José'",
+      "pasos": [
+        "Escribir 'Jose' (sin acento)"
+      ],
+      "resultado_esperado": "Encuentra 'José' (con acento) — búsqueda insensible a acentos",
+      "prioridad": "alto",
+      "orden": 5
+    },
+    {
+      "id": "pac-06",
+      "seccion": "Crear",
+      "titulo": "Formulario de nuevo paciente",
+      "descripcion": "El botón + Nuevo navega al form de creación",
+      "pasos": [
+        "Click en '+ Nuevo Paciente'"
+      ],
+      "resultado_esperado": "Navega a /pacientes/nuevo con formulario vacío",
+      "prioridad": "critico",
+      "orden": 6
+    },
+    {
+      "id": "pac-07",
+      "seccion": "Crear",
+      "titulo": "Crear paciente con datos mínimos",
+      "descripcion": "Guardar paciente con solo nombre y apellido",
+      "pasos": [
+        "Llenar nombre y apellido",
+        "Click Guardar"
+      ],
+      "resultado_esperado": "Paciente se crea. Navega al detalle del nuevo paciente",
+      "prioridad": "critico",
+      "orden": 7
+    },
+    {
+      "id": "pac-08",
+      "seccion": "Crear",
+      "titulo": "Validación de CI única",
+      "descripcion": "No permite crear paciente con CI duplicada",
+      "pasos": [
+        "Llenar form con CI existente",
+        "Click Guardar"
+      ],
+      "resultado_esperado": "Error: 'Ya existe un paciente con esta cédula'",
+      "prioridad": "critico",
+      "orden": 8
+    },
+    {
+      "id": "pac-09",
+      "seccion": "Crear",
+      "titulo": "Campos condicionales por config",
+      "descripcion": "Los campos respetan configuracion_paciente",
+      "pasos": [
+        "Abrir form de creación",
+        "Verificar qué campos aparecen"
+      ],
+      "resultado_esperado": "Solo aparecen los campos habilitados en configuracion_paciente",
+      "prioridad": "alto",
+      "orden": 9
+    },
+    {
+      "id": "pac-10",
+      "seccion": "Detalle",
+      "titulo": "Ver detalle de paciente",
+      "descripcion": "Click en paciente de la lista abre su detalle",
+      "pasos": [
+        "Click en cualquier paciente de la lista"
+      ],
+      "resultado_esperado": "Navega a /pacientes/{id} con toda la info del paciente",
+      "prioridad": "critico",
+      "orden": 10
+    },
+    {
+      "id": "pac-11",
+      "seccion": "Detalle",
+      "titulo": "Historial de OTs visible",
+      "descripcion": "El detalle muestra las órdenes de trabajo del paciente",
+      "pasos": [
+        "Abrir detalle de paciente con OTs"
+      ],
+      "resultado_esperado": "Lista de OTs del paciente con número, fecha, estado",
+      "prioridad": "alto",
+      "orden": 11
+    },
+    {
+      "id": "pac-12",
+      "seccion": "Detalle",
+      "titulo": "Badge VIP",
+      "descripcion": "Paciente VIP muestra badge especial",
+      "pasos": [
+        "Abrir detalle de paciente con VIP=true"
+      ],
+      "resultado_esperado": "Badge 'VIP' visible en el header del paciente",
+      "prioridad": "bajo",
+      "orden": 12
+    },
+    {
+      "id": "pac-13",
+      "seccion": "Editar",
+      "titulo": "Editar paciente existente",
+      "descripcion": "Botón Editar carga form con datos actuales",
+      "pasos": [
+        "Abrir detalle de paciente",
+        "Click Editar"
+      ],
+      "resultado_esperado": "Form precargado con todos los datos del paciente",
+      "prioridad": "critico",
+      "orden": 13
+    },
+    {
+      "id": "pac-14",
+      "seccion": "Editar",
+      "titulo": "Guardar cambios",
+      "descripcion": "Modificar un campo y guardar",
+      "pasos": [
+        "Cambiar teléfono",
+        "Click Guardar",
+        "Verificar en detalle"
+      ],
+      "resultado_esperado": "El teléfono se actualiza. El cambio persiste",
+      "prioridad": "critico",
+      "orden": 14
+    },
+    {
+      "id": "pac-15",
+      "seccion": "Editar",
+      "titulo": "Log de cambios",
+      "descripcion": "Los cambios se registran en el historial",
+      "pasos": [
+        "Editar paciente",
+        "Guardar",
+        "Ver historial de cambios"
+      ],
+      "resultado_esperado": "Se registra quién cambió qué campo y cuándo",
+      "prioridad": "alto",
+      "orden": 15
+    },
+    {
+      "id": "pac-16",
+      "seccion": "Desactivar",
+      "titulo": "Desactivar paciente",
+      "descripcion": "Botón desactivar marca paciente como inactivo",
+      "pasos": [
+        "Abrir detalle de paciente sin OTs recientes",
+        "Click Desactivar",
+        "Confirmar"
+      ],
+      "resultado_esperado": "Paciente se marca inactivo. Badge 'Inactivo' aparece",
+      "prioridad": "alto",
+      "orden": 16
+    },
+    {
+      "id": "pac-17",
+      "seccion": "Desactivar",
+      "titulo": "Reactivar paciente",
+      "descripcion": "Paciente desactivado se puede reactivar",
+      "pasos": [
+        "Abrir detalle de paciente inactivo",
+        "Click Activar"
+      ],
+      "resultado_esperado": "Paciente vuelve a estado activo",
+      "prioridad": "alto",
+      "orden": 17
+    },
+    {
+      "id": "pac-18",
+      "seccion": "Crear",
+      "titulo": "Sexo como radio buttons",
+      "descripcion": "El campo sexo usa radio buttons M/F",
+      "pasos": [
+        "Abrir form de creación",
+        "Ver campo sexo"
+      ],
+      "resultado_esperado": "Radio buttons para Masculino/Femenino (no dropdown)",
+      "prioridad": "medio",
+      "orden": 18
+    },
+    {
+      "id": "pac-19",
+      "seccion": "Crear",
+      "titulo": "Representante se puede asignar",
+      "descripcion": "Seleccionar un representante para el paciente",
+      "pasos": [
+        "En form de creación, buscar representante",
+        "Seleccionar uno"
+      ],
+      "resultado_esperado": "Se asigna el representante y se muestra su nombre",
+      "prioridad": "medio",
+      "orden": 19
+    },
+    {
+      "id": "pac-20",
+      "seccion": "Lista",
+      "titulo": "Paginación funciona",
+      "descripcion": "Navegar entre páginas de resultados",
+      "pasos": [
+        "Buscar sin filtros",
+        "Click siguiente página"
+      ],
+      "resultado_esperado": "Se cargan más pacientes. Contador de página se actualiza",
+      "prioridad": "alto",
+      "orden": 20
+    }
+  ],
+  "archivos": {
+    "frontend": [
+      "src/pages/PacienteListPage.jsx",
+      "src/pages/PacienteDetallePage.jsx",
+      "src/pages/PacienteEditPage.jsx"
+    ],
+    "backend": [
+      "server/routes/pacientes.js"
+    ],
+    "api": [
+      "src/services/api.js — getPacientes, getPaciente, createPaciente, updatePaciente"
+    ],
+    "ruta": "/pacientes"
+  }
+}

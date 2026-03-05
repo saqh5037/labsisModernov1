@@ -1,0 +1,173 @@
+{
+  "id": "facturacion",
+  "nombre": "Facturación y Cobro",
+  "modulo": "facturacion",
+  "descripcion": "Verificar detalle de factura, pagos, tipos de pago y estados",
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "fac-01",
+      "seccion": "Acceso",
+      "titulo": "Página de cobro carga",
+      "descripcion": "Acceder a /ordenes/{numero}/cobro",
+      "pasos": [
+        "Crear OT con Guardar y Cobrar",
+        "O navegar directo a /ordenes/{numero}/cobro"
+      ],
+      "resultado_esperado": "Se carga la página de cobro con items de la factura",
+      "prioridad": "critico",
+      "orden": 1
+    },
+    {
+      "id": "fac-02",
+      "seccion": "Detalle",
+      "titulo": "Items de factura visibles",
+      "descripcion": "Se muestran las pruebas/grupos con precios",
+      "pasos": [
+        "Ver la lista de items"
+      ],
+      "resultado_esperado": "Cada prueba/grupo con su precio individual. Total visible",
+      "prioridad": "critico",
+      "orden": 2
+    },
+    {
+      "id": "fac-03",
+      "seccion": "Detalle",
+      "titulo": "Total coincide con OT",
+      "descripcion": "El total de la factura debe coincidir con la suma de pruebas",
+      "pasos": [
+        "Comparar total de factura con total de OT"
+      ],
+      "resultado_esperado": "Los totales son iguales",
+      "prioridad": "critico",
+      "orden": 3
+    },
+    {
+      "id": "fac-04",
+      "seccion": "Pagos",
+      "titulo": "Agregar pago efectivo",
+      "descripcion": "Registrar pago en efectivo",
+      "pasos": [
+        "Seleccionar tipo 'Efectivo'",
+        "Ingresar monto",
+        "Click Agregar"
+      ],
+      "resultado_esperado": "Pago se registra. El saldo pendiente disminuye",
+      "prioridad": "critico",
+      "orden": 4
+    },
+    {
+      "id": "fac-05",
+      "seccion": "Pagos",
+      "titulo": "Agregar pago con tarjeta",
+      "descripcion": "Registrar pago con tarjeta de crédito/débito",
+      "pasos": [
+        "Seleccionar tipo 'Tarjeta'",
+        "Ingresar monto",
+        "Click Agregar"
+      ],
+      "resultado_esperado": "Pago con tarjeta se registra correctamente",
+      "prioridad": "alto",
+      "orden": 5
+    },
+    {
+      "id": "fac-06",
+      "seccion": "Pagos",
+      "titulo": "Pagos parciales",
+      "descripcion": "Pagar menos del total y registrar otro pago después",
+      "pasos": [
+        "Agregar pago por 50% del total",
+        "Agregar otro pago por el 50% restante"
+      ],
+      "resultado_esperado": "Ambos pagos se registran. El saldo llega a 0",
+      "prioridad": "alto",
+      "orden": 6
+    },
+    {
+      "id": "fac-07",
+      "seccion": "Pagos",
+      "titulo": "Pago mayor al saldo",
+      "descripcion": "Intentar pagar más de lo que se debe",
+      "pasos": [
+        "Ingresar monto mayor al saldo pendiente",
+        "Click Agregar"
+      ],
+      "resultado_esperado": "Error o se calcula el cambio/vuelto",
+      "prioridad": "alto",
+      "orden": 7
+    },
+    {
+      "id": "fac-08",
+      "seccion": "Pagos",
+      "titulo": "Badge de estado de factura",
+      "descripcion": "Estado de la factura refleja si está pagada o pendiente",
+      "pasos": [
+        "Observar el badge de estado"
+      ],
+      "resultado_esperado": "Pendiente=amarillo, Pagada=verde, Parcial=naranja",
+      "prioridad": "alto",
+      "orden": 8
+    },
+    {
+      "id": "fac-09",
+      "seccion": "Pagos",
+      "titulo": "Múltiples tipos de pago",
+      "descripcion": "Pagar con combinación efectivo + tarjeta",
+      "pasos": [
+        "Agregar pago efectivo parcial",
+        "Agregar pago tarjeta por el resto"
+      ],
+      "resultado_esperado": "Ambos pagos se registran con sus tipos correctos",
+      "prioridad": "alto",
+      "orden": 9
+    },
+    {
+      "id": "fac-10",
+      "seccion": "Detalle",
+      "titulo": "Datos del paciente en factura",
+      "descripcion": "La factura muestra datos del paciente",
+      "pasos": [
+        "Ver header de la factura"
+      ],
+      "resultado_esperado": "Nombre, CI del paciente visible",
+      "prioridad": "alto",
+      "orden": 10
+    },
+    {
+      "id": "fac-11",
+      "seccion": "Detalle",
+      "titulo": "Número de factura visible",
+      "descripcion": "Se muestra el número de factura asignado",
+      "pasos": [
+        "Ver la página de cobro"
+      ],
+      "resultado_esperado": "Número de factura visible en el header",
+      "prioridad": "alto",
+      "orden": 11
+    },
+    {
+      "id": "fac-12",
+      "seccion": "Acceso",
+      "titulo": "Factura de OT abortada",
+      "descripcion": "No se puede cobrar una OT abortada",
+      "pasos": [
+        "Intentar acceder a cobro de OT abortada"
+      ],
+      "resultado_esperado": "Mensaje de error o redirección. No se permite cobrar",
+      "prioridad": "alto",
+      "orden": 12
+    }
+  ],
+  "archivos": {
+    "frontend": [
+      "src/pages/FacturaCobro.jsx"
+    ],
+    "backend": [
+      "server/routes/ordenes.js"
+    ],
+    "api": [
+      "src/services/api.js — getFactura, registrarPago"
+    ],
+    "ruta": "/ordenes/:numero/cobro"
+  }
+}

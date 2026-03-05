@@ -1,0 +1,425 @@
+[
+  {
+    "category": "Filosofía",
+    "prefix": "PHI",
+    "tokens": [
+      { "code": "PHI-001", "name": "Fatiga Visual Zero", "desc": "Contrastes calibrados, colores fríos, tipografía legible" },
+      { "code": "PHI-002", "name": "Separación Sutil", "desc": "Zonas distinguidas sin bordes pesados" },
+      { "code": "PHI-003", "name": "Información que Flota", "desc": "Filas flotan con fondos alternados ultra-sutiles" }
+    ]
+  },
+  {
+    "category": "Logo",
+    "prefix": "LOG",
+    "tokens": [
+      { "code": "LOG-001", "name": "Logo fondo oscuro", "desc": "Átomo estilizado: órbitas azules, núcleo rojo" },
+      { "code": "LOG-002", "name": "Logo fondo claro", "desc": "Órbitas navy + blue, núcleo rojo" },
+      { "code": "LOG-003", "name": "Logo gradiente", "desc": "Órbitas blancas translúcidas, núcleo rojo" },
+      { "code": "LOG-004", "name": "Regla logo", "desc": "Rojo SOLO en logo, NUNCA en UI" }
+    ]
+  },
+  {
+    "category": "Colores",
+    "prefix": "COL",
+    "tokens": [
+      { "code": "COL-001", "name": "Primary", "desc": "#3b82f6 — CTAs, links, estados activos", "color": "#3b82f6" },
+      { "code": "COL-002", "name": "Primary Hover", "desc": "#2563eb — Hover en botones primarios", "color": "#2563eb" },
+      { "code": "COL-003", "name": "Primary Light", "desc": "#60a5fa — Acentos secundarios", "color": "#60a5fa" },
+      { "code": "COL-004", "name": "Primary Lightest", "desc": "#93c5fd — Acentos terciarios", "color": "#93c5fd" },
+      { "code": "COL-005", "name": "Primary Dark", "desc": "#1e40af — CTAs prominentes", "color": "#1e40af" },
+      { "code": "COL-007", "name": "Primary BG", "desc": "#f0f5ff — Fondos, badges, hovers", "color": "#f0f5ff" },
+      { "code": "COL-010", "name": "Navy", "desc": "#1a365d — Header, sidebar, texto principal", "color": "#1a365d" },
+      { "code": "COL-020", "name": "Gold", "desc": "#d97706 — CTAs secundarios, badges de orden", "color": "#d97706" },
+      { "code": "COL-030", "name": "Success", "desc": "#059669 — Validado, resultados normales", "color": "#059669" },
+      { "code": "COL-031", "name": "Success BG", "desc": "#ecfdf5 — Fondo sutil de éxito", "color": "#ecfdf5" },
+      { "code": "COL-032", "name": "Error", "desc": "#dc2626 — Errores, alertas críticas", "color": "#dc2626" },
+      { "code": "COL-033", "name": "Error BG", "desc": "#fef2f2 — Fondo sutil de error", "color": "#fef2f2" },
+      { "code": "COL-034", "name": "Warning", "desc": "#d97706 — Advertencias, pendientes", "color": "#d97706" },
+      { "code": "COL-040", "name": "Text Primary", "desc": "#1e293b — Texto principal", "color": "#1e293b" },
+      { "code": "COL-041", "name": "Text Secondary", "desc": "#64748b — Labels, texto secundario", "color": "#64748b" },
+      { "code": "COL-042", "name": "Text Muted", "desc": "#94a3b8 — Placeholders, hints", "color": "#94a3b8" },
+      { "code": "COL-050", "name": "Surface", "desc": "#ffffff — Fondo principal", "color": "#ffffff" },
+      { "code": "COL-051", "name": "Surface Raised", "desc": "#f8fafc — Table headers, fondos elevados", "color": "#f8fafc" },
+      { "code": "COL-052", "name": "Surface Sunken", "desc": "#f1f5f9 — Fondos hundidos, input bg", "color": "#f1f5f9" },
+      { "code": "COL-060", "name": "Border", "desc": "rgba(15,23,42,0.06) — Borde estándar" },
+      { "code": "COL-062", "name": "Border Focus", "desc": "rgba(59,130,246,0.4) — Borde focus" }
+    ]
+  },
+  {
+    "category": "Tipografía",
+    "prefix": "TYP",
+    "tokens": [
+      { "code": "TYP-001", "name": "Título principal", "desc": "Inter 28px 700 Bold, -0.5px spacing" },
+      { "code": "TYP-002", "name": "Subtítulo sección", "desc": "Inter 22px 600 SemiBold, -0.3px spacing" },
+      { "code": "TYP-003", "name": "Título de grupo", "desc": "Inter 16px 600 SemiBold" },
+      { "code": "TYP-004", "name": "Cuerpo principal", "desc": "Inter 14px 500 Medium" },
+      { "code": "TYP-005", "name": "Texto secundario", "desc": "Inter 13px 400 Regular" },
+      { "code": "TYP-006", "name": "Label uppercase", "desc": "Inter 11px 500 Medium, uppercase, 0.5px spacing" },
+      { "code": "TYP-010", "name": "ID de orden", "desc": "JetBrains Mono 14px 600 SemiBold" },
+      { "code": "TYP-011", "name": "Resultados numéricos", "desc": "JetBrains Mono 13px 500 Medium" },
+      { "code": "TYP-012", "name": "Metadata", "desc": "JetBrains Mono 11px 400 Regular" },
+      { "code": "TYP-013", "name": "CURP/códigos", "desc": "JetBrains Mono 12px 500 Medium" },
+      { "code": "TYP-014", "name": "Metadata labels", "desc": "JetBrains Mono 10px 500 uppercase, 1px spacing" }
+    ]
+  },
+  {
+    "category": "Botones",
+    "prefix": "BTN",
+    "tokens": [
+      { "code": "BTN-001", "name": "Primary", "desc": "bg: #3b82f6, color: #fff — Guardar, Validar", "color": "#3b82f6" },
+      { "code": "BTN-002", "name": "Secondary", "desc": "bg: #f0f5ff, color: #3b82f6 — Nueva Orden", "color": "#f0f5ff" },
+      { "code": "BTN-003", "name": "Validate", "desc": "bg: #059669, color: #fff — Validar Todo", "color": "#059669" },
+      { "code": "BTN-004", "name": "Outline", "desc": "transparent, border: rgba(15,23,42,0.12) — Exportar PDF" },
+      { "code": "BTN-005", "name": "Ghost", "desc": "transparent, color: #64748b — Cancelar" },
+      { "code": "BTN-006", "name": "Danger", "desc": "bg: #dc2626, color: #fff — Eliminar", "color": "#dc2626" },
+      { "code": "BTN-007", "name": "Disabled", "desc": "bg: #f1f5f9, color: #94a3b8", "color": "#f1f5f9" },
+      { "code": "BTN-008", "name": "Primary sobre oscuro", "desc": "bg: #3b82f6, color: #fff — Sobre fondo navy", "color": "#3b82f6" },
+      { "code": "BTN-009", "name": "Outline invertido", "desc": "transparent, border: rgba(255,255,255,0.25) — Sobre oscuro" },
+      { "code": "BTN-010", "name": "Ghost invertido", "desc": "transparent, color: rgba(255,255,255,0.7) — Sobre oscuro" }
+    ]
+  },
+  {
+    "category": "Badges",
+    "prefix": "BDG",
+    "tokens": [
+      { "code": "BDG-001", "name": "Success", "desc": "bg: #ecfdf5, color: #059669 — Validado, Normal", "color": "#059669" },
+      { "code": "BDG-002", "name": "Warning", "desc": "bg: #fffbeb, color: #d97706 — Pendiente", "color": "#d97706" },
+      { "code": "BDG-003", "name": "Error", "desc": "bg: #fef2f2, color: #dc2626 — Error, Crítico", "color": "#dc2626" },
+      { "code": "BDG-004", "name": "Info", "desc": "bg: #f0f5ff, color: #3b82f6 — En proceso", "color": "#3b82f6" },
+      { "code": "BDG-005", "name": "Order", "desc": "pill gold outline — ORD-2026-001458", "color": "#d97706" },
+      { "code": "BDG-006", "name": "Result Normal", "desc": "Mini badge resultado normal 11px", "color": "#059669" },
+      { "code": "BDG-007", "name": "Result Fuera Rango", "desc": "Mini badge resultado alto 11px", "color": "#dc2626" }
+    ]
+  },
+  {
+    "category": "Formularios",
+    "prefix": "FRM",
+    "tokens": [
+      { "code": "FRM-001", "name": "Input normal", "desc": "bg: #f8fafc, border: rgba(15,23,42,0.1), radius: 8px" },
+      { "code": "FRM-002", "name": "Input focus", "desc": "border: #3b82f6, shadow: 0 0 0 3px rgba(59,130,246,0.15)" },
+      { "code": "FRM-003", "name": "Input error", "desc": "border: #dc2626, shadow: 0 0 0 3px rgba(220,38,38,0.1)" },
+      { "code": "FRM-004", "name": "Label", "desc": "12px 500, color: #64748b, margin-bottom: 6px" },
+      { "code": "FRM-005", "name": "Select", "desc": "Igual que input + flecha chevron" },
+      { "code": "FRM-006", "name": "Textarea", "desc": "Igual que input, height: 60px" },
+      { "code": "FRM-007", "name": "Search input", "desc": "Con icono lupa 15px, padding-left: 36px" },
+      { "code": "FRM-008", "name": "Error text", "desc": "11px, color: #dc2626, margin-top: 6px" },
+      { "code": "FRM-009", "name": "Toggle buttons", "desc": "Grupo seleccionable (Rutina/Urgente/STAT)" },
+      { "code": "FRM-010", "name": "Form layout", "desc": "Grid 3 columnas, gap 16px" }
+    ]
+  },
+  {
+    "category": "Tarjetas",
+    "prefix": "CRD",
+    "tokens": [
+      { "code": "CRD-001", "name": "Estándar", "desc": "bg: white, border, shadow-sm, radius: 16px" },
+      { "code": "CRD-002", "name": "Elevada (Glass)", "desc": "backdrop-filter, borde translúcido" },
+      { "code": "CRD-003", "name": "Oscura", "desc": "bg: navy, texto blanco" }
+    ]
+  },
+  {
+    "category": "Tablas",
+    "prefix": "TBL",
+    "tokens": [
+      { "code": "TBL-001", "name": "Tabla plana", "desc": "Floating table: sin header pesado, filas alternadas" },
+      { "code": "TBL-002", "name": "Header", "desc": "bg: #f8fafc, 11px 600 uppercase" },
+      { "code": "TBL-003", "name": "Fila normal", "desc": "padding: 10px 12px, border-bottom" },
+      { "code": "TBL-004", "name": "Fila hover", "desc": "bg: rgba(59,130,246,0.03)" },
+      { "code": "TBL-005", "name": "Fila alarma", "desc": "bg: rgba(220,38,38,0.04), border-left 3px rojo" },
+      { "code": "TBL-006", "name": "Celda mono", "desc": "JetBrains Mono 13px 500" },
+      { "code": "TBL-007", "name": "Celda estudio", "desc": "Inter 500, color: text-primary" },
+      { "code": "TBL-008", "name": "Celda crítica", "desc": "JetBrains Mono 600, color: #dc2626, flash" },
+      { "code": "TBL-009", "name": "Tabla agrupada", "desc": "result-group con header colapsable" },
+      { "code": "TBL-010", "name": "Group header", "desc": "bg: #f8fafc, border-left 3px primary" },
+      { "code": "TBL-011", "name": "Sparkline inline", "desc": "SVG 50x16, stroke 1.5px" },
+      { "code": "TBL-012", "name": "Acción Validar", "desc": "BTN-001 mini: 10px, padding 3px 8px" },
+      { "code": "TBL-013", "name": "Acción Revisar", "desc": "BTN-006 mini: 10px, padding 3px 8px" }
+    ]
+  },
+  {
+    "category": "Zonas / Layout",
+    "prefix": "ZON",
+    "tokens": [
+      { "code": "ZON-001", "name": "Header", "desc": "bg: surface, borde inferior, sticky" },
+      { "code": "ZON-002", "name": "Filtros", "desc": "bg: #f8fafc, chips de filtro" },
+      { "code": "ZON-003", "name": "Tabla", "desc": "bg: surface, área principal" },
+      { "code": "ZON-004", "name": "Acciones", "desc": "bg: surface, borde superior, botones a la derecha" },
+      { "code": "ZON-005", "name": "Footer", "desc": "bg: #f1f5f9, info secundaria" },
+      { "code": "ZON-006", "name": "Anatomy hover", "desc": "primary-bg, padding-left 28px" }
+    ]
+  },
+  {
+    "category": "Sombras",
+    "prefix": "SHD",
+    "tokens": [
+      { "code": "SHD-001", "name": "XS", "desc": "0 1px 2px rgba(30,58,95,0.04)" },
+      { "code": "SHD-002", "name": "SM", "desc": "0 1px 4px rgba(30,58,95,0.05)" },
+      { "code": "SHD-003", "name": "Default", "desc": "0 2px 8px rgba(30,58,95,0.06)" },
+      { "code": "SHD-004", "name": "MD", "desc": "0 4px 16px rgba(30,58,95,0.07)" },
+      { "code": "SHD-005", "name": "LG", "desc": "0 8px 32px rgba(30,58,95,0.10)" },
+      { "code": "SHD-006", "name": "Focus", "desc": "0 0 0 3px rgba(59,130,246,0.15)" },
+      { "code": "SHD-007", "name": "Atmospheric", "desc": "Multi-layer navy-tinted" },
+      { "code": "SHD-008", "name": "Elevated", "desc": "Multi-layer heavy" }
+    ]
+  },
+  {
+    "category": "Border Radius",
+    "prefix": "RAD",
+    "tokens": [
+      { "code": "RAD-001", "name": "XS (6px)", "desc": "Badges, chips pequeños" },
+      { "code": "RAD-002", "name": "SM (8px)", "desc": "Botones, inputs" },
+      { "code": "RAD-003", "name": "Default (12px)", "desc": "Cards, dropdowns" },
+      { "code": "RAD-004", "name": "LG (16px)", "desc": "Cards grandes, modales" },
+      { "code": "RAD-005", "name": "XL (20px)", "desc": "Contenedores hero" },
+      { "code": "RAD-006", "name": "2XL (24px)", "desc": "Elementos decorativos" },
+      { "code": "RAD-007", "name": "Full (9999px)", "desc": "Pill badges, avatares" }
+    ]
+  },
+  {
+    "category": "Espaciado",
+    "prefix": "SPC",
+    "tokens": [
+      { "code": "SPC-001", "name": "4px", "desc": "Gap mínimo entre elementos inline" },
+      { "code": "SPC-002", "name": "6px", "desc": "Padding badge, gap chips" },
+      { "code": "SPC-003", "name": "8px", "desc": "Base unit. Gap entre items, padding inputs" },
+      { "code": "SPC-004", "name": "12px", "desc": "Gap entre campos de formulario" },
+      { "code": "SPC-005", "name": "16px", "desc": "Gap entre secciones, padding cards" },
+      { "code": "SPC-006", "name": "20px", "desc": "Padding lateral de contenedores" },
+      { "code": "SPC-007", "name": "24px", "desc": "Padding de secciones grandes" },
+      { "code": "SPC-008", "name": "32px", "desc": "Separación entre zonas principales" }
+    ]
+  },
+  {
+    "category": "Controles",
+    "prefix": "CTR",
+    "tokens": [
+      { "code": "CTR-001", "name": "Checkbox unchecked", "desc": "16x16, border 1.5px, radius 4px" },
+      { "code": "CTR-002", "name": "Checkbox checked", "desc": "bg: primary, icon check blanco" },
+      { "code": "CTR-005", "name": "Radio selected", "desc": "16x16, border 2px primary, inner dot" },
+      { "code": "CTR-006", "name": "Radio unselected", "desc": "16x16, border 1.5px" },
+      { "code": "CTR-008", "name": "Toggle on", "desc": "40x22px, bg: primary, knob 18px white" },
+      { "code": "CTR-009", "name": "Toggle off", "desc": "40x22px, bg: #d1d5db, knob 18px" }
+    ]
+  },
+  {
+    "category": "Tabs / Pills",
+    "prefix": "TAB",
+    "tokens": [
+      { "code": "TAB-001", "name": "Tab con línea activo", "desc": "color primary, border-bottom 2px" },
+      { "code": "TAB-002", "name": "Tab inactivo", "desc": "color muted, sin border-bottom" },
+      { "code": "TAB-003", "name": "Pill activo", "desc": "bg: primary, color: white, radius 20px" },
+      { "code": "TAB-004", "name": "Pill inactivo", "desc": "bg: surface-raised, color: text-secondary" },
+      { "code": "TAB-005", "name": "Breadcrumb item", "desc": "color: primary, 13px, hover: underline" },
+      { "code": "TAB-006", "name": "Breadcrumb current", "desc": "color: text-primary, weight 600" }
+    ]
+  },
+  {
+    "category": "Sidebar",
+    "prefix": "SDB",
+    "tokens": [
+      { "code": "SDB-001", "name": "Sidebar dark", "desc": "bg: navy, width: 240px" },
+      { "code": "SDB-002", "name": "Sidebar light", "desc": "bg: white, border-right 1px" },
+      { "code": "SDB-003", "name": "Item activo dark", "desc": "bg: rgba(59,130,246,0.15), border-left 3px" },
+      { "code": "SDB-004", "name": "Item activo light", "desc": "bg: primary-bg, color: primary" },
+      { "code": "SDB-005", "name": "Item inactivo", "desc": "color: text-secondary / rgba(255,255,255,0.6)" },
+      { "code": "SDB-007", "name": "Notif badge", "desc": "bg: primary, 18x18 rounded-full, 10px 700" }
+    ]
+  },
+  {
+    "category": "Stat Cards",
+    "prefix": "STC",
+    "tokens": [
+      { "code": "STC-001", "name": "Card container", "desc": "bg: white, radius 16px, shadow atmospheric, padding 20px" },
+      { "code": "STC-002", "name": "Icon container", "desc": "40x40, radius 10px, bg: semantic 10%" },
+      { "code": "STC-003", "name": "Label", "desc": "Inter 12px 500, color: text-secondary" },
+      { "code": "STC-004", "name": "Value", "desc": "Inter 28px 700, color: text-primary" },
+      { "code": "STC-007", "name": "Countdown timer", "desc": "JetBrains 10px 600, bg: rgba(217,119,6,0.1)" },
+      { "code": "STC-008", "name": "Live dot", "desc": "6px circle, bg: error, animation pulse" }
+    ]
+  },
+  {
+    "category": "Flags de Resultados",
+    "prefix": "FLG",
+    "tokens": [
+      { "code": "FLG-001", "name": "Normal (N)", "desc": "bg: #ecfdf5, color: #059669", "color": "#059669" },
+      { "code": "FLG-002", "name": "Alto (H)", "desc": "bg: #fef2f2, color: #dc2626", "color": "#dc2626" },
+      { "code": "FLG-003", "name": "Bajo (L)", "desc": "bg: #eff6ff, color: #3b82f6", "color": "#3b82f6" },
+      { "code": "FLG-004", "name": "Crítico (C)", "desc": "bg: #fef2f2, color: #dc2626, pulse", "color": "#dc2626" },
+      { "code": "FLG-005", "name": "Muy Alto (HH)", "desc": "bg: #fef2f2, color: #dc2626", "color": "#dc2626" },
+      { "code": "FLG-006", "name": "Muy Bajo (LL)", "desc": "bg: #eff6ff, color: #3b82f6", "color": "#3b82f6" }
+    ]
+  },
+  {
+    "category": "Marcas Clínicas",
+    "prefix": "MRK",
+    "tokens": [
+      { "code": "MRK-001", "name": "Nombre paciente", "desc": "Inter 14px 600, color: #1e293b" },
+      { "code": "MRK-002", "name": "ID Paciente", "desc": "JetBrains Mono 12px 500, gold pill outline" },
+      { "code": "MRK-003", "name": "Resultado numérico", "desc": "JetBrains Mono 14px 500, tabular figures" },
+      { "code": "MRK-004", "name": "Resultado crítico", "desc": "JetBrains Mono 14px 600, color: #dc2626" },
+      { "code": "MRK-005", "name": "Unidad de medida", "desc": "Inter 13px 400, color: #64748b" },
+      { "code": "MRK-006", "name": "Valor referencia", "desc": "JetBrains Mono 12px 400, color: #94a3b8" },
+      { "code": "MRK-007", "name": "Nombre estudio", "desc": "Inter 13.5px 500, color: #1e293b" },
+      { "code": "MRK-008", "name": "Número de orden", "desc": "JetBrains Mono 12px 500, gold pill" },
+      { "code": "MRK-009", "name": "Fecha/hora", "desc": "Inter 13px 400, color: #64748b" },
+      { "code": "MRK-010", "name": "Notas/Obs", "desc": "Inter 12px 400 italic, color: #94a3b8" },
+      { "code": "MRK-011", "name": "Área/sección", "desc": "Inter 11px 500 uppercase, color: #94a3b8" },
+      { "code": "MRK-012", "name": "Metadato label", "desc": "JetBrains Mono 10px 500 uppercase" }
+    ]
+  },
+  {
+    "category": "Alertas / Animaciones",
+    "prefix": "ANI",
+    "tokens": [
+      { "code": "ANI-001", "name": "Valor crítico pulse", "desc": "bg pulse suave, opacity 0.7↔1, 3s" },
+      { "code": "ANI-002", "name": "Typing dots", "desc": "3 dots 5px, bounce secuencial" },
+      { "code": "ANI-003", "name": "New result slide-in", "desc": "translateX(30px)→0, badge Nuevo" },
+      { "code": "ANI-004", "name": "Spinner", "desc": "24px circle, border 2.5px, spin 0.8s" },
+      { "code": "ANI-005", "name": "Skeleton", "desc": "bg shimmer gradient, 1.5s" },
+      { "code": "ANI-006", "name": "Progress ring", "desc": "SVG circle, stroke-dasharray animated" },
+      { "code": "ANI-007", "name": "Progress bar", "desc": "Track #f1f5f9, fill primary, animated" }
+    ]
+  },
+  {
+    "category": "Modales",
+    "prefix": "MDL",
+    "tokens": [
+      { "code": "MDL-001", "name": "Overlay", "desc": "bg: rgba(0,0,0,0.4)" },
+      { "code": "MDL-002", "name": "Container", "desc": "bg: white, radius 16px, shadow-lg, max-width 460px" },
+      { "code": "MDL-003", "name": "Header", "desc": "padding 20px 24px, border-bottom, title + close" },
+      { "code": "MDL-004", "name": "Body", "desc": "padding 20px 24px, font 14px" },
+      { "code": "MDL-005", "name": "Footer", "desc": "padding 16px 24px, border-top, botones a la derecha" },
+      { "code": "MDL-006", "name": "Close button", "desc": "32px, hover bg: surface-raised" }
+    ]
+  },
+  {
+    "category": "Toasts",
+    "prefix": "TST",
+    "tokens": [
+      { "code": "TST-001", "name": "Success", "desc": "bg: white, icon: success-bg — Acciones exitosas" },
+      { "code": "TST-002", "name": "Error", "desc": "bg: white, icon: error-bg — Fallos" },
+      { "code": "TST-003", "name": "Warning", "desc": "bg: white, icon: warning-bg — Advertencias" },
+      { "code": "TST-004", "name": "Info", "desc": "bg: white, icon: primary-bg — Notificaciones" }
+    ]
+  },
+  {
+    "category": "Tooltips",
+    "prefix": "TTP",
+    "tokens": [
+      { "code": "TTP-001", "name": "Tooltip", "desc": "bg: navy, color: white, radius 6px, 12px, delay 200ms" }
+    ]
+  },
+  {
+    "category": "Dropdowns",
+    "prefix": "DRP",
+    "tokens": [
+      { "code": "DRP-001", "name": "Container", "desc": "bg: white, radius 12px, shadow-lg" },
+      { "code": "DRP-002", "name": "Item normal", "desc": "padding 7px 12px, 13px, hover: surface-raised" },
+      { "code": "DRP-003", "name": "Item activo", "desc": "icon check, color: primary" },
+      { "code": "DRP-004", "name": "Item danger", "desc": "color: error" },
+      { "code": "DRP-006", "name": "Trigger", "desc": "13px 500, icon chevron-down" }
+    ]
+  },
+  {
+    "category": "Paginación",
+    "prefix": "PAG",
+    "tokens": [
+      { "code": "PAG-001", "name": "Botón página", "desc": "32x32, radius 8px, 13px 500" },
+      { "code": "PAG-002", "name": "Página activa", "desc": "bg: primary, color: white" },
+      { "code": "PAG-003", "name": "Página inactiva", "desc": "bg: transparent, hover: surface-raised" },
+      { "code": "PAG-005", "name": "Page info", "desc": "\"1-25 de 294 resultados\" 12px muted" }
+    ]
+  },
+  {
+    "category": "Gráficas",
+    "prefix": "CHT",
+    "tokens": [
+      { "code": "CHT-001", "name": "Sparkline", "desc": "SVG stroke 2px, area fill gradient" },
+      { "code": "CHT-002", "name": "Reference band", "desc": "SVG rect, fill success-bg" },
+      { "code": "CHT-003", "name": "Bar chart", "desc": "Track #f1f5f9, fill primary, 6px radius 3px" }
+    ]
+  },
+  {
+    "category": "Menú Principal",
+    "prefix": "MNU",
+    "tokens": [
+      { "code": "MNU-001", "name": "Top bar", "desc": "height 56px, bg: white, border-bottom" },
+      { "code": "MNU-002", "name": "Menu item activo", "desc": "color: primary, weight 600, border-bottom 2px" },
+      { "code": "MNU-003", "name": "Menu item inactivo", "desc": "color: text-secondary, 13px 500" },
+      { "code": "MNU-004", "name": "Search bar", "desc": "bg: surface-sunken, radius 8px, lupa, Ctrl+K" },
+      { "code": "MNU-006", "name": "Avatar", "desc": "32px circle, bg: primary, initials white" }
+    ]
+  },
+  {
+    "category": "Filtros",
+    "prefix": "FLT",
+    "tokens": [
+      { "code": "FLT-001", "name": "Filtros desplegados", "desc": "Grid 6 cols, labels 11px, inputs/selects" },
+      { "code": "FLT-002", "name": "Filtro input", "desc": "12px, 7px 10px padding, bg: surface-raised" },
+      { "code": "FLT-003", "name": "Filtro select", "desc": "Igual a input + chevron" },
+      { "code": "FLT-005", "name": "Filtro fecha", "desc": "Icon calendario, JetBrains 13px" },
+      { "code": "FLT-006", "name": "Botón Buscar", "desc": "bg: primary, icon lupa, 13px 600" },
+      { "code": "FLT-007", "name": "Barra compacta", "desc": "1 fila: search + selects + btn, glass-2" },
+      { "code": "FLT-008", "name": "Tabs filtro rápido", "desc": "Pills Todos/Pendientes/Validados/Críticos" },
+      { "code": "FLT-010", "name": "Chips de filtro", "desc": "Pills con ×, bg: primary-bg, color: primary" }
+    ]
+  },
+  {
+    "category": "Iconografía",
+    "prefix": "ICO",
+    "tokens": [
+      { "code": "ICO-001", "name": "Lucide outline default", "desc": "16px (nav), 14px (inline), stroke 2px" },
+      { "code": "ICO-002", "name": "12px mini", "desc": "Dentro de badges y chips" },
+      { "code": "ICO-003", "name": "20px medium", "desc": "Sidebar, stat cards" },
+      { "code": "ICO-004", "name": "24px large", "desc": "Empty states, acciones destacadas" }
+    ]
+  },
+  {
+    "category": "Templates de Página",
+    "prefix": "TPL",
+    "tokens": [
+      { "code": "TPL-001", "name": "OT List", "desc": "Topbar + tab bar + filter grid + floating-table + pagination" },
+      { "code": "TPL-002", "name": "OT Detail", "desc": "Title bar + patient info + sections gold" },
+      { "code": "TPL-003", "name": "OT Results", "desc": "Tab bar + result groups + table flags + toolbar validate" },
+      { "code": "TPL-004", "name": "Screen topbar", "desc": "44px, logo + icons 30x30 + search pill" },
+      { "code": "TPL-009", "name": "Screen field", "desc": "label: 10px 600 uppercase, input: 6px 10px 12px" },
+      { "code": "TPL-010", "name": "Screen status dot", "desc": "10x10px circle, colores semánticos" },
+      { "code": "TPL-011", "name": "Screen action icons", "desc": "24x24 radius 6px, hover: primary-bg scale(1.15)" },
+      { "code": "TPL-015", "name": "Patient info bar", "desc": "flex wrap gap 16px, bg: surface, radius 12px" }
+    ]
+  },
+  {
+    "category": "Liquid Glass",
+    "prefix": "GLS",
+    "tokens": [
+      { "code": "GLS-001", "name": "Glass Level 1", "desc": "rgba(255,255,255,0.45), blur 28px — Navbar, sidebar" },
+      { "code": "GLS-002", "name": "Glass Level 2", "desc": "rgba(255,255,255,0.55), blur 20px — Cards, modales" },
+      { "code": "GLS-003", "name": "Glass Level 3", "desc": "rgba(255,255,255,0.65), blur 16px — Tooltips" },
+      { "code": "GLS-004", "name": "Shine effect", "desc": "linear-gradient 135deg, ::after pseudo-elements" },
+      { "code": "GLS-005", "name": "Dark glass 1", "desc": "rgba(15,23,42,0.75) — Dark mode navbar" },
+      { "code": "GLS-006", "name": "Dark glass 2", "desc": "rgba(15,23,42,0.85) — Dark mode cards" },
+      { "code": "GLS-BG1", "name": "Mesh Gradient Body", "desc": "#edf2ff con 6 radial-gradients fixed" }
+    ]
+  },
+  {
+    "category": "Loading States",
+    "prefix": "LOD",
+    "tokens": [
+      { "code": "LOD-001", "name": "Spinner", "desc": "28x28, border 2.5px, spin 0.8s" },
+      { "code": "LOD-002", "name": "Skeleton line", "desc": "height 10px, shimmer gradient, 1.5s" },
+      { "code": "LOD-003", "name": "Progress ring", "desc": "SVG 56x56, stroke 4px, text JetBrains 12px" },
+      { "code": "LOD-004", "name": "Progress bar", "desc": "track 6px, fill gradient primary→primary-light" }
+    ]
+  },
+  {
+    "category": "Transiciones",
+    "prefix": "TRN",
+    "tokens": [
+      { "code": "TRN-001", "name": "Fast (150ms)", "desc": "Transiciones rápidas" },
+      { "code": "TRN-002", "name": "Default (200ms)", "desc": "Transición estándar" },
+      { "code": "TRN-003", "name": "Slow (300ms)", "desc": "Transiciones lentas" },
+      { "code": "TRN-004", "name": "Ease out", "desc": "cubic-bezier(0.16, 1, 0.3, 1)" },
+      { "code": "TRN-005", "name": "Ease in-out", "desc": "cubic-bezier(0.4, 0, 0.2, 1)" },
+      { "code": "TRN-006", "name": "Spring", "desc": "cubic-bezier(0.34, 1.56, 0.64, 1)" }
+    ]
+  }
+]

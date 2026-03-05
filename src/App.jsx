@@ -27,6 +27,15 @@ import DevProcess from './pages/DevProcess'
 import DevDocs from './pages/DevDocs'
 import DevBrand from './pages/DevBrand'
 import DevAudit from './pages/DevAudit'
+import QADashboardPage from './pages/QADashboardPage'
+import QASuiteListPage from './pages/QASuiteListPage'
+import QASuiteDetailPage from './pages/QASuiteDetailPage'
+import QARunPage from './pages/QARunPage'
+import QARunListPage from './pages/QARunListPage'
+import QABugListPage from './pages/QABugListPage'
+import QABugDetailPage from './pages/QABugDetailPage'
+import QATeamPage from './pages/QATeamPage'
+import QAMobileRunPage from './pages/QAMobileRunPage'
 
 export default function App() {
   return (
@@ -53,6 +62,15 @@ export default function App() {
             <Route path="/validacion" element={<OrdenLabPage />} />
             <Route path="/en-construccion/:seccion" element={<EnConstruccion />} />
           </Route>
+          <Route path="/qa" element={<QADashboardPage />} />
+          <Route path="/qa/suites" element={<QASuiteListPage />} />
+          <Route path="/qa/suites/:id" element={<QASuiteDetailPage />} />
+          <Route path="/qa/runs" element={<QARunListPage />} />
+          <Route path="/qa/runs/:id" element={<QARunPage />} />
+          <Route path="/qa/bugs" element={<QABugListPage />} />
+          <Route path="/qa/bugs/:id" element={<QABugDetailPage />} />
+          <Route path="/qa/team" element={<QATeamPage />} />
+          <Route path="/qa/mobile/:token" element={<QAMobileRunPage />} />
           <Route path="/dev" element={<DevDashboard />} />
           <Route path="/dev/screen/:id" element={<DevScreenDetail />} />
           <Route path="/dev/arch" element={<DevArchitecture />} />

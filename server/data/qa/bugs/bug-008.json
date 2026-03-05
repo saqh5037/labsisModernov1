@@ -1,0 +1,30 @@
+{
+  "id": 8,
+  "runId": 7,
+  "testCaseId": "auth-02",
+  "titulo": "Fallo en: Login con credenciales inválidas",
+  "descripcion": "",
+  "comportamientoEsperado": "Error: 'Credenciales inválidas' o similar. No se hace login",
+  "comportamientoActual": "",
+  "pasosReproducir": "1. Navegar a /login\n2. Escribir username válido\n3. Escribir password INCORRECTA\n4. Click Login",
+  "severidad": "menor",
+  "estado": "en_progreso",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+  "tipoError": "visual",
+  "codigoError": "",
+  "dondeOcurre": "",
+  "queEsperabas": "",
+  "contextoExtra": "",
+  "brandTokens": [],
+  "zonaPantalla": "filtros",
+  "reportadoPor": {
+    "id": 81,
+    "nombre": "Dynamtek dynamtek"
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-05T05:16:33.179Z",
+  "updatedAt": "2026-03-05T05:24:34.730Z",
+  "resueltoAt": "2026-03-05T05:24:33.752Z"
+}

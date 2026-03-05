@@ -110,10 +110,10 @@ export default function PrintOrdenTrabajo() {
       <table className="pot-exam-table">
         <thead>
           <tr>
-            <th style={{ width: '39%' }}>Descripción</th>
-            <th style={{ width: '9%' }}>Cantidad</th>
-            <th style={{ width: '26%' }}>Precio Uni.</th>
-            <th style={{ width: '26%', textAlign: 'right' }}>Total</th>
+            <th className="pot-col-desc">Descripción</th>
+            <th className="pot-col-qty">Cantidad</th>
+            <th className="pot-col-price">Precio Uni.</th>
+            <th className="pot-col-total">Total</th>
           </tr>
         </thead>
         <tbody>

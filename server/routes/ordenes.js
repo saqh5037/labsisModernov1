@@ -15,125 +15,90 @@ function formatNumResult(val, formato) {
   return num.toFixed(decimals)
 }
 
+// ── Shared filter builder (used by GET /api/ordenes and GET /api/ordenes/dashboard) ──
+function buildFilterConditions(query) {
+  const { numero, cedula, numFactura, numInicial, numFinal, fechaDesde, fechaHasta,
+    estado, procedencia, area, prueba, servicioMedico, numIngreso, usuario,
+    enviarEmail, emailEnviado } = query
+  const params = []
+  const conditions = []
+
+  if (numero) {
+    params.push(numero)
+    conditions.push(`ot.numero::text ILIKE $${params.length} || '%'`)
+  }
+  if (cedula) {
+    params.push(cedula)
+    conditions.push(`p.ci_paciente::text ILIKE $${params.length} || '%'`)
+  }
+  if (numFactura) {
+    params.push(numFactura)
+    conditions.push(`ot.facturada_numero::text ILIKE '%' || $${params.length} || '%'`)
+  }
+  if (fechaDesde) {
+    params.push(fechaDesde)
+    conditions.push(`ot.fecha >= $${params.length}::date`)
+  }
+  if (fechaHasta) {
+    params.push(fechaHasta + ' 23:59:59')
+    conditions.push(`ot.fecha <= $${params.length}::timestamp`)
+  }
+  if (estado) {
+    const estados = estado.split(',').map(e => parseInt(e))
+    params.push(estados)
+    conditions.push(`ot.status_id = ANY($${params.length})`)
+  }
+  if (numInicial && numFinal) {
+    params.push(numInicial)
+    params.push(numFinal)
+    conditions.push(`ot.numero >= $${params.length - 1} AND ot.numero <= $${params.length}`)
+  } else if (numInicial) {
+    params.push(numInicial)
+    conditions.push(`ot.numero >= $${params.length}`)
+  } else if (numFinal) {
+    params.push(numFinal)
+    conditions.push(`ot.numero <= $${params.length}`)
+  }
+  if (procedencia) {
+    params.push(parseInt(procedencia))
+    conditions.push(`ot.procedencia_id = $${params.length}`)
+  }
+  if (area) {
+    const areaIds = area.split(',').map(id => parseInt(id))
+    params.push(areaIds)
+    conditions.push(`EXISTS (SELECT 1 FROM prueba_orden po_f WHERE po_f.orden_id = ot.id AND po_f.area_id = ANY($${params.length}))`)
+  }
+  if (prueba) {
+    params.push(parseInt(prueba))
+    conditions.push(`EXISTS (SELECT 1 FROM prueba_orden po_f WHERE po_f.orden_id = ot.id AND po_f.prueba_id = $${params.length})`)
+  }
+  if (servicioMedico) {
+    params.push(parseInt(servicioMedico))
+    conditions.push(`ot.servicio_medico_id = $${params.length}`)
+  }
+  if (numIngreso) {
+    params.push(numIngreso)
+    conditions.push(`ot.num_ingreso::text ILIKE $${params.length} || '%'`)
+  }
+  if (usuario) {
+    params.push(parseInt(usuario))
+    conditions.push(`ot.usuario_id = $${params.length}`)
+  }
+  if (enviarEmail === 'si') conditions.push(`ot.sent_mail = true`)
+  else if (enviarEmail === 'no') conditions.push(`ot.sent_mail = false`)
+  if (emailEnviado === 'si') conditions.push(`ot.enviado_email_creacion = true`)
+  else if (emailEnviado === 'no') conditions.push(`ot.enviado_email_creacion = false`)
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+  return { params, where }
+}
+
 // GET /api/ordenes
 router.get('/', async (req, res) => {
   try {
-    const {
-      numero,
-      cedula,
-      numFactura,
-      numInicial,
-      numFinal,
-      fechaDesde,
-      fechaHasta,
-      estado,
-      procedencia,
-      area,
-      prueba,
-      servicioMedico,
-      numIngreso,
-      usuario,
-      orden,
-      enviarEmail,
-      emailEnviado,
-      page = 1,
-      limit = 25,
-    } = req.query
-
+    const { orden, page = 1, limit = 25 } = req.query
+    const { params, where } = buildFilterConditions(req.query)
     const offset = (parseInt(page) - 1) * parseInt(limit)
-    const params = []
-    const conditions = []
-
-    // Filtros que ya existían
-    if (numero) {
-      params.push(numero)
-      conditions.push(`ot.numero::text ILIKE $${params.length} || '%'`)
-    }
-
-    if (cedula) {
-      params.push(cedula)
-      conditions.push(`p.ci_paciente::text ILIKE $${params.length} || '%'`)
-    }
-
-    if (numFactura) {
-      params.push(numFactura)
-      conditions.push(`ot.facturada_numero::text ILIKE '%' || $${params.length} || '%'`)
-    }
-
-    if (fechaDesde) {
-      params.push(fechaDesde)
-      conditions.push(`ot.fecha >= $${params.length}::date`)
-    }
-
-    if (fechaHasta) {
-      params.push(fechaHasta + ' 23:59:59')
-      conditions.push(`ot.fecha <= $${params.length}::timestamp`)
-    }
-
-    if (estado) {
-      const estados = estado.split(',').map((e) => parseInt(e))
-      params.push(estados)
-      conditions.push(`ot.status_id = ANY($${params.length})`)
-    }
-
-    // ── Filtros nuevos ──
-
-    if (numInicial && numFinal) {
-      params.push(numInicial)
-      params.push(numFinal)
-      conditions.push(`ot.numero >= $${params.length - 1} AND ot.numero <= $${params.length}`)
-    } else if (numInicial) {
-      params.push(numInicial)
-      conditions.push(`ot.numero >= $${params.length}`)
-    } else if (numFinal) {
-      params.push(numFinal)
-      conditions.push(`ot.numero <= $${params.length}`)
-    }
-
-    if (procedencia) {
-      params.push(parseInt(procedencia))
-      conditions.push(`ot.procedencia_id = $${params.length}`)
-    }
-
-    if (area) {
-      const areaIds = area.split(',').map(id => parseInt(id))
-      params.push(areaIds)
-      conditions.push(`EXISTS (SELECT 1 FROM prueba_orden po WHERE po.orden_id = ot.id AND po.area_id = ANY($${params.length}))`)
-    }
-
-    if (prueba) {
-      params.push(parseInt(prueba))
-      conditions.push(`EXISTS (SELECT 1 FROM prueba_orden po WHERE po.orden_id = ot.id AND po.prueba_id = $${params.length})`)
-    }
-
-    if (servicioMedico) {
-      params.push(parseInt(servicioMedico))
-      conditions.push(`ot.servicio_medico_id = $${params.length}`)
-    }
-
-    if (numIngreso) {
-      params.push(numIngreso)
-      conditions.push(`ot.num_ingreso::text ILIKE $${params.length} || '%'`)
-    }
-
-    if (usuario) {
-      params.push(parseInt(usuario))
-      conditions.push(`ot.usuario_id = $${params.length}`)
-    }
-
-    if (enviarEmail === 'si') {
-      conditions.push(`ot.sent_mail = true`)
-    } else if (enviarEmail === 'no') {
-      conditions.push(`ot.sent_mail = false`)
-    }
-
-    if (emailEnviado === 'si') {
-      conditions.push(`ot.enviado_email_creacion = true`)
-    } else if (emailEnviado === 'no') {
-      conditions.push(`ot.enviado_email_creacion = false`)
-    }
-
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
     // Ordenamiento sanitizado
     const orderDir = orden === 'asc' ? 'ASC' : 'DESC'
@@ -147,6 +112,7 @@ router.get('/', async (req, res) => {
         p.ci_paciente AS cedula,
         proc.nombre AS procedencia,
         sm.nombre AS "servicioMedico",
+        ot.status_id,
         so.status,
         so.color,
         ot.num_ingreso
@@ -179,13 +145,49 @@ router.get('/', async (req, res) => {
     ])
 
     const total = parseInt(countResult.rows[0].total)
+    const ordenes = dataResult.rows
+
+    // When area filter is active, fetch per-area statuses for returned OTs
+    let areaStatuses = null
+    const { area } = req.query
+    if (area && ordenes.length > 0) {
+      const areaIds = area.split(',').map(id => parseInt(id))
+      const otIds = ordenes.map(o => o.id)
+      const saResult = await pool.query(`
+        SELECT sa.orden_id, sa.area_id, a.area AS area_nombre,
+               sa.status_orden_id, so.status, so.color,
+               sa.entregada, sa.verificado, sa.is_activa_alarma_val_ref,
+               sa.porcentaje_con_valor_resultado
+        FROM status_area sa
+        JOIN area a ON sa.area_id = a.id
+        JOIN status_orden so ON sa.status_orden_id = so.id
+        WHERE sa.orden_id = ANY($1) AND sa.area_id = ANY($2)
+        ORDER BY a.area
+      `, [otIds, areaIds])
+
+      // Group by orden_id → { area_id: statusData }
+      areaStatuses = {}
+      for (const r of saResult.rows) {
+        if (!areaStatuses[r.orden_id]) areaStatuses[r.orden_id] = {}
+        areaStatuses[r.orden_id][r.area_id] = {
+          status_id: r.status_orden_id,
+          status: r.status,
+          color: r.color,
+          entregada: r.entregada,
+          verificado: r.verificado,
+          alarma: r.is_activa_alarma_val_ref,
+          progreso: r.porcentaje_con_valor_resultado,
+        }
+      }
+    }
 
     res.json({
-      ordenes: dataResult.rows,
+      ordenes,
       total,
       page: parseInt(page),
       limit: parseInt(limit),
       totalPages: Math.ceil(total / parseInt(limit)),
+      ...(areaStatuses && { areaStatuses }),
     })
   } catch (err) {
     console.error('Error en /api/ordenes:', err)
@@ -201,6 +203,109 @@ router.get('/status', async (_req, res) => {
     )
     res.json(result.rows)
   } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/ordenes/dashboard — stats agregados para el dashboard lateral
+router.get('/dashboard', async (req, res) => {
+  try {
+    const { params, where } = buildFilterConditions(req.query)
+    const baseJoin = `FROM orden_trabajo ot
+      LEFT JOIN paciente p ON ot.paciente_id = p.id
+      LEFT JOIN procedencia proc ON ot.procedencia_id = proc.id
+      LEFT JOIN status_orden so ON ot.status_id = so.id
+      LEFT JOIN servicio_medico sm ON ot.servicio_medico_id = sm.id`
+
+    // A) OTs por status
+    const sqlPorStatus = `
+      SELECT COUNT(DISTINCT ot.id) AS total,
+             so.id AS status_id, so.status, so.color, so.orden
+      ${baseJoin}
+      ${where}
+      GROUP BY so.id, so.status, so.color, so.orden
+      ORDER BY so.orden ASC`
+
+    // B) Progreso pruebas validadas (separate subqueries to avoid cartesian product)
+    const sqlProgresoPruebas = `
+      SELECT
+        COUNT(po.id) AS total_pruebas,
+        COUNT(CASE WHEN po.status_id IN (4,7) THEN 1 END) AS validadas
+      FROM prueba_orden po
+      JOIN orden_trabajo ot ON po.orden_id = ot.id
+      LEFT JOIN paciente p ON ot.paciente_id = p.id
+      LEFT JOIN procedencia proc ON ot.procedencia_id = proc.id
+      LEFT JOIN status_orden so ON ot.status_id = so.id
+      LEFT JOIN servicio_medico sm ON ot.servicio_medico_id = sm.id
+      ${where}`
+
+    const sqlProgresoMuestras = `
+      SELECT
+        COUNT(CASE WHEN mu.muestra_recibida = true THEN 1 END) AS muestras_procesadas,
+        COUNT(CASE WHEN mu.muestra_recibida = false OR mu.muestra_recibida IS NULL THEN 1 END) AS muestras_pendientes,
+        COUNT(*) AS total_muestras
+      FROM muestra mu
+      JOIN orden_trabajo ot ON mu.orden_id = ot.id
+      LEFT JOIN paciente p ON ot.paciente_id = p.id
+      LEFT JOIN procedencia proc ON ot.procedencia_id = proc.id
+      LEFT JOIN status_orden so ON ot.status_id = so.id
+      LEFT JOIN servicio_medico sm ON ot.servicio_medico_id = sm.id
+      ${where}`
+
+    // C) Progreso por área
+    const sqlPorArea = `
+      SELECT a.area, a.id AS area_id,
+             AVG(sa.porcentaje_con_valor_resultado)::int AS progreso_promedio,
+             COUNT(*) AS total,
+             COUNT(CASE WHEN sa.status_orden_id = 4 THEN 1 END) AS validadas
+      FROM status_area sa
+      JOIN area a ON sa.area_id = a.id
+      JOIN orden_trabajo ot ON sa.orden_id = ot.id
+      LEFT JOIN paciente p ON ot.paciente_id = p.id
+      LEFT JOIN procedencia proc ON ot.procedencia_id = proc.id
+      LEFT JOIN status_orden so ON ot.status_id = so.id
+      LEFT JOIN servicio_medico sm ON ot.servicio_medico_id = sm.id
+      ${where}
+      GROUP BY a.id, a.area
+      ORDER BY a.area`
+
+    const [statusRes, pruebasRes, muestrasRes, areaRes] = await Promise.all([
+      pool.query(sqlPorStatus, params),
+      pool.query(sqlProgresoPruebas, params),
+      pool.query(sqlProgresoMuestras, params),
+      pool.query(sqlPorArea, params),
+    ])
+
+    const pr = pruebasRes.rows[0] || {}
+    const mu = muestrasRes.rows[0] || {}
+    const totalPruebas = parseInt(pr.total_pruebas) || 0
+    const validadas = parseInt(pr.validadas) || 0
+
+    res.json({
+      porStatus: statusRes.rows.map(r => ({
+        status_id: r.status_id,
+        status: r.status,
+        color: r.color,
+        total: parseInt(r.total),
+      })),
+      progreso: {
+        totalPruebas,
+        pruebasValidadas: validadas,
+        porcentaje: totalPruebas > 0 ? Math.round((validadas / totalPruebas) * 100) : 0,
+        muestrasProcesadas: parseInt(mu.muestras_procesadas) || 0,
+        muestrasPendientes: parseInt(mu.muestras_pendientes) || 0,
+        totalMuestras: parseInt(mu.total_muestras) || 0,
+      },
+      porArea: areaRes.rows.map(r => ({
+        area: r.area,
+        area_id: r.area_id,
+        total: parseInt(r.total),
+        progreso: parseInt(r.progreso_promedio) || 0,
+        validadas: parseInt(r.validadas),
+      })),
+    })
+  } catch (err) {
+    console.error('Error en /api/ordenes/dashboard:', err)
     res.status(500).json({ error: err.message })
   }
 })
@@ -225,7 +330,9 @@ router.get('/lab/areas', async (_req, res) => {
 // ── GET /api/ordenes/lab/queue ── Cola de órdenes pendientes con filtros
 router.get('/lab/queue', async (req, res) => {
   try {
-    const { area, fechaDesde, fechaHasta, transmitido, estado } = req.query
+    const { area, fechaDesde, fechaHasta, transmitido, estado, page = '1', limit = '50' } = req.query
+    const pageNum = Math.max(1, parseInt(page) || 1)
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit) || 50))
     const conditions = [`ot.status_id NOT IN (4, 6, 7)`]
     const params = []
     let idx = 1
@@ -274,9 +381,11 @@ router.get('/lab/queue', async (req, res) => {
       GROUP BY ot.numero, ot.fecha, ot.stat, p.nombre, p.apellido, p.sexo, p.fecha_nacimiento
       ${havingClause}
       ORDER BY ot.stat DESC NULLS LAST, ot.fecha DESC
-      LIMIT 50
-    `, params)
-    res.json(result.rows)
+      LIMIT $${idx++} OFFSET $${idx++}
+    `, [...params, limitNum + 1, (pageNum - 1) * limitNum])
+    const hasMore = result.rows.length > limitNum
+    const rows = hasMore ? result.rows.slice(0, limitNum) : result.rows
+    res.json({ rows, page: pageNum, hasMore })
   } catch (err) {
     console.error('Error en lab queue:', err)
     res.status(500).json({ error: err.message })
@@ -291,7 +400,7 @@ router.get('/:numero', async (req, res) => {
     const otSql = `
       SELECT ot.id, ot.numero, ot.fecha, ot.informacion_clinica, ot.observaciones,
              ot.num_ingreso, ot.folio, ot.habitacion, ot.peso, ot.estatura, ot.embarazada,
-             ot.facturada_numero, ot.precio, ot.fecha_estimada_entrega,
+             ot.facturada_numero, ot.factura_id, ot.precio, ot.fecha_estimada_entrega,
              ot.fecha_toma_muestra, ot.entregada, ot.etiquetas_impresas,
              ot.numero_solicitud, ot.stat,
              p.nombre || ' ' || p.apellido AS paciente,
@@ -323,7 +432,7 @@ router.get('/:numero', async (req, res) => {
 
     const [pruebasResult, gruposResult, muestrasResult] = await Promise.all([
       pool.query(`
-        SELECT po.id, pr.nombre AS prueba, pr.abreviacion, a.area AS area, po.precio,
+        SELECT po.id, pr.nombre AS prueba, a.area AS area, po.precio,
                so.status AS status_prueba, so.color,
                po.anormal, po.critico, po.fecha_validacion,
                po.gp_orden_id, po.gp_id,
@@ -528,6 +637,87 @@ router.patch('/:numero/muestras-no-entregadas', async (req, res) => {
   }
 })
 
+// ── GET /api/ordenes/lab/notas-predefinidas ── Catálogo de notas predefinidas
+router.get('/lab/notas-predefinidas', async (_req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, titulo, texto, codigo
+      FROM prueba_nota_predefinida
+      ORDER BY titulo
+    `)
+    res.json(result.rows)
+  } catch (err) {
+    if (err.code === '42P01') return res.json([])
+    console.error('GET notas-predefinidas error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── GET /api/ordenes/lab/quick-search?q=... ── Búsqueda rápida por barcode/número/CI/nombre
+router.get('/lab/quick-search', async (req, res) => {
+  try {
+    const { q } = req.query
+    if (!q || q.length < 2) return res.json([])
+
+    let results = []
+
+    // 1. Si contiene guión → buscar por barcode de muestra
+    if (q.includes('-')) {
+      const r = await pool.query(`
+        SELECT DISTINCT ot.numero,
+               p.nombre || ' ' || p.apellido AS paciente_nombre,
+               so.status, so.color
+        FROM muestra m
+        JOIN orden_trabajo ot ON m.orden_id = ot.id
+        JOIN paciente p ON ot.paciente_id = p.id
+        LEFT JOIN status_orden so ON ot.status_id = so.id
+        WHERE m.barcode = $1
+        LIMIT 1
+      `, [q.trim()])
+      results = r.rows
+    }
+
+    // 2. Si son solo dígitos → buscar por número de orden
+    if (results.length === 0 && /^\d{4,10}$/.test(q.trim())) {
+      const r = await pool.query(`
+        SELECT ot.numero,
+               p.nombre || ' ' || p.apellido AS paciente_nombre,
+               so.status, so.color
+        FROM orden_trabajo ot
+        JOIN paciente p ON ot.paciente_id = p.id
+        LEFT JOIN status_orden so ON ot.status_id = so.id
+        WHERE ot.numero = $1
+        LIMIT 1
+      `, [q.trim()])
+      results = r.rows
+    }
+
+    // 3. Buscar por CI o nombre de paciente
+    if (results.length === 0) {
+      const searchTerm = `%${q.trim()}%`
+      const r = await pool.query(`
+        SELECT DISTINCT ON (ot.numero) ot.numero,
+               p.nombre || ' ' || p.apellido AS paciente_nombre,
+               so.status, so.color
+        FROM orden_trabajo ot
+        JOIN paciente p ON ot.paciente_id = p.id
+        LEFT JOIN status_orden so ON ot.status_id = so.id
+        WHERE (p.ci_paciente ILIKE $1
+          OR sin_acentos(p.nombre || ' ' || p.apellido) ILIKE sin_acentos($1))
+          AND ot.fecha >= NOW() - INTERVAL '30 days'
+        ORDER BY ot.numero, ot.fecha DESC
+        LIMIT 10
+      `, [searchTerm])
+      results = r.rows
+    }
+
+    res.json(results)
+  } catch (err) {
+    console.error('GET /ordenes/lab/quick-search error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ── GET /api/ordenes/:numero/lab ── Datos para pantalla de ingreso de resultados
 router.get('/:numero/lab', async (req, res) => {
   try {
@@ -570,7 +760,32 @@ router.get('/:numero/lab', async (req, res) => {
         rn.validado_por, rn.menor_mayor,
         ra.valor AS resultado_alpha, ra.alarma AS alarma_alpha,
         gp.nombre AS grupo_nombre,
-        pr.formato, pr.valor_por_defecto
+        pr.formato, pr.valor_por_defecto,
+        rn.repeticiones,
+        CASE WHEN EXISTS (SELECT 1 FROM regla_validacion rv WHERE rv.prueba_id = pr.id AND rv.activa = true)
+          THEN true ELSE false END AS tiene_regla_autovalidacion,
+        CASE WHEN EXISTS (
+          SELECT 1 FROM prueba_orden_log pol
+          WHERE pol.prueba_orden_id = po.id AND pol.tipo_accion = 'AUTOVALIDACION'
+        ) THEN true ELSE false END AS fue_autovalidada,
+        (SELECT string_agg(pon.texto, '; ')
+         FROM prueba_orden_has_prueba_orden_nota ponh
+         JOIN prueba_orden_nota pon ON ponh.prueba_orden_nota_id = pon.id
+         WHERE ponh.prueba_orden_id = po.id
+        ) AS notas,
+        po.verificado,
+        (SELECT opo.observacion FROM observacion_prueba_orden opo
+         WHERE opo.pruebao_id = po.id LIMIT 1
+        ) AS equipo_observaciones,
+        (SELECT rn2.valor FROM orden_trabajo ot2
+         JOIN prueba_orden po2 ON po2.orden_id = ot2.id
+         JOIN resultado_numer rn2 ON rn2.pruebao_id = po2.id
+         WHERE ot2.paciente_id = (SELECT paciente_id FROM orden_trabajo WHERE id = po.orden_id)
+           AND po2.prueba_id = po.prueba_id
+           AND ot2.id != po.orden_id
+           AND rn2.valor IS NOT NULL
+         ORDER BY ot2.fecha DESC LIMIT 1
+        ) AS prev_valor
       FROM prueba_orden po
       LEFT JOIN prueba pr ON po.prueba_id = pr.id
       LEFT JOIN tipo_prueba tp ON pr.tipo_prueba_id = tp.id
@@ -662,12 +877,19 @@ router.get('/:numero/lab', async (req, res) => {
 
       // Rango aplicable (filtrar por sexo/edad del paciente)
       const rangosPrueba = rangos.filter(r => r.prueba_id === row.prueba_id)
-      const rangoAplicable = rangosPrueba.find(r => {
+      const matchesPaciente = r => {
         if (r.sexo && r.sexo.trim() && r.sexo.trim() !== pacSexo) return false
         if (r.edad_desde != null && pacEdad != null && pacEdad < r.edad_desde) return false
         if (r.edad_hasta != null && pacEdad != null && pacEdad > r.edad_hasta) return false
         return true
-      }) || rangosPrueba[0] || null
+      }
+      // Normal range (panico = false)
+      const rangosNormales = rangosPrueba.filter(r => !r.panico)
+      const rangoAplicable = rangosNormales.find(matchesPaciente) || rangosNormales[0] || null
+      // Panic ranges (panico = true) — can be low and/or high
+      const rangosPanico = rangosPrueba.filter(r => r.panico)
+      const panicosAplicables = rangosPanico.filter(matchesPaciente)
+      const panicosUsar = panicosAplicables.length > 0 ? panicosAplicables : rangosPanico
 
       // Build reference text from range values
       let refTexto = ''
@@ -706,12 +928,26 @@ router.get('/:numero/lab', async (req, res) => {
         corregida: row.corregida || false,
         fecha_validacion: row.fecha_validacion,
         grupo: row.grupo_nombre,
+        repeticiones: parseInt(row.repeticiones) || 0,
+        tiene_regla_autovalidacion: row.tiene_regla_autovalidacion || false,
+        fue_autovalidada: row.fue_autovalidada || false,
+        notas: row.notas || '',
+        verificado: row.verificado || false,
+        equipo_observaciones: row.equipo_observaciones || null,
+        prev_valor: row.prev_valor != null ? Number(row.prev_valor) : null,
         referencia: rangoAplicable ? (() => {
+          // Panic limits from separate panico=true rows
           let cMin = null, cMax = null
-          if (rangoAplicable.panico) {
-            const parts = String(rangoAplicable.panico).split('-').map(Number)
-            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-              cMin = parts[0]; cMax = parts[1]
+          for (const pr of panicosUsar) {
+            const pLow = pr.valor_desde != null ? Number(pr.valor_desde) : null
+            const pHigh = pr.valor_hasta != null ? Number(pr.valor_hasta) : null
+            // Panic LOW row: e.g., 0-40 → anything ≤ valor_hasta is panic low
+            if (pHigh != null && (rangoAplicable.valor_desde != null) && pHigh <= Number(rangoAplicable.valor_desde)) {
+              cMin = pHigh
+            }
+            // Panic HIGH row: e.g., 400-999 → anything ≥ valor_desde is panic high
+            if (pLow != null && (rangoAplicable.valor_hasta != null) && pLow >= Number(rangoAplicable.valor_hasta)) {
+              cMax = pLow
             }
           }
           return {
@@ -730,7 +966,8 @@ router.get('/:numero/lab', async (req, res) => {
       SELECT sa.area_id, a.area AS nombre, sa.status_orden_id,
              so.status AS status_nombre, so.color,
              sa.porcentaje_con_valor_resultado AS porcentaje,
-             sa.verificado, sa.entregada
+             sa.verificado, sa.entregada,
+             sa.observaciones
       FROM status_area sa
       JOIN area a ON sa.area_id = a.id
       LEFT JOIN status_orden so ON sa.status_orden_id = so.id
@@ -756,8 +993,11 @@ router.get('/:numero/lab', async (req, res) => {
         conValor,
         validadas,
         porcentaje: sa ? Number(sa.porcentaje || 0) : (totalP ? Math.round(validadas / totalP * 100) : 0),
+        status_id: sa?.status_orden_id || null,
         status: sa?.status_nombre || (validadas === totalP && totalP > 0 ? 'Validada' : conValor > 0 ? 'En Proceso' : 'Pendiente'),
-        color: sa?.color || null
+        color: sa?.color || null,
+        verificado: sa?.verificado || false,
+        observaciones: sa?.observaciones || ''
       })
     }
 
@@ -814,7 +1054,7 @@ router.put('/:numero/lab/resultados', async (req, res) => {
   const client = await pool.connect()
   try {
     const { numero } = req.params
-    const { resultados } = req.body
+    const { resultados, observaciones_area } = req.body
     const user = req.user
 
     // ── Control de roles ──
@@ -881,27 +1121,32 @@ router.put('/:numero/lab/resultados', async (req, res) => {
             SELECT valor_desde, valor_hasta, panico, sexo, edad_desde, edad_hasta
             FROM valor_referencial WHERE prueba_id = $1 AND (activo IS NULL OR activo = true)
           `, [pruebaId])
-          const ref = refResult.rows.find(rng => {
+          const matchesPac = rng => {
             if (rng.sexo && rng.sexo.trim() && rng.sexo.trim() !== pacSexo) return false
             if (rng.edad_desde != null && pacEdad != null && pacEdad < rng.edad_desde) return false
             if (rng.edad_hasta != null && pacEdad != null && pacEdad > rng.edad_hasta) return false
             return true
-          }) || refResult.rows[0] || null
+          }
+          const normales = refResult.rows.filter(r => !r.panico)
+          const ref = normales.find(matchesPac) || normales[0] || null
+          // Panic ranges (separate rows with panico=true)
+          const panicRows = refResult.rows.filter(r => r.panico)
+          const panicMatch = panicRows.filter(matchesPac)
+          const panicUsar = panicMatch.length > 0 ? panicMatch : panicRows
 
           if (ref) {
             const vMin = ref.valor_desde != null ? Number(ref.valor_desde) : null
             const vMax = ref.valor_hasta != null ? Number(ref.valor_hasta) : null
-            // Panic/critical range
-            const panico = ref.panico
+            // Derive panic thresholds from panic rows
             let pMin = null, pMax = null
-            if (panico) {
-              const parts = String(panico).split('-').map(Number)
-              if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-                pMin = parts[0]; pMax = parts[1]
-              }
+            for (const pr of panicUsar) {
+              const pLow = pr.valor_desde != null ? Number(pr.valor_desde) : null
+              const pHigh = pr.valor_hasta != null ? Number(pr.valor_hasta) : null
+              if (pHigh != null && vMin != null && pHigh <= vMin) pMin = pHigh
+              if (pLow != null && vMax != null && pLow >= vMax) pMax = pLow
             }
-            if (pMax != null && numVal > pMax) { alarmaStr = 'C'; isAnormal = true; isCritico = true }
-            else if (pMin != null && numVal < pMin) { alarmaStr = 'C'; isAnormal = true; isCritico = true }
+            if (pMax != null && numVal >= pMax) { alarmaStr = 'HH'; isAnormal = true; isCritico = true }
+            else if (pMin != null && numVal <= pMin) { alarmaStr = 'LL'; isAnormal = true; isCritico = true }
             else if (vMax != null && numVal > vMax) { alarmaStr = 'H'; isAnormal = true }
             else if (vMin != null && numVal < vMin) { alarmaStr = 'L'; isAnormal = true }
             else { alarmaStr = 'N' }
@@ -980,6 +1225,34 @@ router.put('/:numero/lab/resultados', async (req, res) => {
           VALUES ($1, $2, $3, NOW(), $4, 'CAPTURA')
         `, [r.prueba_orden_id, bioanalistaId || 0, user.userId, `Captura Valor:${r.valor}`])
       }
+
+      // Persistir nota de prueba
+      if (r.nota !== undefined && r.nota !== null) {
+        const existingNota = await client.query(`
+          SELECT pon.id FROM prueba_orden_nota pon
+          JOIN prueba_orden_has_prueba_orden_nota ponh ON ponh.prueba_orden_nota_id = pon.id
+          WHERE ponh.prueba_orden_id = $1 AND pon.titulo = 'Nota manual'
+          ORDER BY pon.id DESC LIMIT 1
+        `, [r.prueba_orden_id])
+
+        if (r.nota.trim() === '') {
+          if (existingNota.rows.length > 0) {
+            await client.query('DELETE FROM prueba_orden_has_prueba_orden_nota WHERE prueba_orden_nota_id = $1', [existingNota.rows[0].id])
+            await client.query('DELETE FROM prueba_orden_nota WHERE id = $1', [existingNota.rows[0].id])
+          }
+        } else if (existingNota.rows.length > 0) {
+          await client.query('UPDATE prueba_orden_nota SET texto = $1 WHERE id = $2', [r.nota.trim(), existingNota.rows[0].id])
+        } else {
+          const notaResult = await client.query(
+            `INSERT INTO prueba_orden_nota (titulo, texto) VALUES ('Nota manual', $1) RETURNING id`,
+            [r.nota.trim()]
+          )
+          await client.query(
+            `INSERT INTO prueba_orden_has_prueba_orden_nota (prueba_orden_id, prueba_orden_nota_id, orden_id, fecha_creacion) VALUES ($1, $2, $3, NOW())`,
+            [r.prueba_orden_id, notaResult.rows[0].id, ordenId]
+          )
+        }
+      }
     }
 
     // ── Recalcular status_area para cada área afectada ──
@@ -1028,6 +1301,21 @@ router.put('/:numero/lab/resultados', async (req, res) => {
       if (someValidated || someWithValue) {
         const newOtStatus = someValidated ? 8 : 2
         await client.query('UPDATE orden_trabajo SET status_id = $2 WHERE id = $1 AND status_id NOT IN (4, 6)', [ordenId, newOtStatus])
+      }
+    }
+
+    // Persistir observaciones por área
+    if (observaciones_area && typeof observaciones_area === 'object') {
+      for (const [areaId, texto] of Object.entries(observaciones_area)) {
+        const existing = await client.query(
+          'SELECT id FROM status_area WHERE orden_id = $1 AND area_id = $2', [ordenId, parseInt(areaId)]
+        )
+        if (existing.rows.length > 0) {
+          await client.query(`
+            UPDATE status_area SET observaciones = $1
+            WHERE orden_id = $2 AND area_id = $3
+          `, [texto || '', ordenId, parseInt(areaId)])
+        }
       }
     }
 
@@ -1194,6 +1482,62 @@ router.get('/:numero/lab/historico/:pruebaOrdenId', async (req, res) => {
     res.json(result.rows)
   } catch (err) {
     console.error('Error en histórico:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── PATCH /api/ordenes/:numero/lab/verificar ── Verificación por supervisor (segunda aprobación)
+router.patch('/:numero/lab/verificar', async (req, res) => {
+  const client = await pool.connect()
+  try {
+    const { numero } = req.params
+    const { prueba_orden_ids, verificado } = req.body
+    const userId = req.user?.userId || 0
+
+    if (!Array.isArray(prueba_orden_ids) || prueba_orden_ids.length === 0) {
+      return res.status(400).json({ error: 'prueba_orden_ids requerido' })
+    }
+
+    const otResult = await client.query('SELECT id FROM orden_trabajo WHERE numero = $1', [numero])
+    if (!otResult.rows.length) return res.status(404).json({ error: 'Orden no encontrada' })
+
+    await client.query('BEGIN')
+    for (const poId of prueba_orden_ids) {
+      await client.query(`
+        UPDATE prueba_orden SET verificado = $1
+        WHERE id = $2 AND orden_id = $3 AND status_id IN (4, 7)
+      `, [verificado, poId, otResult.rows[0].id])
+    }
+    await client.query('COMMIT')
+    res.json({ ok: true, verificado, count: prueba_orden_ids.length })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error('PATCH verificar error:', err)
+    res.status(500).json({ error: err.message })
+  } finally {
+    client.release()
+  }
+})
+
+// ── PATCH /api/ordenes/:numero/lab/area/:areaId/espera ── Poner/quitar área en espera
+router.patch('/:numero/lab/area/:areaId/espera', async (req, res) => {
+  try {
+    const { numero, areaId } = req.params
+    const { en_espera } = req.body
+
+    const otResult = await pool.query('SELECT id FROM orden_trabajo WHERE numero = $1', [numero])
+    if (!otResult.rows.length) return res.status(404).json({ error: 'Orden no encontrada' })
+    const otId = otResult.rows[0].id
+
+    const newStatus = en_espera ? 10 : 1
+    await pool.query(`
+      UPDATE status_area SET status_orden_id = $1
+      WHERE orden_id = $2 AND area_id = $3
+    `, [newStatus, otId, parseInt(areaId)])
+
+    res.json({ ok: true, en_espera })
+  } catch (err) {
+    console.error('PATCH area espera error:', err)
     res.status(500).json({ error: err.message })
   }
 })

@@ -1,0 +1,116 @@
+{
+  "id": 4,
+  "suiteId": "pacientes",
+  "suiteName": "Pacientes CRUD",
+  "tester": {
+    "id": 107,
+    "nombre": "CHRISTIAN MIJARES"
+  },
+  "estado": "en_progreso",
+  "progreso": 25,
+  "notas": "",
+  "startedAt": "2026-03-05T03:33:29.899Z",
+  "completedAt": null,
+  "results": {
+    "pac-01": {
+      "resultado": "pass",
+      "observaciones": "Lista carga correctamente",
+      "testedAt": "2026-03-05T03:33:36.311Z"
+    },
+    "pac-02": {
+      "resultado": "pass",
+      "observaciones": "Búsqueda por nombre funciona",
+      "testedAt": "2026-03-05T03:33:36.311Z"
+    },
+    "pac-03": {
+      "resultado": "fail",
+      "observaciones": "El botón nuevo paciente no responde al primer click",
+      "testedAt": "2026-03-05T03:33:36.311Z"
+    },
+    "pac-04": {
+      "resultado": "pass",
+      "observaciones": "",
+      "testedAt": "2026-03-05T03:33:36.311Z"
+    },
+    "pac-05": {
+      "resultado": "skip",
+      "observaciones": "No aplica en este ambiente",
+      "testedAt": "2026-03-05T03:33:36.311Z"
+    },
+    "pac-06": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-07": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-08": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-09": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-10": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-11": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-12": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-13": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-14": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-15": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-16": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-17": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-18": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-19": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "pac-20": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    }
+  }
+}

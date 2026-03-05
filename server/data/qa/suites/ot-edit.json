@@ -1,0 +1,278 @@
+{
+  "id": "ot-edit",
+  "nombre": "Crear/Editar Orden de Trabajo",
+  "modulo": "ot-edit",
+  "descripcion": "Verificar flujo completo de creación de OT: paciente, datos orden, pruebas, precios, guardar y cobrar",
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "ote-01",
+      "seccion": "Acceso",
+      "titulo": "Navegar a crear OT",
+      "descripcion": "Acceder al formulario de nueva OT",
+      "pasos": [
+        "Click en 'Nueva OT' o navegar a /ordenes/crear"
+      ],
+      "resultado_esperado": "Se muestra el formulario con 4 secciones: Paciente, Orden, Pruebas, Resumen",
+      "prioridad": "critico",
+      "orden": 1
+    },
+    {
+      "id": "ote-02",
+      "seccion": "Paciente",
+      "titulo": "Buscar paciente existente",
+      "descripcion": "Buscar paciente por nombre o CI",
+      "pasos": [
+        "Escribir nombre o CI en campo de búsqueda de paciente",
+        "Seleccionar de los resultados"
+      ],
+      "resultado_esperado": "Se carga la info del paciente (nombre, CI, edad, sexo)",
+      "prioridad": "critico",
+      "orden": 2
+    },
+    {
+      "id": "ote-03",
+      "seccion": "Paciente",
+      "titulo": "Datos del paciente se muestran",
+      "descripcion": "Después de seleccionar paciente, sus datos son visibles",
+      "pasos": [
+        "Seleccionar un paciente"
+      ],
+      "resultado_esperado": "Card con nombre, CI, sexo, edad, teléfono del paciente",
+      "prioridad": "critico",
+      "orden": 3
+    },
+    {
+      "id": "ote-04",
+      "seccion": "Orden",
+      "titulo": "Seleccionar procedencia",
+      "descripcion": "Dropdown de procedencia con opciones del catálogo",
+      "pasos": [
+        "Abrir dropdown de procedencia",
+        "Seleccionar una"
+      ],
+      "resultado_esperado": "Procedencia se selecciona. Si tiene servicio asociado, se resuelve automáticamente",
+      "prioridad": "critico",
+      "orden": 4
+    },
+    {
+      "id": "ote-05",
+      "seccion": "Orden",
+      "titulo": "Toggle STAT",
+      "descripcion": "Marcar OT como urgente (STAT)",
+      "pasos": [
+        "Activar toggle STAT"
+      ],
+      "resultado_esperado": "Se marca como urgente. Badge visual de STAT aparece",
+      "prioridad": "medio",
+      "orden": 5
+    },
+    {
+      "id": "ote-06",
+      "seccion": "Orden",
+      "titulo": "Buscar y seleccionar médico",
+      "descripcion": "Búsqueda de médico por nombre",
+      "pasos": [
+        "Escribir nombre de médico",
+        "Seleccionar de sugerencias"
+      ],
+      "resultado_esperado": "Médico se asigna a la OT",
+      "prioridad": "alto",
+      "orden": 6
+    },
+    {
+      "id": "ote-07",
+      "seccion": "Orden",
+      "titulo": "Crear médico on-the-fly",
+      "descripcion": "Crear nuevo médico si no existe",
+      "pasos": [
+        "Buscar médico que no existe",
+        "Click 'Crear nuevo'",
+        "Llenar datos",
+        "Guardar"
+      ],
+      "resultado_esperado": "Médico se crea y se asigna automáticamente a la OT",
+      "prioridad": "alto",
+      "orden": 7
+    },
+    {
+      "id": "ote-08",
+      "seccion": "Pruebas",
+      "titulo": "Buscar y agregar prueba",
+      "descripcion": "Buscar prueba por nombre o código",
+      "pasos": [
+        "Escribir nombre de prueba en buscador",
+        "Click en prueba encontrada"
+      ],
+      "resultado_esperado": "Prueba se agrega a la lista con precio",
+      "prioridad": "critico",
+      "orden": 8
+    },
+    {
+      "id": "ote-09",
+      "seccion": "Pruebas",
+      "titulo": "Agregar grupo de pruebas",
+      "descripcion": "Buscar y agregar un grupo/perfil",
+      "pasos": [
+        "Buscar grupo de pruebas",
+        "Click para agregar"
+      ],
+      "resultado_esperado": "Grupo se agrega con su precio. Se pueden ver las pruebas individuales del grupo",
+      "prioridad": "critico",
+      "orden": 9
+    },
+    {
+      "id": "ote-10",
+      "seccion": "Pruebas",
+      "titulo": "Quitar prueba de la lista",
+      "descripcion": "Remover una prueba ya agregada",
+      "pasos": [
+        "Click X o ícono de borrar en una prueba agregada"
+      ],
+      "resultado_esperado": "Prueba se remueve. El total se recalcula",
+      "prioridad": "alto",
+      "orden": 10
+    },
+    {
+      "id": "ote-11",
+      "seccion": "Precios",
+      "titulo": "Precio se muestra por prueba",
+      "descripcion": "Cada prueba muestra su precio",
+      "pasos": [
+        "Agregar pruebas",
+        "Ver lista"
+      ],
+      "resultado_esperado": "Cada item muestra su precio individual",
+      "prioridad": "critico",
+      "orden": 11
+    },
+    {
+      "id": "ote-12",
+      "seccion": "Precios",
+      "titulo": "Total se calcula automáticamente",
+      "descripcion": "La suma total se actualiza al agregar/quitar pruebas",
+      "pasos": [
+        "Agregar varias pruebas",
+        "Verificar total"
+      ],
+      "resultado_esperado": "Total = suma de todos los precios individuales",
+      "prioridad": "critico",
+      "orden": 12
+    },
+    {
+      "id": "ote-13",
+      "seccion": "Precios",
+      "titulo": "Cambio de procedencia recalcula precios",
+      "descripcion": "Cambiar procedencia puede cambiar precios (servicio diferente)",
+      "pasos": [
+        "Agregar pruebas",
+        "Cambiar procedencia a otra diferente"
+      ],
+      "resultado_esperado": "Los precios se recalculan según el servicio de la nueva procedencia",
+      "prioridad": "alto",
+      "orden": 13
+    },
+    {
+      "id": "ote-14",
+      "seccion": "Guardar",
+      "titulo": "Guardar OT nueva",
+      "descripcion": "Botón Guardar crea la OT en la BD",
+      "pasos": [
+        "Llenar paciente, procedencia, al menos 1 prueba",
+        "Click Guardar"
+      ],
+      "resultado_esperado": "OT se crea exitosamente. Se muestra el número de OT asignado",
+      "prioridad": "critico",
+      "orden": 14
+    },
+    {
+      "id": "ote-15",
+      "seccion": "Guardar",
+      "titulo": "Guardar sin paciente muestra error",
+      "descripcion": "No se puede guardar sin seleccionar paciente",
+      "pasos": [
+        "Intentar guardar sin paciente seleccionado"
+      ],
+      "resultado_esperado": "Mensaje de error: 'Seleccione un paciente'",
+      "prioridad": "critico",
+      "orden": 15
+    },
+    {
+      "id": "ote-16",
+      "seccion": "Guardar",
+      "titulo": "Guardar sin pruebas muestra error",
+      "descripcion": "No se puede guardar sin al menos 1 prueba",
+      "pasos": [
+        "Seleccionar paciente y procedencia",
+        "Intentar guardar sin pruebas"
+      ],
+      "resultado_esperado": "Mensaje de error: 'Agregue al menos una prueba'",
+      "prioridad": "critico",
+      "orden": 16
+    },
+    {
+      "id": "ote-17",
+      "seccion": "Guardar",
+      "titulo": "Guardar y Cobrar",
+      "descripcion": "Botón que guarda y navega a facturación",
+      "pasos": [
+        "Llenar OT completa",
+        "Click 'Guardar y Cobrar'"
+      ],
+      "resultado_esperado": "OT se crea y navega automáticamente a /ordenes/{numero}/cobro",
+      "prioridad": "critico",
+      "orden": 17
+    },
+    {
+      "id": "ote-18",
+      "seccion": "Muestras",
+      "titulo": "Preview de muestras",
+      "descripcion": "Se muestra preview de muestras que se generarán",
+      "pasos": [
+        "Agregar pruebas que requieren muestras",
+        "Ver sidebar o sección de muestras"
+      ],
+      "resultado_esperado": "Lista de muestras previstas con tipo de muestra y contenedor",
+      "prioridad": "alto",
+      "orden": 18
+    },
+    {
+      "id": "ote-19",
+      "seccion": "Acceso",
+      "titulo": "Cancelar creación",
+      "descripcion": "Botón cancelar regresa sin guardar",
+      "pasos": [
+        "Empezar a llenar datos",
+        "Click Cancelar"
+      ],
+      "resultado_esperado": "Regresa a /ordenes sin crear la OT",
+      "prioridad": "medio",
+      "orden": 19
+    },
+    {
+      "id": "ote-20",
+      "seccion": "Pruebas",
+      "titulo": "No duplicar pruebas",
+      "descripcion": "Agregar misma prueba dos veces no duplica",
+      "pasos": [
+        "Agregar prueba X",
+        "Intentar agregar prueba X otra vez"
+      ],
+      "resultado_esperado": "La prueba no se duplica o se muestra advertencia",
+      "prioridad": "alto",
+      "orden": 20
+    }
+  ],
+  "archivos": {
+    "frontend": [
+      "src/pages/OTEditPage.jsx"
+    ],
+    "backend": [
+      "server/routes/ordenes.js"
+    ],
+    "api": [
+      "src/services/api.js — createOrden, updateOrden, getPruebasDisponibles"
+    ],
+    "ruta": "/ordenes/crear, /ordenes/:numero/editar"
+  }
+}

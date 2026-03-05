@@ -1,0 +1,273 @@
+{
+  "id": "ordenes-lab",
+  "nombre": "Ingreso de Resultados (Lab)",
+  "modulo": "ordenes-lab",
+  "descripcion": "Verificar ingreso de valores, rangos, validación, histórico y guardado en /ordenes/:numero/lab",
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "lab-01",
+      "seccion": "Carga",
+      "titulo": "Página carga con pruebas de la OT",
+      "descripcion": "Al abrir /ordenes/{numero}/lab se cargan todas las pruebas",
+      "pasos": [
+        "Navegar a /ordenes/{numero}/lab de una OT activa"
+      ],
+      "resultado_esperado": "Se muestra lista de pruebas agrupadas por área, con campos de entrada para resultados",
+      "prioridad": "critico",
+      "orden": 1
+    },
+    {
+      "id": "lab-02",
+      "seccion": "Carga",
+      "titulo": "Pruebas agrupadas por área",
+      "descripcion": "Las pruebas se organizan por área de laboratorio",
+      "pasos": [
+        "Observar la estructura de la página"
+      ],
+      "resultado_esperado": "Headers de área (Hematología, Química, etc.) con sus pruebas debajo",
+      "prioridad": "alto",
+      "orden": 2
+    },
+    {
+      "id": "lab-03",
+      "seccion": "Ingreso",
+      "titulo": "Ingresar valor numérico",
+      "descripcion": "Escribir un resultado numérico en una prueba tipo NUM",
+      "pasos": [
+        "Encontrar prueba numérica",
+        "Escribir un valor (ej: 120)"
+      ],
+      "resultado_esperado": "El valor se acepta. Si está fuera de rango, se marca con flag H/L",
+      "prioridad": "critico",
+      "orden": 3
+    },
+    {
+      "id": "lab-04",
+      "seccion": "Ingreso",
+      "titulo": "Ingresar valor alfanumérico",
+      "descripcion": "Escribir resultado de texto en prueba tipo ALF",
+      "pasos": [
+        "Encontrar prueba alfanumérica",
+        "Escribir texto (ej: 'Negativo')"
+      ],
+      "resultado_esperado": "El texto se acepta sin validación de rango",
+      "prioridad": "critico",
+      "orden": 4
+    },
+    {
+      "id": "lab-05",
+      "seccion": "Ingreso",
+      "titulo": "Seleccionar de opciones predefinidas",
+      "descripcion": "Prueba tipo CAL con opciones fijas",
+      "pasos": [
+        "Encontrar prueba con opciones",
+        "Seleccionar una opción del dropdown"
+      ],
+      "resultado_esperado": "Se selecciona la opción y se guarda el valor",
+      "prioridad": "alto",
+      "orden": 5
+    },
+    {
+      "id": "lab-06",
+      "seccion": "Rangos",
+      "titulo": "Flag H (alto) se muestra",
+      "descripcion": "Valor por encima del rango muestra indicador High",
+      "pasos": [
+        "Ingresar valor por encima del máximo en prueba numérica"
+      ],
+      "resultado_esperado": "Aparece flag 'H' en color rojo o naranja junto al valor",
+      "prioridad": "critico",
+      "orden": 6
+    },
+    {
+      "id": "lab-07",
+      "seccion": "Rangos",
+      "titulo": "Flag L (bajo) se muestra",
+      "descripcion": "Valor por debajo del rango muestra indicador Low",
+      "pasos": [
+        "Ingresar valor por debajo del mínimo"
+      ],
+      "resultado_esperado": "Aparece flag 'L' junto al valor",
+      "prioridad": "critico",
+      "orden": 7
+    },
+    {
+      "id": "lab-08",
+      "seccion": "Rangos",
+      "titulo": "Rango de referencia visible",
+      "descripcion": "Cada prueba muestra su rango normal",
+      "pasos": [
+        "Ver columna de rangos"
+      ],
+      "resultado_esperado": "Se muestra rango (ej: '70.0 - 110.0 mg/dL') junto a cada prueba",
+      "prioridad": "alto",
+      "orden": 8
+    },
+    {
+      "id": "lab-09",
+      "seccion": "Validación",
+      "titulo": "Botón Validar Todo",
+      "descripcion": "Validar todos los resultados de un área",
+      "pasos": [
+        "Ingresar resultados en todas las pruebas",
+        "Click Validar Todo"
+      ],
+      "resultado_esperado": "Todas las pruebas se marcan como validadas. Estado visual cambia",
+      "prioridad": "critico",
+      "orden": 9
+    },
+    {
+      "id": "lab-10",
+      "seccion": "Validación",
+      "titulo": "Invalidar resultado",
+      "descripcion": "Revertir validación de un resultado",
+      "pasos": [
+        "En una prueba validada, click Invalidar"
+      ],
+      "resultado_esperado": "El resultado vuelve a estado no validado",
+      "prioridad": "alto",
+      "orden": 10
+    },
+    {
+      "id": "lab-11",
+      "seccion": "Histórico",
+      "titulo": "Ver resultados anteriores del paciente",
+      "descripcion": "Histórico muestra valores previos de la misma prueba",
+      "pasos": [
+        "Click en ícono de histórico de una prueba"
+      ],
+      "resultado_esperado": "Modal o panel con fechas y valores anteriores del paciente para esa prueba",
+      "prioridad": "alto",
+      "orden": 11
+    },
+    {
+      "id": "lab-12",
+      "seccion": "Histórico",
+      "titulo": "Sparkline de tendencia",
+      "descripcion": "Gráfica mini de tendencia",
+      "pasos": [
+        "Ver prueba con histórico"
+      ],
+      "resultado_esperado": "Se muestra una mini gráfica (sparkline) con la tendencia de valores",
+      "prioridad": "medio",
+      "orden": 12
+    },
+    {
+      "id": "lab-13",
+      "seccion": "Guardado",
+      "titulo": "Guardar resultados",
+      "descripcion": "Los resultados se persisten al guardar",
+      "pasos": [
+        "Ingresar varios resultados",
+        "Click Guardar",
+        "Recargar la página"
+      ],
+      "resultado_esperado": "Los resultados persisten después de recargar",
+      "prioridad": "critico",
+      "orden": 13
+    },
+    {
+      "id": "lab-14",
+      "seccion": "Guardado",
+      "titulo": "Correcciones se registran",
+      "descripcion": "Cambiar un resultado ya guardado genera corrección",
+      "pasos": [
+        "Cambiar un valor ya guardado",
+        "Guardar",
+        "Ver correcciones"
+      ],
+      "resultado_esperado": "Se registra la corrección con valor anterior y nuevo",
+      "prioridad": "alto",
+      "orden": 14
+    },
+    {
+      "id": "lab-15",
+      "seccion": "Guardado",
+      "titulo": "Guardado no pierde otros valores",
+      "descripcion": "Guardar un área no borra resultados de otras áreas",
+      "pasos": [
+        "Ingresar resultados en 2 áreas diferentes",
+        "Guardar",
+        "Verificar ambas áreas"
+      ],
+      "resultado_esperado": "Todos los valores de todas las áreas se mantienen",
+      "prioridad": "critico",
+      "orden": 15
+    },
+    {
+      "id": "lab-16",
+      "seccion": "Cola",
+      "titulo": "Cola de trabajo muestra OTs pendientes",
+      "descripcion": "Lista lateral de OTs por procesar",
+      "pasos": [
+        "Verificar la cola de trabajo / sidebar"
+      ],
+      "resultado_esperado": "Lista de OTs con filtros por área/estado",
+      "prioridad": "alto",
+      "orden": 16
+    },
+    {
+      "id": "lab-17",
+      "seccion": "Cola",
+      "titulo": "Navegar entre OTs en la cola",
+      "descripcion": "Click en otra OT en la cola carga sus datos",
+      "pasos": [
+        "Click en otra OT de la cola"
+      ],
+      "resultado_esperado": "Se cargan las pruebas y resultados de la nueva OT sin recargar página",
+      "prioridad": "alto",
+      "orden": 17
+    },
+    {
+      "id": "lab-18",
+      "seccion": "Ingreso",
+      "titulo": "Tab navega entre campos",
+      "descripcion": "La tecla Tab mueve al siguiente campo de entrada",
+      "pasos": [
+        "Posicionarse en un campo de resultado",
+        "Presionar Tab"
+      ],
+      "resultado_esperado": "El foco se mueve al siguiente campo de resultado (no a otro elemento de UI)",
+      "prioridad": "medio",
+      "orden": 18
+    },
+    {
+      "id": "lab-19",
+      "seccion": "Validación",
+      "titulo": "No se puede validar sin resultado",
+      "descripcion": "Validar una prueba sin valor ingresado",
+      "pasos": [
+        "Intentar validar una prueba con campo vacío"
+      ],
+      "resultado_esperado": "No se valida. Se muestra mensaje de que falta el resultado",
+      "prioridad": "alto",
+      "orden": 19
+    },
+    {
+      "id": "lab-20",
+      "seccion": "Carga",
+      "titulo": "OT validada muestra resultados readonly",
+      "descripcion": "Una OT con estado Validado no permite editar",
+      "pasos": [
+        "Navegar al lab de una OT con estado Validado"
+      ],
+      "resultado_esperado": "Los campos de resultado están readonly/disabled",
+      "prioridad": "alto",
+      "orden": 20
+    }
+  ],
+  "archivos": {
+    "frontend": [
+      "src/pages/OrdenLabPage.jsx"
+    ],
+    "backend": [
+      "server/routes/ordenes.js",
+      "server/routes/validacion.js"
+    ],
+    "api": [
+      "src/services/api.js — getOrdenLab, saveResultados"
+    ],
+    "ruta": "/ordenes/:numero/lab"
+  }
+}

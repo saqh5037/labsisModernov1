@@ -3,8 +3,11 @@ import Select from 'react-select'
 import AsyncSelect from 'react-select/async'
 import { glassStyles, glassTheme } from '../styles/reactSelectGlass'
 import DatePickerGlass from '../components/DatePickerGlass'
+import DashboardProgress from '../components/DashboardProgress'
+import DashboardStatusChart from '../components/DashboardStatusChart'
+import DashboardAreaProgress from '../components/DashboardAreaProgress'
 import { useNavigate } from 'react-router-dom'
-import { getOrdenes, getStatus, getProcedencias, getAreas, getUsuarios, getServiciosMedicos, searchPruebas } from '../services/api'
+import { getOrdenes, getDashboard, getStatus, getProcedencias, getAreas, getUsuarios, getServiciosMedicos, searchPruebas } from '../services/api'
 
 /* ── Icons ── */
 const Ico = ({ d, vb = '0 0 24 24', w = 1.8 }) => (
@@ -28,72 +31,131 @@ const IcoPrint    = () => <Ico d={<><polyline points="6 9 6 2 18 2 18 9"/><path 
 const IcoBarcode  = () => <Ico d={<><path d="M3 5v14M7 5v14M11 5v14M15 5v8M19 5v14M15 17v2"/></>} />
 const IcoEdit     = () => <Ico d={<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>} />
 const IcoPrintR   = () => <Ico d={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>} />
-const IcoX        = () => <Ico d={<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>} w={2} />
 const IcoClipboard= () => <Ico d={<><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></>} />
+const IcoChevron  = ({ dir = 'up' }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
+    {dir === 'up' ? <polyline points="18 15 12 9 6 15"/> : <polyline points="6 9 12 15 18 9"/>}
+  </svg>
+)
 
-/* ── Status logic ── */
-const getStatusColor = (s = '') => {
-  const l = s.toLowerCase()
-  if (l.includes('valid') || l.includes('finaliz') || l.includes('entregad')) return 'green'
-  if (l.includes('pendient') || l.includes('proceso'))                          return 'amber'
-  if (l.includes('cancel') || l.includes('error') || l.includes('alarm'))      return 'red'
-  if (l.includes('ingres') || l.includes('registr') || l.includes('recibid'))  return 'blue'
-  return 'gray'
+/* ── Status colors from Labsis BD (status_orden table) ── */
+const STATUS_MAP = {
+  6:  { label: 'Abortada',       color: '#000000', icon: 'x' },
+  0:  { label: 'Inactivo',       color: '#94a3b8', icon: 'dot' },
+  1:  { label: 'Activo',         color: '#d44836', icon: 'dot' },
+  2:  { label: 'Iniciada',       color: '#ffa500', icon: 'dot' },
+  8:  { label: 'Por Validar',    color: '#f472b6', icon: 'dot' },
+  9:  { label: 'Transmitido',    color: '#3e65b0', icon: 'arrows' },
+  10: { label: 'En Espera',      color: '#4888f1', icon: 'dot' },
+  11: { label: 'Reflejo',        color: '#919386', icon: 'dot' },
+  7:  { label: 'Vacío Validado', color: '#63981f', icon: 'dot' },
+  5:  { label: 'No Validado',    color: '#d44836', icon: 'dot' },
+  4:  { label: 'Validado',       color: '#63981f', icon: 'check' },
+  3:  { label: 'Finalizada',     color: '#d44836', icon: 'dot' },
 }
-const getStatusLabel = (s = '') => {
-  const l = s.toLowerCase()
-  if (l.includes('valid'))   return 'Validado'
-  if (l.includes('finaliz')) return 'Finalizado'
-  if (l.includes('entregad'))return 'Entregado'
-  if (l.includes('pendient'))return 'Pendiente'
-  if (l.includes('proceso')) return 'En proceso'
-  if (l.includes('alarm'))   return 'Alarma'
-  if (l.includes('cancel'))  return 'Cancelado'
-  if (l.includes('ingres'))  return 'Ingresado'
-  if (l.includes('recibid')) return 'Recibido'
-  return s || '—'
+
+const StatusDot = ({ statusId, color }) => {
+  const info = STATUS_MAP[statusId]
+  const c = color || info?.color || '#94a3b8'
+  const icon = info?.icon || 'dot'
+
+  if (icon === 'x') return (
+    <svg width="12" height="12" viewBox="0 0 12 12" style={{ verticalAlign: 'middle' }}>
+      <line x1="2" y1="2" x2="10" y2="10" stroke={c} strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="10" y1="2" x2="2" y2="10" stroke={c} strokeWidth="2.5" strokeLinecap="round"/>
+    </svg>
+  )
+  if (icon === 'arrows') return (
+    <svg width="14" height="12" viewBox="0 0 14 12" style={{ verticalAlign: 'middle' }}>
+      <polyline points="1,6 5,2 5,4 9,4 9,2 13,6 9,10 9,8 5,8 5,10 1,6" fill={c} stroke="none"/>
+    </svg>
+  )
+  if (icon === 'check') return (
+    <svg width="12" height="12" viewBox="0 0 12 12" style={{ verticalAlign: 'middle' }}>
+      <circle cx="6" cy="6" r="5" fill={c}/>
+      <polyline points="3.5,6 5.5,8 8.5,4" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+  return <span style={{ display:'inline-block', width:10, height:10, borderRadius:'50%', background:c, verticalAlign:'middle' }}/>
 }
+
+/* Today's date as yyyy-mm-dd */
+const todayStr = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const TODAY = todayStr()
 
 const INIT = {
-  numero: '', cedula: '', numFactura: '', numInicial: '', numFinal: '',
-  estado: '', fechaDesde: '', fechaHasta: '', area: '', prueba: '',
+  numero: '', cedula: '', numFactura: '',
+  estado: [],  // multi-select: array of { value, label }
+  fechaRange: { from: TODAY, to: TODAY },
+  area: [],    // multi-select
+  prueba: null,
   procedencia: '', servicioMedico: '', numIngreso: '', usuario: '',
-  orden: 'desc', enviarEmail: '', emailEnviado: '', segmento: ''
+  orden: 'desc',
+  emailFilter: 0, // 0=off, 1=sent, 2=not-sent
 }
-const AREA_INIT = []   // multi-select: array de ids
-const PRUEBA_INIT = null // autocomplete: { id, nombre } o null
 const LIMIT = 10
 
-/* helper: clases has-value para inputs y labels */
 const hv = (val) => val ? 'has-value' : ''
 
+/* Build API params from filters object */
+function buildParams(filters) {
+  const p = {}
+  if (filters.numero) p.numero = filters.numero
+  if (filters.cedula) p.cedula = filters.cedula
+  if (filters.numFactura) p.numFactura = filters.numFactura
+  if (filters.estado.length > 0) p.estado = filters.estado.map(s => s.value).join(',')
+  if (filters.fechaRange?.from) p.fechaDesde = filters.fechaRange.from
+  if (filters.fechaRange?.to) p.fechaHasta = filters.fechaRange.to
+  if (filters.area.length > 0) p.area = filters.area.map(a => a.value).join(',')
+  if (filters.prueba) p.prueba = filters.prueba.value
+  if (filters.procedencia) p.procedencia = filters.procedencia
+  if (filters.servicioMedico) p.servicioMedico = filters.servicioMedico
+  if (filters.numIngreso) p.numIngreso = filters.numIngreso
+  if (filters.usuario) p.usuario = filters.usuario
+  p.orden = filters.orden
+  if (filters.emailFilter === 1) p.emailEnviado = 'si'
+  else if (filters.emailFilter === 2) p.emailEnviado = 'no'
+  return p
+}
+
 /* ── Skeleton rows ── */
-const SkeletonRow = () => (
+const SkeletonRow = ({ extraCols = 0 }) => (
   <tr className="skeleton-row">
-    {[90,70,80,140,80,30,160].map((w,i) => (
+    {[90,70,80,140,80,30,...Array(extraCols).fill(20),160].map((w,i) => (
       <td key={i}><div className="skel" style={{ width: w }} /></td>
     ))}
   </tr>
 )
 
 export default function Ordenes() {
-  // Auth is handled by AppLayout (navbar, footer, sidebar)
   const [filters,  setFilters]  = useState(INIT)
   const [rows,     setRows]     = useState([])
   const [total,    setTotal]    = useState(0)
   const [page,     setPage]     = useState(1)
   const [loading,  setLoading]  = useState(false)
   const [searched, setSearched] = useState(false)
+  const [showMore, setShowMore] = useState(false)
+  const [dashboard, setDashboard] = useState(null)
+  const [areaStatuses, setAreaStatuses] = useState(null)
+
+  // Catalogs
   const [estados,       setEstados]       = useState([])
   const [procedencias,  setProcedencias]  = useState([])
   const [areas,         setAreas]         = useState([])
   const [usuarios,      setUsuarios]      = useState([])
   const [serviciosMed,  setServiciosMed]  = useState([])
-  const [selectedAreas, setSelectedAreas] = useState(AREA_INIT)
-  const [selectedPrueba, setSelectedPrueba] = useState(PRUEBA_INIT)
-  const [rowH,          setRowH]          = useState(null)
+
+  const [rowH,     setRowH]     = useState(null)
   const scrollRef  = useRef(null)
   const navigate = useNavigate()
+
+  // Use ref to access latest filters without causing re-renders
+  const filtersRef = useRef(filters)
+  filtersRef.current = filters
 
   useEffect(() => {
     getStatus().then(setEstados).catch(() => {})
@@ -103,31 +165,35 @@ export default function Ordenes() {
     getServiciosMedicos().then(setServiciosMed).catch(() => {})
   }, [])
 
-  /* Opciones react-select */
-  const estadoOpts = useMemo(() => estados.map(s => ({ value: s.id, label: s.status })), [estados])
+  /* react-select options */
+  const estadoOpts = useMemo(() => estados.map(s => ({
+    value: s.id,
+    label: s.status,
+    color: STATUS_MAP[s.id]?.color || s.color || '#94a3b8',
+  })), [estados])
   const procedenciaOpts = useMemo(() => procedencias.map(p => ({ value: p.id, label: p.nombre })), [procedencias])
   const areaOpts = useMemo(() => areas.map(a => ({ value: a.id, label: a.nombre })), [areas])
   const usuarioOpts = useMemo(() => usuarios.map(u => ({ value: u.id, label: u.nombre })), [usuarios])
   const servicioMedOpts = useMemo(() => serviciosMed.map(s => ({ value: s.id, label: s.nombre })), [serviciosMed])
-  const ordenOpts = [{ value: 'desc', label: 'Descendente' }, { value: 'asc', label: 'Ascendente' }]
-  const siNoOpts = [{ value: 'si', label: 'Sí' }, { value: 'no', label: 'No' }]
 
-  /* Carga async de pruebas para AsyncSelect */
+  /* Async prueba loader */
   const loadPruebas = useCallback(
     (inputValue) =>
       new Promise((resolve) => {
         if (inputValue.length < 2) return resolve([])
         setTimeout(() => {
-          const areaParam = selectedAreas.length > 0 ? selectedAreas.map(a => a.value).join(',') : undefined
+          const areaParam = filtersRef.current.area.length > 0
+            ? filtersRef.current.area.map(a => a.value).join(',')
+            : undefined
           searchPruebas(inputValue, areaParam)
             .then(results => resolve(results.map(p => ({ value: p.id, label: p.nombre, area: p.area_nombre }))))
             .catch(() => resolve([]))
         }, 250)
       }),
-    [selectedAreas]
+    []
   )
 
-  /* Calcula el alto exacto de cada fila para que llenen el espacio */
+  /* Row height calculation */
   useEffect(() => {
     if (!scrollRef.current || rows.length === 0) return
     const recalc = () => {
@@ -145,34 +211,79 @@ export default function Ordenes() {
 
   const setF = useCallback((k, v) => setFilters(f => ({ ...f, [k]: v })), [])
 
-  const search = useCallback(async (p = 1) => {
-    setLoading(true); setSearched(true)
+  /* Core search function — reads from filtersRef to avoid stale closures */
+  const doSearch = useCallback(async (p = 1, overrideFilters) => {
+    const currentFilters = overrideFilters || filtersRef.current
+    const apiParams = buildParams(currentFilters)
+    setLoading(true)
+    setSearched(true)
     try {
-      const params = { ...filters, page: p, limit: LIMIT }
-      if (selectedAreas.length > 0) params.area = selectedAreas.map(a => a.value).join(',')
-      if (selectedPrueba) params.prueba = selectedPrueba.value
-      const d = await getOrdenes(params)
-      setRows(d.ordenes || [])
-      setTotal(d.total || 0)
+      const [data, dash] = await Promise.all([
+        getOrdenes({ ...apiParams, page: p, limit: LIMIT }),
+        getDashboard(apiParams),
+      ])
+      setRows(data.ordenes || [])
+      setTotal(data.total || 0)
       setPage(p)
-    } catch { setRows([]) }
-    finally   { setLoading(false) }
-  }, [filters, selectedAreas, selectedPrueba])
+      setDashboard(dash)
+      setAreaStatuses(data.areaStatuses || null)
+    } catch (err) {
+      console.error('Error en búsqueda:', err)
+      setRows([])
+      setDashboard(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  /* Auto-search on mount with today's date */
+  useEffect(() => {
+    doSearch(1)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const clear = () => {
-    setFilters(INIT); setRows([]); setSearched(false); setTotal(0)
-    setSelectedAreas(AREA_INIT); setSelectedPrueba(null)
+    setFilters(INIT)
+    setRows([]); setSearched(false); setTotal(0); setDashboard(null); setAreaStatuses(null)
   }
 
   const totalPages = Math.ceil(total / LIMIT)
-  const hasFilters = Object.entries(filters).some(([k, v]) => v !== '' && v !== INIT[k]) || selectedAreas.length > 0 || selectedPrueba
 
-  /* Contadores de estado de la página actual */
-  const statusCounts = rows.reduce((acc, r) => {
-    const c = r.statusColor || getStatusColor(r.status || '')
-    acc[c] = (acc[c] || 0) + 1
-    return acc
-  }, {})
+  /* Sort toggle — triggers search */
+  const toggleSort = () => {
+    const newOrden = filtersRef.current.orden === 'desc' ? 'asc' : 'desc'
+    setFilters(f => ({ ...f, orden: newOrden }))
+    const updated = { ...filtersRef.current, orden: newOrden }
+    doSearch(1, updated)
+  }
+
+  /* Email filter tri-state toggle */
+  const toggleEmail = () => {
+    const next = (filtersRef.current.emailFilter + 1) % 3
+    setF('emailFilter', next)
+  }
+  const emailState = filters.emailFilter === 0 ? 'off' : filters.emailFilter === 1 ? 'sent' : 'not-sent'
+
+  /* Selected areas for dynamic columns */
+  const selectedAreas = filters.area // array of { value, label }
+
+  /* Dashboard clicks → filter table */
+  const handleStatusBarClick = (statusId) => {
+    const opt = estadoOpts.find(o => o.value === statusId)
+    if (opt) {
+      const updated = { ...filtersRef.current, estado: [opt] }
+      setFilters(updated)
+      doSearch(1, updated)
+    }
+  }
+
+  const handleProgressClick = (statusIds) => {
+    const opts = estadoOpts.filter(o => statusIds.includes(o.value))
+    if (opts.length) {
+      const updated = { ...filtersRef.current, estado: opts }
+      setFilters(updated)
+      doSearch(1, updated)
+    }
+  }
 
   return (
     <div className="ordenes-content">
@@ -195,101 +306,91 @@ export default function Ordenes() {
         </div>
       </div>
 
-        {/* ── TÍTULO + FILTROS (flotantes, sin caja) ── */}
-        <div className="ot-list-section anim d1">
-          <span className="ot-panel-title">Órdenes de Trabajo</span>
-        </div>
-        <div className="ot-list-filters anim d2">
-            {/* Fila 1 */}
-            <div className="fg fg-6">
-              <div className="fld">
-                <label className={hv(filters.numero)}>Número de orden</label>
-                <input type="text" placeholder="2603020001"
-                  className={hv(filters.numero)}
-                  value={filters.numero}
-                  onChange={e => setF('numero', e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && search(1)}
-                />
-              </div>
-              <div className="fld">
-                <label className={hv(filters.cedula)}>Cédula</label>
-                <input type="text" placeholder="V-12345678"
-                  className={hv(filters.cedula)}
-                  value={filters.cedula}
-                  onChange={e => setF('cedula', e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && search(1)}
-                />
-              </div>
-              <div className="fld">
-                <label className={hv(filters.numFactura)}>Núm. de factura</label>
-                <input type="text" placeholder="000-00000"
-                  className={hv(filters.numFactura)}
-                  value={filters.numFactura}
-                  onChange={e => setF('numFactura', e.target.value)}
-                />
-              </div>
-              <div className="fld">
-                <label className={hv(filters.numInicial)}>Núm. inicial</label>
-                <input type="text" placeholder="Desde"
-                  className={hv(filters.numInicial)}
-                  value={filters.numInicial}
-                  onChange={e => setF('numInicial', e.target.value)}
-                />
-              </div>
-              <div className="fld">
-                <label className={hv(filters.numFinal)}>Núm. final</label>
-                <input type="text" placeholder="Hasta"
-                  className={hv(filters.numFinal)}
-                  value={filters.numFinal}
-                  onChange={e => setF('numFinal', e.target.value)}
-                />
-              </div>
-              <div className="fld">
-                <label className={hv(filters.estado)}>Estado</label>
-                <Select styles={glassStyles} theme={glassTheme} options={estadoOpts}
-                  value={estadoOpts.find(o => String(o.value) === String(filters.estado)) || null}
-                  onChange={opt => setF('estado', opt ? opt.value : '')}
-                  placeholder="Todos los estados" isClearable isSearchable={false}
-                  menuPortalTarget={document.body}
-                />
-              </div>
+      {/* ── 70/30 LAYOUT ── */}
+      <div className="ordenes-layout">
+
+        {/* ── LEFT PANEL (main) ── */}
+        <div className="ordenes-main">
+
+          {/* TÍTULO */}
+          <div className="ot-list-section anim d1">
+            <span className="ot-panel-title">Órdenes de Trabajo</span>
+          </div>
+
+          {/* ── FILTROS NIVEL 1 (siempre visibles) ── */}
+          <div className="ordenes-filters-primary anim d2">
+            <div className="fld" style={{ width: 120 }}>
+              <label className={hv(filters.numero)}>N. Orden</label>
+              <input type="text" placeholder="2603020001"
+                className={hv(filters.numero)}
+                value={filters.numero}
+                onChange={e => setF('numero', e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && doSearch(1)}
+              />
+            </div>
+            <div className="fld" style={{ width: 140 }}>
+              <label className={hv(filters.cedula)}>Cédula</label>
+              <input type="text" placeholder="V-12345678"
+                className={hv(filters.cedula)}
+                value={filters.cedula}
+                onChange={e => setF('cedula', e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && doSearch(1)}
+              />
+            </div>
+            <div className="fld" style={{ width: 220 }}>
+              <label className={filters.estado.length > 0 ? 'has-value' : ''}>Estado(s)</label>
+              <Select styles={glassStyles} theme={glassTheme} options={estadoOpts}
+                value={filters.estado}
+                onChange={opts => setF('estado', opts || [])}
+                placeholder="Todos" isMulti isClearable isSearchable={false}
+                menuPortalTarget={document.body}
+                formatOptionLabel={opt => (
+                  <div style={{ display:'flex', alignItems:'center', gap: 6 }}>
+                    <span style={{ display:'inline-block', width:10, height:10, borderRadius:'50%', background: opt.color, flexShrink:0 }} />
+                    <span>{opt.label}</span>
+                  </div>
+                )}
+              />
+            </div>
+            <div className="fld" style={{ width: 220 }}>
+              <label className={filters.fechaRange?.from ? 'has-value' : ''}>Fecha</label>
+              <DatePickerGlass
+                mode="range"
+                value={filters.fechaRange}
+                onChange={v => setF('fechaRange', v)}
+                placeholder="Rango de fechas"
+              />
+            </div>
+            <div className="fld" style={{ width: 160 }}>
+              <label className={filters.area.length > 0 ? 'has-value' : ''}>Área</label>
+              <Select styles={glassStyles} theme={glassTheme} options={areaOpts}
+                value={filters.area} onChange={opts => setF('area', opts || [])}
+                placeholder="Todas" isMulti isClearable closeMenuOnSelect={false}
+                noOptionsMessage={() => 'Sin áreas'}
+                menuPortalTarget={document.body}
+              />
             </div>
 
-            {/* Fila 2 */}
-            <div className="fg fg-6">
-              <div className="fld">
-                <label className={hv(filters.fechaDesde)}>Fecha desde</label>
-                <DatePickerGlass value={filters.fechaDesde} onChange={v => setF('fechaDesde', v)} placeholder="dd/mm/aaaa" />
-              </div>
-              <div className="fld">
-                <label className={hv(filters.fechaHasta)}>Fecha hasta</label>
-                <DatePickerGlass value={filters.fechaHasta} onChange={v => setF('fechaHasta', v)} placeholder="dd/mm/aaaa" />
-              </div>
-              <div className="fld">
-                <label className={selectedAreas.length > 0 ? 'has-value' : ''}>Área</label>
-                <Select styles={glassStyles} theme={glassTheme} options={areaOpts}
-                  value={selectedAreas} onChange={opts => setSelectedAreas(opts || [])}
-                  placeholder="Todas las áreas" isMulti isClearable closeMenuOnSelect={false}
-                  noOptionsMessage={() => 'Sin áreas'}
-                  menuPortalTarget={document.body}
-                />
-              </div>
-              <div className="fld">
-                <label className={selectedPrueba ? 'has-value' : ''}>Prueba</label>
-                <AsyncSelect styles={glassStyles} theme={glassTheme}
-                  value={selectedPrueba} onChange={opt => setSelectedPrueba(opt)}
-                  loadOptions={loadPruebas} placeholder="Buscar prueba..." isClearable
-                  noOptionsMessage={({ inputValue }) => inputValue.length < 2 ? 'Escribe 2+ caracteres' : 'Sin resultados'}
-                  loadingMessage={() => 'Buscando...'}
-                  menuPortalTarget={document.body}
-                  formatOptionLabel={opt => (
-                    <div className="async-option-row">
-                      <span>{opt.label}</span>
-                      {opt.area && <span className="prueba-area-badge">{opt.area}</span>}
-                    </div>
-                  )}
-                />
-              </div>
+            {/* Email toggle */}
+            <div className="email-toggle" data-state={emailState}
+              title={filters.emailFilter === 0 ? 'Filtro email: off' : filters.emailFilter === 1 ? 'Solo email enviado' : 'Solo email NO enviado'}
+              onClick={toggleEmail}>
+              <IcoMail />
+            </div>
+
+            <button className="btn btn-primary" onClick={() => doSearch(1)} disabled={loading}>
+              <IcoSearch />
+              {loading ? 'Buscando...' : 'Buscar'}
+            </button>
+            <button className="btn-toggle-filters" onClick={() => setShowMore(!showMore)}>
+              {showMore ? 'Menos filtros' : '+Filtros'}
+            </button>
+            <button className="btn-ghost" onClick={clear}>Limpiar</button>
+          </div>
+
+          {/* ── FILTROS NIVEL 2 (colapsable) ── */}
+          {showMore && (
+            <div className="ordenes-filters-secondary anim">
               <div className="fld">
                 <label className={hv(filters.procedencia)}>Procedencia</label>
                 <Select styles={glassStyles} theme={glassTheme} options={procedenciaOpts}
@@ -310,16 +411,20 @@ export default function Ordenes() {
                   menuPortalTarget={document.body}
                 />
               </div>
-            </div>
-
-            {/* Fila 3 */}
-            <div className="fg fg-6">
               <div className="fld">
-                <label className={hv(filters.numIngreso)}>Núm. ingreso</label>
-                <input type="text" placeholder="00000"
-                  className={hv(filters.numIngreso)}
-                  value={filters.numIngreso}
-                  onChange={e => setF('numIngreso', e.target.value)}
+                <label className={filters.prueba ? 'has-value' : ''}>Prueba</label>
+                <AsyncSelect styles={glassStyles} theme={glassTheme}
+                  value={filters.prueba} onChange={opt => setF('prueba', opt)}
+                  loadOptions={loadPruebas} placeholder="Buscar prueba..." isClearable
+                  noOptionsMessage={({ inputValue }) => inputValue.length < 2 ? 'Escribe 2+ caracteres' : 'Sin resultados'}
+                  loadingMessage={() => 'Buscando...'}
+                  menuPortalTarget={document.body}
+                  formatOptionLabel={opt => (
+                    <div className="async-option-row">
+                      <span>{opt.label}</span>
+                      {opt.area && <span className="prueba-area-badge">{opt.area}</span>}
+                    </div>
+                  )}
                 />
               </div>
               <div className="fld">
@@ -333,160 +438,184 @@ export default function Ordenes() {
                 />
               </div>
               <div className="fld">
-                <label className={hv(filters.orden)}>Orden</label>
-                <Select styles={glassStyles} theme={glassTheme} options={ordenOpts}
-                  value={ordenOpts.find(o => o.value === filters.orden) || null}
-                  onChange={opt => setF('orden', opt ? opt.value : 'desc')}
-                  placeholder="Orden" isSearchable={false}
-                  menuPortalTarget={document.body}
+                <label className={hv(filters.numIngreso)}>Núm. ingreso</label>
+                <input type="text" placeholder="00000"
+                  className={hv(filters.numIngreso)}
+                  value={filters.numIngreso}
+                  onChange={e => setF('numIngreso', e.target.value)}
                 />
               </div>
               <div className="fld">
-                <label className={hv(filters.enviarEmail)}>Enviar email</label>
-                <Select styles={glassStyles} theme={glassTheme} options={siNoOpts}
-                  value={siNoOpts.find(o => o.value === filters.enviarEmail) || null}
-                  onChange={opt => setF('enviarEmail', opt ? opt.value : '')}
-                  placeholder="Todos" isClearable isSearchable={false}
-                  menuPortalTarget={document.body}
-                />
-              </div>
-              <div className="fld">
-                <label className={hv(filters.emailEnviado)}>Email enviado</label>
-                <Select styles={glassStyles} theme={glassTheme} options={siNoOpts}
-                  value={siNoOpts.find(o => o.value === filters.emailEnviado) || null}
-                  onChange={opt => setF('emailEnviado', opt ? opt.value : '')}
-                  placeholder="Todos" isClearable isSearchable={false}
-                  menuPortalTarget={document.body}
-                />
-              </div>
-              <div className="fld">
-                <label className={hv(filters.segmento)}>Segmento</label>
-                <Select styles={glassStyles} theme={glassTheme} options={[]}
-                  value={null} onChange={opt => setF('segmento', opt ? opt.value : '')}
-                  placeholder="Todos" isClearable isSearchable={false}
-                  noOptionsMessage={() => 'Sin segmentos'}
-                  menuPortalTarget={document.body}
+                <label className={hv(filters.numFactura)}>Núm. factura</label>
+                <input type="text" placeholder="000-00000"
+                  className={hv(filters.numFactura)}
+                  value={filters.numFactura}
+                  onChange={e => setF('numFactura', e.target.value)}
                 />
               </div>
             </div>
+          )}
 
-          <div className="ot-list-actions">
-            <button className="btn btn-primary" onClick={() => search(1)} disabled={loading}>
-              <IcoSearch />
-              {loading ? 'Buscando...' : 'Buscar'}
-            </button>
-            <button className="btn-ghost" onClick={clear}>Limpiar filtros</button>
-          </div>
-        </div>
+          {/* ── RESULTS ── */}
+          {(searched || rows.length > 0) && (
+            <div className="ot-list-results anim d3">
+              <div className="ot-list-results-head">
+                <span className="ot-section-label" key={page + '-' + total}>Órdenes de Trabajo</span>
+                {!loading && total > 0 && (
+                  <span className="ot-list-count">
+                    {total.toLocaleString()} registros · pág. {page} / {totalPages}
+                  </span>
+                )}
+              </div>
 
-        {/* ── RESULTS (floating, sin caja) ── */}
-        {(searched || rows.length > 0) && (
-          <div className="ot-list-results anim d3">
-            <div className="ot-list-results-head">
-              <span className="ot-section-label" key={page + '-' + total}>Órdenes de Trabajo</span>
-              {!loading && total > 0 && (
-                <span className="ot-list-count">
-                  {total.toLocaleString()} registros · pág. {page} / {totalPages}
-                </span>
+              {loading ? (
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <tbody>{[...Array(8)].map((_, i) => <SkeletonRow key={i} extraCols={selectedAreas.length} />)}</tbody>
+                  </table>
+                </div>
+              ) : rows.length === 0 ? (
+                <div className="empty-state">
+                  <IcoClipboard />
+                  <p className="empty-title">Sin resultados</p>
+                  <p className="empty-sub">Ajusta los filtros e intenta de nuevo</p>
+                </div>
+              ) : (
+                <>
+                  <div className="table-scroll" ref={scrollRef}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: selectedAreas.length ? '10%' : '11%' }}>
+                          <span className="sort-toggle" onClick={toggleSort}>
+                            N. de Orden
+                            <IcoChevron dir={filters.orden === 'asc' ? 'up' : 'down'} />
+                          </span>
+                        </th>
+                        <th style={{ width:'10%' }}>Procedencia</th>
+                        <th style={{ width: selectedAreas.length ? '8%' : '10%' }}>Servicio</th>
+                        <th style={{ width: selectedAreas.length ? '20%' : '25%' }}>Paciente</th>
+                        <th style={{ width: selectedAreas.length ? '11%' : '13%' }}>
+                          <span className="sort-toggle" onClick={toggleSort}>
+                            Fecha
+                            <IcoChevron dir={filters.orden === 'asc' ? 'up' : 'down'} />
+                          </span>
+                        </th>
+                        <th style={{ width:'7%' }}>Estado</th>
+                        {selectedAreas.map(a => (
+                          <th key={a.value} className="th-area-status" title={a.label}>
+                            {a.label.length > 8 ? a.label.slice(0, 7) + '.' : a.label}
+                          </th>
+                        ))}
+                        <th style={{ textAlign:'center', width: selectedAreas.length ? '18%' : '23%' }}>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map(r => {
+                        const sid = r.status_id ?? r.statusId
+                        const info = STATUS_MAP[sid] || {}
+                        return (
+                          <tr key={r.numero} style={rowH ? { height: rowH } : undefined}>
+                            <td>
+                              <a className="order-link" href="#" onClick={e => {
+                                e.preventDefault()
+                                const f = filtersRef.current
+                                const qs = new URLSearchParams()
+                                if (f.area?.length) qs.set('area', f.area.map(a => a.value).join(','))
+                                if (f.fechaRange?.from) qs.set('fechaDesde', f.fechaRange.from)
+                                if (f.fechaRange?.to) qs.set('fechaHasta', f.fechaRange.to)
+                                const qStr = qs.toString()
+                                navigate(`/ordenes/${r.numero}/lab${qStr ? '?' + qStr : ''}`)
+                              }}>{r.numero}</a>
+                            </td>
+                            <td className="cell-proc">{r.procedencia || <span className="cell-muted">—</span>}</td>
+                            <td className="cell-proc">{r.servicioMedico || <span className="cell-muted">—</span>}</td>
+                            <td className="cell-name">{r.paciente || '—'}</td>
+                            <td className="cell-date">
+                              {r.fecha
+                                ? new Date(r.fecha).toLocaleString('es-MX', {
+                                    day:'2-digit', month:'2-digit', year:'2-digit',
+                                    hour:'2-digit', minute:'2-digit'
+                                  })
+                                : <span className="cell-muted">—</span>}
+                            </td>
+                            <td>
+                              <span className="status-chip" style={{ color: r.color || info.color || '#94a3b8' }}>
+                                <StatusDot statusId={sid} color={r.color} />
+                                <span style={{ marginLeft: 4 }}>{r.status || info.label || '—'}</span>
+                              </span>
+                            </td>
+                            {selectedAreas.map(a => {
+                              const as = areaStatuses?.[r.id]?.[a.value]
+                              if (!as) return <td key={a.value} className="td-area-status"><span className="cell-muted">—</span></td>
+                              return (
+                                <td key={a.value} className="td-area-status">
+                                  <div className="area-status-cell" title={`${as.status} · ${as.progreso ?? 0}%${as.entregada ? ' · Entregada' : ''}${as.alarma ? ' · Alarma' : ''}`}>
+                                    <StatusDot statusId={as.status_id} color={as.color} />
+                                    {as.entregada && <span className="area-delivered-badge" title="Entregada">E</span>}
+                                    {as.alarma && <span className="area-alarm-badge" title="Alarma val. ref.">!</span>}
+                                  </div>
+                                </td>
+                              )
+                            })}
+                            <td>
+                              <div className="action-icons">
+                                <div className="action-icon ai-view"   title="Ver orden" onClick={() => navigate(`/ordenes/${r.numero}`)} ><IcoEye /></div>
+                                <div className="action-icon ai-mail"   title="Enviar email"><IcoMail /></div>
+                                <div className="action-icon ai-copy"   title="Copiar número" onClick={() => { navigator.clipboard.writeText(r.numero); }}><IcoCopy /></div>
+                                <div className="action-icon ai-print"  title="Imprimir" onClick={() => window.open(`/ordenes/${r.numero}/print`, '_blank')}><IcoPrint /></div>
+                                <div className="action-icon ai-bar"    title="Código de barras" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoBarcode /></div>
+                                <div className="action-icon ai-bsf"    title="Factura BsF.">BsF.</div>
+                                <div className="action-icon ai-edit"   title="Reportar resultados" onClick={() => {
+                                  const f = filtersRef.current
+                                  const qs = new URLSearchParams()
+                                  if (f.area?.length) qs.set('area', f.area.map(a => a.value).join(','))
+                                  if (f.fechaRange?.from) qs.set('fechaDesde', f.fechaRange.from)
+                                  if (f.fechaRange?.to) qs.set('fechaHasta', f.fechaRange.to)
+                                  const qStr = qs.toString()
+                                  navigate(`/ordenes/${r.numero}/lab${qStr ? '?' + qStr : ''}`)
+                                }}><IcoEdit /></div>
+                                <div className="action-icon ai-result" title="Ver resultados" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoPrintR /></div>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="ot-list-pagination">
+                      <button className="pag-btn" disabled={page <= 1} onClick={() => doSearch(page - 1)}>‹ Anterior</button>
+                      <span className="pag-info">Página {page} de {totalPages}</span>
+                      <button className="pag-btn" disabled={page >= totalPages} onClick={() => doSearch(page + 1)}>Siguiente ›</button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
+          )}
 
-            {loading ? (
-              <div className="table-scroll">
-                <table className="data-table">
-                  <tbody>{[...Array(8)].map((_, i) => <SkeletonRow key={i} />)}</tbody>
-                </table>
-              </div>
-            ) : rows.length === 0 ? (
-              <div className="empty-state">
-                <IcoClipboard />
-                <p className="empty-title">Sin resultados</p>
-                <p className="empty-sub">Ajusta los filtros e intenta de nuevo</p>
-              </div>
-            ) : (
-              <>
-                <div className="table-scroll" ref={scrollRef}>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width:'11%' }}>N. de Orden</th>
-                      <th style={{ width:'10%' }}>Procedencia</th>
-                      <th style={{ width:'10%' }}>Servicio</th>
-                      <th style={{ width:'25%' }}>Paciente</th>
-                      <th style={{ width:'13%' }}>Fecha</th>
-                      <th style={{ width:'8%' }}>Estado</th>
-                      <th style={{ textAlign:'center', width:'23%' }}>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map(r => {
-                      const dot = r.statusColor || getStatusColor(r.status || '')
-                      return (
-                        <tr key={r.numero} style={rowH ? { height: rowH } : undefined}>
-                          <td>
-                            <a className="order-link" href="#" onClick={e => { e.preventDefault(); navigate(`/ordenes/${r.numero}`) }}>{r.numero}</a>
-                          </td>
-                          <td className="cell-proc">{r.procedencia || <span className="cell-muted">—</span>}</td>
-                          <td className="cell-proc">{r.servicioMedico || <span className="cell-muted">—</span>}</td>
-                          <td className="cell-name">{r.paciente || '—'}</td>
-                          <td className="cell-date">
-                            {r.fecha
-                              ? new Date(r.fecha).toLocaleString('es-VE', {
-                                  day:'2-digit', month:'2-digit', year:'2-digit',
-                                  hour:'2-digit', minute:'2-digit'
-                                })
-                              : <span className="cell-muted">—</span>}
-                          </td>
-                          <td>
-                            <span className={`status-chip chip-${dot}`}>
-                              {getStatusLabel(r.status || '')}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="action-icons">
-                              <div className="action-icon ai-view"   title="Ver orden" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoEye /></div>
-                              <div className="action-icon ai-mail"   title="Enviar email"><IcoMail /></div>
-                              <div className="action-icon ai-copy"   title="Copiar número" onClick={() => { navigator.clipboard.writeText(r.numero); }}><IcoCopy /></div>
-                              <div className="action-icon ai-print"  title="Imprimir" onClick={() => window.open(`/ordenes/${r.numero}/print`, '_blank')}><IcoPrint /></div>
-                              <div className="action-icon ai-bar"    title="Código de barras" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoBarcode /></div>
-                              <div className="action-icon ai-bsf"    title="Factura BsF.">BsF.</div>
-                              <div className="action-icon ai-edit"   title="Reportar resultados" onClick={() => {
-                                const areaQs = selectedAreas?.length ? `?area=${selectedAreas.map(a => a.value).join(',')}` : ''
-                                navigate(`/ordenes/${r.numero}/lab${areaQs}`)
-                              }}><IcoEdit /></div>
-                              <div className="action-icon ai-result" title="Ver resultados" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoPrintR /></div>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-                </div>
+          {/* Estado inicial (solo si no ha buscado) */}
+          {!searched && rows.length === 0 && (
+            <div className="empty-state anim d3">
+              <IcoClipboard />
+              <p className="empty-title">Ingresa filtros y presiona <span className="text-blue">Buscar</span></p>
+              <p className="empty-sub">455,204 registros · Laboratorio EG · 2014 — hoy</p>
+            </div>
+          )}
+        </div>
 
-                {/* Pagination — simplificada */}
-                {totalPages > 1 && (
-                  <div className="ot-list-pagination">
-                    <button className="pag-btn" disabled={page <= 1} onClick={() => search(page - 1)}>‹ Anterior</button>
-                    <span className="pag-info">Página {page} de {totalPages}</span>
-                    <button className="pag-btn" disabled={page >= totalPages} onClick={() => search(page + 1)}>Siguiente ›</button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
+        {/* ── RIGHT PANEL (dashboard) ── */}
+        <aside className="ordenes-dashboard">
+          <DashboardProgress data={dashboard?.progreso} onClickStatus={handleProgressClick} />
+          <DashboardStatusChart data={dashboard?.porStatus} onClickBar={handleStatusBarClick} />
+          <DashboardAreaProgress data={dashboard?.porArea} />
+        </aside>
 
-        {/* Estado inicial */}
-        {!searched && rows.length === 0 && (
-          <div className="empty-state anim d3">
-            <IcoClipboard />
-            <p className="empty-title">Ingresa filtros y presiona <span className="text-blue">Buscar</span></p>
-            <p className="empty-sub">455,204 registros · Laboratorio EG · 2014 — hoy</p>
-          </div>
-        )}
-
-      {/* end of content */}
+      </div>
     </div>
   )
 }
