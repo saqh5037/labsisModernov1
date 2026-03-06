@@ -1,0 +1,66 @@
+{
+  "id": 13,
+  "suiteId": "auth",
+  "suiteName": "Autenticación y Permisos",
+  "tester": {
+    "id": 0,
+    "nombre": " "
+  },
+  "estado": "en_progreso",
+  "progreso": 20,
+  "notas": "",
+  "startedAt": "2026-03-06T05:24:07.368Z",
+  "completedAt": null,
+  "results": {
+    "auth-01": {
+      "resultado": "pass",
+      "observaciones": "Login con credenciales válidas OK",
+      "testedAt": "2026-03-06T05:25:26.914Z"
+    },
+    "auth-02": {
+      "resultado": "pass",
+      "observaciones": "Login inválido rechazado correctamente",
+      "testedAt": "2026-03-06T05:25:26.914Z"
+    },
+    "auth-03": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-04": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-05": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-06": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-07": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-08": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-09": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    },
+    "auth-10": {
+      "resultado": null,
+      "observaciones": "",
+      "testedAt": null
+    }
+  }
+}

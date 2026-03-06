@@ -1,0 +1,29 @@
+{
+  "id": 18,
+  "runId": 13,
+  "testCaseId": null,
+  "titulo": "[AUDIT] OT creation fails with grupos - gp_id null constraint",
+  "descripcion": "POST /api/ot with grupos array containing grupo IDs fails because the API expects full objects with id/precio, not plain IDs. Error: null value in column gp_id of relation gprueba_orden violates not-null constraint",
+  "comportamientoEsperado": "",
+  "comportamientoActual": "",
+  "pasosReproducir": "",
+  "severidad": "media",
+  "estado": "abierto",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "",
+  "tipoError": "",
+  "codigoError": "",
+  "dondeOcurre": "",
+  "queEsperabas": "",
+  "contextoExtra": "",
+  "brandTokens": [],
+  "zonaPantalla": "",
+  "reportadoPor": {
+    "id": 0,
+    "nombre": " "
+  },
+  "asignadoA": null,
+  "createdAt": "2026-03-06T05:25:27.927Z",
+  "updatedAt": "2026-03-06T05:25:27.927Z"
+}

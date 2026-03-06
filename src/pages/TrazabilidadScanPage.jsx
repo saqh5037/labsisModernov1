@@ -29,12 +29,16 @@ export default function TrazabilidadScanPage() {
   const [showCamera, setShowCamera] = useState(false)
   const [hasCamera, setHasCamera] = useState(false)
 
-  // Detect if device has a camera
+  // Detect if device has a camera (or is likely mobile with one)
   useEffect(() => {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || 'ontouchstart' in window
     if (navigator.mediaDevices?.enumerateDevices) {
       navigator.mediaDevices.enumerateDevices().then(devices => {
-        setHasCamera(devices.some(d => d.kind === 'videoinput'))
-      }).catch(() => setHasCamera(false))
+        setHasCamera(devices.some(d => d.kind === 'videoinput') || isMobile)
+      }).catch(() => setHasCamera(isMobile))
+    } else {
+      // mediaDevices not available (HTTP) — show button on mobile anyway
+      setHasCamera(isMobile)
     }
   }, [])
 
