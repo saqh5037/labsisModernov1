@@ -54,6 +54,7 @@ app.use('/api/qa/screenshots', requireAuth, express.static(path.join(__dirname, 
 // Production: serve Vite build (may be under /labsis/ prefix via Nginx)
 if (process.env.NODE_ENV === 'production') {
   const distDir = path.join(__dirname, '..', 'dist')
+  app.use('/labsis', express.static(distDir))
   app.use(express.static(distDir))
   app.get('{*path}', (_req, res) => {
     res.sendFile(path.join(distDir, 'index.html'))
