@@ -107,6 +107,71 @@ export default function BarcodeScanner({ onScan, onClose }) {
     } catch { /* torch failed */ }
   }, [torchOn])
 
+  // Helper: canvas to File
+  const canvasToFile = useCallback((cvs) => {
+    return new Promise(resolve => {
+      cvs.toBlob(blob => {
+        resolve(blob ? new File([blob], 'capture.png', { type: 'image/png' }) : null)
+      }, 'image/png')
+    })
+  }, [])
+
+  // Helper: try scanFile with html5-qrcode
+  const tryScanFile = useCallback(async (file) => {
+    if (!file) return null
+    try {
+      const { Html5Qrcode } = await import('html5-qrcode')
+      return await Html5Qrcode.scanFile(file, /* showImage */ false)
+    } catch {
+      return null
+    }
+  }, [])
+
+  // Helper: create a processed version of the canvas (cropped center + binarized)
+  const processImage = useCallback((srcCanvas, mode) => {
+    const tmp = document.createElement('canvas')
+    const ctx = tmp.getContext('2d')
+    const sw = srcCanvas.width
+    const sh = srcCanvas.height
+
+    if (mode === 'crop') {
+      // Crop center 80% width, 40% height (where barcode likely is)
+      const cropW = Math.round(sw * 0.8)
+      const cropH = Math.round(sh * 0.4)
+      const cropX = Math.round((sw - cropW) / 2)
+      const cropY = Math.round((sh - cropH) / 2)
+      tmp.width = cropW
+      tmp.height = cropH
+      ctx.drawImage(srcCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH)
+    } else if (mode === 'binarize') {
+      // Crop + binarize (pure black & white, high contrast)
+      const cropW = Math.round(sw * 0.8)
+      const cropH = Math.round(sh * 0.4)
+      const cropX = Math.round((sw - cropW) / 2)
+      const cropY = Math.round((sh - cropH) / 2)
+      tmp.width = cropW
+      tmp.height = cropH
+      ctx.drawImage(srcCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH)
+      const imageData = ctx.getImageData(0, 0, cropW, cropH)
+      const d = imageData.data
+      for (let i = 0; i < d.length; i += 4) {
+        // Luminance
+        const lum = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114
+        const val = lum > 140 ? 255 : 0  // threshold
+        d[i] = d[i+1] = d[i+2] = val
+      }
+      ctx.putImageData(imageData, 0, 0)
+    } else if (mode === 'sharpen') {
+      // Full image with increased contrast
+      tmp.width = sw
+      tmp.height = sh
+      ctx.filter = 'contrast(1.8) brightness(1.1)'
+      ctx.drawImage(srcCanvas, 0, 0)
+      ctx.filter = 'none'
+    }
+    return tmp
+  }, [])
+
   // === PHOTO CAPTURE + ANALYZE ===
   const captureAndAnalyze = useCallback(async () => {
     if (!streamRef.current || !videoRef.current) return
@@ -123,7 +188,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    // 2. Get real stream resolution (higher than video element display size)
+    // 2. Get real stream resolution
     const track = streamRef.current.getVideoTracks()[0]
     const settings = track?.getSettings?.() || {}
     const w = settings.width || video.videoWidth || 1280
@@ -138,11 +203,11 @@ export default function BarcodeScanner({ onScan, onClose }) {
     // Show canvas (frozen frame) over video
     canvas.style.display = 'block'
 
-    // 4. Try detection
+    // 4. Multi-pass detection pipeline
     let detected = false
 
-    // 4a. Try native BarcodeDetector on canvas
-    if (detectorRef.current) {
+    // Pass 1: Native BarcodeDetector on full image (fast, Android only)
+    if (!detected && detectorRef.current) {
       try {
         const barcodes = await detectorRef.current.detect(canvas)
         if (barcodes.length > 0) {
@@ -152,27 +217,42 @@ export default function BarcodeScanner({ onScan, onClose }) {
       } catch { /* native detection failed */ }
     }
 
-    // 4b. Fallback: html5-qrcode scanFile (works on ALL browsers including iOS Safari)
+    // Pass 2: scanFile on full image
     if (!detected) {
-      try {
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
-        if (blob) {
-          const file = new File([blob], 'capture.png', { type: 'image/png' })
-          const { Html5Qrcode } = await import('html5-qrcode')
-          const code = await Html5Qrcode.scanFile(file, false)
-          if (code) {
-            handleDetection(code)
-            detected = true
-          }
-        }
-      } catch { /* scanFile failed or no barcode found */ }
+      const file = await canvasToFile(canvas)
+      const code = await tryScanFile(file)
+      if (code) { handleDetection(code); detected = true }
+    }
+
+    // Pass 3: scanFile on cropped center (less noise)
+    if (!detected) {
+      const cropped = processImage(canvas, 'crop')
+      const file = await canvasToFile(cropped)
+      const code = await tryScanFile(file)
+      if (code) { handleDetection(code); detected = true }
+    }
+
+    // Pass 4: scanFile on binarized crop (pure B&W, max contrast)
+    if (!detected) {
+      const bin = processImage(canvas, 'binarize')
+      const file = await canvasToFile(bin)
+      const code = await tryScanFile(file)
+      if (code) { handleDetection(code); detected = true }
+    }
+
+    // Pass 5: scanFile with enhanced contrast full image
+    if (!detected) {
+      const sharp = processImage(canvas, 'sharpen')
+      const file = await canvasToFile(sharp)
+      const code = await tryScanFile(file)
+      if (code) { handleDetection(code); detected = true }
     }
 
     // 5. If nothing detected, show retry
     if (!detected && mountedRef.current) {
       setCaptureState('failed')
     }
-  }, [handleDetection])
+  }, [handleDetection, canvasToFile, tryScanFile, processImage])
 
   // Retry: go back to live video
   const retryCapture = useCallback(() => {
