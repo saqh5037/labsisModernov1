@@ -49,6 +49,12 @@ export async function getServiciosMedicos() {
   return res.json()
 }
 
+export async function getCheckpoints() {
+  const res = await fetch(`${BASE}/ordenes/checkpoints`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
 export async function getDashboard(params = {}) {
   const qs = new URLSearchParams(
     Object.entries(params).filter(([, v]) => v !== '' && v != null)
@@ -278,6 +284,12 @@ export async function setAreaEspera(numero, areaId, en_espera) {
 export async function getNotasPredefinidas() {
   const res = await fetch(`${BASE}/ordenes/lab/notas-predefinidas`)
   if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getResultadosPrint(numero) {
+  const res = await fetch(`${BASE}/ordenes/${numero}/resultados-print`)
+  if (!res.ok) throw new Error('Error cargando resultados')
   return res.json()
 }
 
@@ -818,6 +830,105 @@ export async function promoteQANote(noteId, data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+/* ── Trazabilidad / Checkpoint ── */
+
+export async function getTrazabilidadCheckpoints() {
+  const res = await fetch(`${BASE}/trazabilidad/checkpoints`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getTrazabilidadCheckpointsByIp() {
+  const res = await fetch(`${BASE}/trazabilidad/checkpoints/by-ip`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getStatusMuestra() {
+  const res = await fetch(`${BASE}/trazabilidad/status-muestra`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function scanBarcode(checkpointId, barcode) {
+  const res = await fetch(`${BASE}/trazabilidad/scan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ checkpointId, barcode }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ error: 'Error de servidor' }))
+    throw new Error(data.error || 'Error al escanear')
+  }
+  return res.json()
+}
+
+export async function getMuestraLogs(muestraId) {
+  const res = await fetch(`${BASE}/trazabilidad/muestra/${muestraId}/logs`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getOrdenMuestras(ordenId) {
+  const res = await fetch(`${BASE}/trazabilidad/orden/${ordenId}/muestras`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+// == CHECKPOINT ADMIN ==
+export async function getCheckpointDetail(id) {
+  const res = await fetch(`${BASE}/trazabilidad/checkpoints/${id}`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function createCheckpoint(data) {
+  const res = await fetch(`${BASE}/trazabilidad/checkpoints`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function updateCheckpoint(id, data) {
+  const res = await fetch(`${BASE}/trazabilidad/checkpoints/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function deleteCheckpoint(id) {
+  const res = await fetch(`${BASE}/trazabilidad/checkpoints/${id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: 'Error al eliminar' }))
+    throw new Error(body.error)
+  }
+  return res.json()
+}
+
+export async function getTrazDepartamentos() {
+  const res = await fetch(`${BASE}/trazabilidad/catalogos/departamentos`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getTrazCAPs() {
+  const res = await fetch(`${BASE}/trazabilidad/catalogos/caps`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function getMuestraTrazabilidad(barcode) {
+  const res = await fetch(`${BASE}/trazabilidad/muestra/barcode/${encodeURIComponent(barcode)}/trazabilidad`)
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }

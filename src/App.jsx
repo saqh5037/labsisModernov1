@@ -13,6 +13,7 @@ import PrintEtiqueta from './pages/PrintEtiqueta'
 import PrintReciboCredito from './pages/PrintReciboCredito'
 import PrintInstrucciones from './pages/PrintInstrucciones'
 import PrintPreguntas from './pages/PrintPreguntas'
+import PrintResultados from './pages/PrintResultados'
 import PacienteListPage from './pages/PacienteListPage'
 import PacienteDetallePage from './pages/PacienteDetallePage'
 import PacienteEditPage from './pages/PacienteEditPage'
@@ -35,6 +36,10 @@ import QABugListPage from './pages/QABugListPage'
 import QABugDetailPage from './pages/QABugDetailPage'
 import QATeamPage from './pages/QATeamPage'
 import QAMobileRunPage from './pages/QAMobileRunPage'
+import TrazabilidadPage from './pages/TrazabilidadPage'
+import TrazabilidadScanPage from './pages/TrazabilidadScanPage'
+import CheckPointList from './pages/CheckPointList'
+import CheckPointEdit from './pages/CheckPointEdit'
 
 export default function App() {
   return (
@@ -54,12 +59,17 @@ export default function App() {
             <Route path="/ordenes/:numero/recibo" element={<PrintReciboCredito />} />
             <Route path="/ordenes/:numero/instrucciones" element={<PrintInstrucciones />} />
             <Route path="/ordenes/:numero/preguntas" element={<PrintPreguntas />} />
+            <Route path="/ordenes/:numero/resultados" element={<PrintResultados />} />
             <Route path="/pacientes" element={<PacienteListPage />} />
             <Route path="/pacientes/nuevo" element={<PacienteEditPage />} />
             <Route path="/pacientes/:id" element={<PacienteDetallePage />} />
             <Route path="/pacientes/:id/editar" element={<PacienteEditPage />} />
             <Route path="/validacion" element={<OrdenLabPage />} />
-
+            <Route path="/trazabilidad" element={<TrazabilidadPage />} />
+            <Route path="/trazabilidad/:checkpointId" element={<TrazabilidadScanPage />} />
+            <Route path="/admin/checkpoints" element={<CheckPointList />} />
+            <Route path="/admin/checkpoints/new" element={<CheckPointEdit />} />
+            <Route path="/admin/checkpoints/:id/edit" element={<CheckPointEdit />} />
           </Route>
           <Route path="/qa" element={<QADashboardPage />} />
           <Route path="/qa/suites" element={<QASuiteListPage />} />

@@ -19,7 +19,7 @@ function formatNumResult(val, formato) {
 function buildFilterConditions(query) {
   const { numero, cedula, numFactura, numInicial, numFinal, fechaDesde, fechaHasta,
     estado, procedencia, area, prueba, servicioMedico, numIngreso, usuario,
-    enviarEmail, emailEnviado } = query
+    enviarEmail, emailEnviado, checkpoint } = query
   const params = []
   const conditions = []
 
@@ -88,6 +88,27 @@ function buildFilterConditions(query) {
   else if (enviarEmail === 'no') conditions.push(`ot.sent_mail = false`)
   if (emailEnviado === 'si') conditions.push(`ot.enviado_email_creacion = true`)
   else if (emailEnviado === 'no') conditions.push(`ot.enviado_email_creacion = false`)
+  if (checkpoint) {
+    params.push(parseInt(checkpoint))
+    const cpIdx = params.length
+    let cpDateCond = ''
+    if (fechaDesde) {
+      params.push(fechaDesde)
+      cpDateCond += ` AND ml.realizado >= $${params.length}::date`
+    }
+    if (fechaHasta) {
+      params.push(fechaHasta + ' 23:59:59')
+      cpDateCond += ` AND ml.realizado <= $${params.length}::timestamp`
+    }
+    conditions.push(`ot.id IN (
+      SELECT DISTINCT m.orden_id
+      FROM muestra_log ml
+      JOIN muestra m ON ml.muestra_id = m.id
+      WHERE ml.check_point_id = $${cpIdx}
+        AND ml.accion = 'Muestra Recibida'
+        ${cpDateCond}
+    )`)
+  }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
   return { params, where }
@@ -203,6 +224,22 @@ router.get('/status', async (_req, res) => {
     )
     res.json(result.rows)
   } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/ordenes/checkpoints — catálogo de checkpoints activos
+router.get('/checkpoints', async (_req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT id, descripcion
+      FROM check_point
+      WHERE entrada_lab = true
+      ORDER BY orden NULLS LAST, descripcion
+    `)
+    res.json(r.rows)
+  } catch (err) {
+    console.error('GET /checkpoints error:', err)
     res.status(500).json({ error: err.message })
   }
 })
@@ -345,7 +382,7 @@ router.get('/lab/areas', async (_req, res) => {
 // ── GET /api/ordenes/lab/queue ── Cola de órdenes pendientes con filtros
 router.get('/lab/queue', async (req, res) => {
   try {
-    const { area, fechaDesde, fechaHasta, transmitido, estado, page = '1', limit = '50' } = req.query
+    const { area, fechaDesde, fechaHasta, transmitido, estado, checkpoint, page = '1', limit = '50' } = req.query
     const pageNum = Math.max(1, parseInt(page) || 1)
     const limitNum = Math.min(200, Math.max(1, parseInt(limit) || 50))
     const conditions = [`ot.status_id NOT IN (4, 6, 7)`]
@@ -374,6 +411,16 @@ router.get('/lab/queue', async (req, res) => {
       conditions.push(`EXISTS (SELECT 1 FROM prueba_orden po3 WHERE po3.orden_id = ot.id AND po3.status_id NOT IN (4,7))`)
     } else if (estado === 'validado') {
       conditions.push(`NOT EXISTS (SELECT 1 FROM prueba_orden po3 WHERE po3.orden_id = ot.id AND po3.status_id NOT IN (4,7))`)
+    }
+
+    if (checkpoint) {
+      params.push(parseInt(checkpoint))
+      conditions.push(`ot.id IN (
+        SELECT DISTINCT m.orden_id FROM muestra_log ml
+        JOIN muestra m ON ml.muestra_id = m.id
+        WHERE ml.check_point_id = $${idx++}
+          AND ml.accion = 'Muestra Recibida'
+      )`)
     }
 
     const havingClause = estado === 'validado'
@@ -1600,6 +1647,251 @@ router.patch('/:numero/lab/area/:areaId/espera', async (req, res) => {
   } catch (err) {
     console.error('PATCH area espera error:', err)
     res.status(500).json({ error: err.message })
+  }
+})
+
+// ── GET /api/ordenes/:numero/resultados-print ── Resultados validados para impresión
+router.get('/:numero/resultados-print', async (req, res) => {
+  try {
+    const { numero } = req.params
+
+    // 1. Datos de la OT + Paciente
+    const otQuery = await pool.query(`
+      SELECT ot.id, ot.numero, ot.fecha, ot.fecha_validado, ot.observaciones,
+             ot.stat, ot.status_id,
+             p.nombre AS pac_nombre, p.apellido AS pac_apellido,
+             p.ci_paciente AS cedula, p.fecha_nacimiento, p.sexo,
+             p.telefono, p.email, p.num_historia,
+             proc.nombre AS procedencia,
+             sm.nombre AS servicio_medico,
+             m.nombre AS med_nombre, COALESCE(m.apellido_paterno, '') AS med_apellido,
+             m.id_profesional AS med_mpps,
+             so.status AS status_nombre
+      FROM orden_trabajo ot
+      LEFT JOIN paciente p ON p.id = ot.paciente_id
+      LEFT JOIN procedencia proc ON proc.id = ot.procedencia_id
+      LEFT JOIN servicio_medico sm ON sm.id = ot.servicio_medico_id
+      LEFT JOIN medico m ON m.id = ot.medico_id
+      LEFT JOIN status_orden so ON so.id = ot.status_id
+      WHERE ot.numero = $1
+    `, [numero])
+
+    if (!otQuery.rows.length) return res.status(404).json({ error: 'OT no encontrada' })
+    const ot = otQuery.rows[0]
+
+    // 2. Calcular edad
+    const edad = ot.fecha_nacimiento
+      ? Math.floor((new Date(ot.fecha) - new Date(ot.fecha_nacimiento)) / (365.25 * 86400000))
+      : null
+
+    // 3. Sexo del paciente para rangos
+    const pacSexo = ot.sexo
+    const pacEdad = edad
+
+    // 4. Resultados validados
+    const resultados = await pool.query(`
+      SELECT
+        a.id AS area_id, a.area AS area_nombre,
+        gp.id AS grupo_id, gp.nombre AS grupo_nombre, gp.metodologia,
+        gp.orden AS grupo_orden,
+        pr.id AS prueba_id, pr.nombre AS prueba_nombre, pr.nomenclatura,
+        pr.formato, pr.orden AS prueba_orden,
+        tp.codigo AS tipo_prueba,
+        u.simbolo AS unidad,
+        po.id AS prueba_orden_id, po.status_id AS po_status_id,
+        po.fecha_validacion, po.anormal, po.critico,
+        rn.valor AS resultado_num, rn.alarma, rn.menor_mayor,
+        ra.valor AS resultado_alpha,
+        sa.observaciones AS area_observaciones
+      FROM prueba_orden po
+      JOIN prueba pr ON pr.id = po.prueba_id
+      JOIN area a ON a.id = po.area_id
+      LEFT JOIN tipo_prueba tp ON pr.tipo_prueba_id = tp.id
+      LEFT JOIN unidad u ON pr.unidad_id = u.id
+      LEFT JOIN grupo_prueba gp ON gp.id = po.gp_id
+      LEFT JOIN resultado_numer rn ON rn.pruebao_id = po.id
+      LEFT JOIN resultado_alpha ra ON ra.pruebao_id = po.id
+      LEFT JOIN status_area sa ON sa.orden_id = po.orden_id AND sa.area_id = a.id
+      WHERE po.orden_id = $1
+        AND (po.status_id = 4 OR (po.status_id = 7 AND po.contiene_notas = true))
+      ORDER BY a.area, COALESCE(gp.orden, 9999), gp.nombre,
+               COALESCE(pr.orden, 9999), pr.nombre
+    `, [ot.id])
+
+    // 5. Rangos de referencia para las pruebas
+    const pruebaIds = [...new Set(resultados.rows.map(r => r.prueba_id))]
+    let rangos = []
+    if (pruebaIds.length > 0) {
+      const rangosResult = await pool.query(`
+        SELECT vr.prueba_id, vr.sexo, vr.edad_desde, vr.edad_hasta,
+               vr.valor_desde, vr.valor_hasta, vr.panico, vr.comentario
+        FROM valor_referencial vr
+        WHERE vr.prueba_id = ANY($1) AND (vr.activo IS NULL OR vr.activo = true)
+      `, [pruebaIds])
+      rangos = rangosResult.rows
+    }
+
+    // 6. Notas por prueba
+    const notas = await pool.query(`
+      SELECT ponh.prueba_orden_id, string_agg(pon.texto, '; ') AS nota
+      FROM prueba_orden_has_prueba_orden_nota ponh
+      JOIN prueba_orden_nota pon ON ponh.prueba_orden_nota_id = pon.id
+      JOIN prueba_orden po ON po.id = ponh.prueba_orden_id
+      WHERE po.orden_id = $1
+      GROUP BY ponh.prueba_orden_id
+    `, [ot.id])
+    const notasMap = {}
+    notas.rows.forEach(n => { notasMap[n.prueba_orden_id] = n.nota })
+
+    // 7. Organizar por Área > Grupo > Prueba
+    const areas = []
+    const areaMap = new Map()
+
+    const matchesPaciente = r => {
+      if (r.sexo && r.sexo.trim() && r.sexo.trim() !== pacSexo) return false
+      if (r.edad_desde != null && pacEdad != null && pacEdad < r.edad_desde) return false
+      if (r.edad_hasta != null && pacEdad != null && pacEdad > r.edad_hasta) return false
+      return true
+    }
+
+    resultados.rows.forEach(r => {
+      if (!areaMap.has(r.area_id)) {
+        const area = { id: r.area_id, nombre: r.area_nombre, observaciones: r.area_observaciones, grupos: [], _grupoMap: new Map() }
+        areaMap.set(r.area_id, area)
+        areas.push(area)
+      }
+      const area = areaMap.get(r.area_id)
+
+      const grupoKey = r.grupo_id || `prueba-${r.prueba_id}`
+      if (!area._grupoMap.has(grupoKey)) {
+        const grupo = { id: r.grupo_id, nombre: r.grupo_nombre || null, metodologia: r.metodologia || null, pruebas: [] }
+        area._grupoMap.set(grupoKey, grupo)
+        area.grupos.push(grupo)
+      }
+      const grupo = area._grupoMap.get(grupoKey)
+
+      // Determine result value
+      const esNumerico = r.tipo_prueba === 'NUM' || r.tipo_prueba === 'CAL'
+      const valorRaw = esNumerico ? r.resultado_num : r.resultado_alpha
+      const valor = esNumerico && valorRaw != null ? formatNumResult(valorRaw, r.formato) : (valorRaw != null ? String(valorRaw) : '')
+
+      // Build reference range string
+      const rangosPrueba = rangos.filter(rng => rng.prueba_id === r.prueba_id)
+      const rangosNormales = rangosPrueba.filter(rng => !rng.panico)
+      const rangoAplicable = rangosNormales.find(matchesPaciente) || rangosNormales[0] || null
+
+      let rangoRef = ''
+      if (rangoAplicable) {
+        const min = rangoAplicable.valor_desde != null ? Number(rangoAplicable.valor_desde) : null
+        const max = rangoAplicable.valor_hasta != null ? Number(rangoAplicable.valor_hasta) : null
+        if (min != null && max != null) rangoRef = `${min} - ${max}`
+        else if (min != null) rangoRef = `≥ ${min}`
+        else if (max != null) rangoRef = `≤ ${max}`
+        if (rangoAplicable.comentario) rangoRef += (rangoRef ? ' ' : '') + rangoAplicable.comentario
+      }
+
+      // Determine indicator
+      let indicador = ''
+      if (r.alarma && r.alarma.trim() && r.alarma.trim() !== 'N' && r.alarma.trim() !== 'n') {
+        indicador = r.alarma.trim().toUpperCase()
+      } else if (r.anormal) {
+        indicador = '*'
+      }
+
+      grupo.pruebas.push({
+        id: r.prueba_orden_id,
+        nombre: r.prueba_nombre,
+        nomenclatura: r.nomenclatura,
+        valor,
+        unidad: r.unidad || '',
+        rangoRef,
+        indicador,
+        anormal: r.anormal || false,
+        critico: r.critico || false,
+        menor_mayor: r.menor_mayor,
+        nota: notasMap[r.prueba_orden_id] || null,
+        fechaValidacion: r.fecha_validacion
+      })
+    })
+
+    areas.forEach(a => delete a._grupoMap)
+
+    res.json({
+      ot: {
+        numero: ot.numero,
+        fecha: ot.fecha,
+        fechaValidado: ot.fecha_validado,
+        observaciones: ot.observaciones,
+        status: ot.status_nombre,
+        procedencia: ot.procedencia,
+        servicioMedico: ot.servicio_medico,
+        medico: ot.med_nombre ? `${ot.med_nombre} ${ot.med_apellido}`.trim() : null,
+        medicoMpps: ot.med_mpps
+      },
+      paciente: {
+        nombre: `${ot.pac_nombre || ''} ${ot.pac_apellido || ''}`.trim(),
+        cedula: ot.cedula,
+        sexo: ot.sexo,
+        edad,
+        fechaNacimiento: ot.fecha_nacimiento,
+        numHistoria: ot.num_historia
+      },
+      areas
+    })
+  } catch (err) {
+    console.error('Error resultados-print:', err)
+    res.status(500).json({ error: 'Error obteniendo resultados' })
+  }
+})
+
+// ── GET /api/ordenes/:numero/resultados-pdf ── Descarga PDF de resultados
+router.get('/:numero/resultados-pdf', async (req, res) => {
+  const { numero } = req.params
+  try {
+    const puppeteer = await import('puppeteer')
+    const browser = await puppeteer.default.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    })
+    const page = await browser.newPage()
+
+    // Get the auth cookie from the request to pass it to puppeteer
+    const cookies = req.headers.cookie
+    if (cookies) {
+      const parsedCookies = cookies.split(';').map(c => {
+        const [name, ...rest] = c.trim().split('=')
+        return { name, value: rest.join('='), domain: 'localhost' }
+      })
+      await page.setCookie(...parsedCookies)
+    }
+
+    // Navigate to the print results page
+    const baseUrl = process.env.VITE_URL || 'http://localhost:5173'
+    await page.goto(`${baseUrl}/ordenes/${numero}/resultados`, {
+      waitUntil: 'networkidle0',
+      timeout: 15000
+    })
+
+    // Hide the action buttons before generating PDF
+    await page.evaluate(() => {
+      const actions = document.querySelector('.pr-actions')
+      if (actions) actions.style.display = 'none'
+    })
+
+    const pdf = await page.pdf({
+      format: 'Letter',
+      margin: { top: '12mm', bottom: '12mm', left: '10mm', right: '10mm' },
+      printBackground: true
+    })
+
+    await browser.close()
+
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="Resultados-OT-${numero}.pdf"`)
+    res.send(pdf)
+  } catch (err) {
+    console.error('Error generando PDF:', err)
+    res.status(500).json({ error: 'Error generando PDF' })
   }
 })
 

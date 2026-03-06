@@ -4,7 +4,7 @@ import Sidebar from './Sidebar'
 import AppNavbar from './AppNavbar'
 import AppFooter from './AppFooter'
 
-const PRINT_PATTERNS = ['/print', '/etiqueta', '/recibo', '/instrucciones', '/preguntas']
+const PRINT_PATTERNS = ['/print', '/etiqueta', '/recibo', '/instrucciones', '/preguntas', '/resultados']
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)

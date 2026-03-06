@@ -7,7 +7,7 @@ import DashboardProgress from '../components/DashboardProgress'
 import DashboardStatusChart from '../components/DashboardStatusChart'
 import DashboardAreaProgress from '../components/DashboardAreaProgress'
 import { useNavigate } from 'react-router-dom'
-import { getOrdenes, getDashboard, getStatus, getProcedencias, getAreas, getUsuarios, getServiciosMedicos, searchPruebas, getLaboratorio } from '../services/api'
+import { getOrdenes, getDashboard, getStatus, getProcedencias, getAreas, getUsuarios, getServiciosMedicos, searchPruebas, getLaboratorio, getCheckpoints } from '../services/api'
 
 /* ── Icons ── */
 const Ico = ({ d, vb = '0 0 24 24', w = 1.8 }) => (
@@ -94,6 +94,7 @@ const INIT = {
   area: [],    // multi-select
   prueba: null,
   procedencia: '', servicioMedico: '', numIngreso: '', usuario: '',
+  checkpoint: '',  // checkpoint ID (filtro por escaneo de muestras)
   orden: 'desc',
   emailFilter: 0, // 0=off, 1=sent, 2=not-sent
 }
@@ -116,6 +117,7 @@ function buildParams(filters) {
   if (filters.servicioMedico) p.servicioMedico = filters.servicioMedico
   if (filters.numIngreso) p.numIngreso = filters.numIngreso
   if (filters.usuario) p.usuario = filters.usuario
+  if (filters.checkpoint) p.checkpoint = filters.checkpoint
   p.orden = filters.orden
   if (filters.emailFilter === 1) p.emailEnviado = 'si'
   else if (filters.emailFilter === 2) p.emailEnviado = 'no'
@@ -151,6 +153,7 @@ export default function Ordenes() {
   const [areas,         setAreas]         = useState([])
   const [usuarios,      setUsuarios]      = useState([])
   const [serviciosMed,  setServiciosMed]  = useState([])
+  const [checkpointList, setCheckpointList] = useState([])
 
   const [rowH,     setRowH]     = useState(null)
   const scrollRef  = useRef(null)
@@ -166,6 +169,7 @@ export default function Ordenes() {
     getAreas().then(setAreas).catch(() => {})
     getUsuarios().then(setUsuarios).catch(() => {})
     getServiciosMedicos().then(setServiciosMed).catch(() => {})
+    getCheckpoints().then(setCheckpointList).catch(() => {})
     getLaboratorio().then(setLabConfig).catch(() => {})
   }, [])
 
@@ -301,21 +305,12 @@ export default function Ordenes() {
   return (
     <div className="ordenes-content">
 
-      {/* ── Local toolbar ── */}
+      {/* ── Local toolbar — solo botón crear ── */}
       <div className="ordenes-toolbar">
         <div className="nav-tools">
           <div className="nav-tool nav-tool-crear" title="Crear Orden de Trabajo" onClick={() => navigate('/ordenes/crear')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </div>
-          <div className="nav-tool" title="Filtros avanzados"><IcoFilter /></div>
-          <div className="nav-tool" title="Calculadora"><IcoCalc /></div>
-          <div className="nav-tool" title="Facturación"><IcoBag /></div>
-          <div className="nav-tool" title="BsF. Ingresos">
-            <span className="nav-tool-bsf">BsF.</span>
-          </div>
-          <div className="nav-tool" title="Estadísticas"><IcoChart /></div>
-          <div className="nav-tool" title="Enviar"><IcoSend /></div>
-          <div className="nav-tool" title="Descargar"><IcoDownload /></div>
         </div>
       </div>
 
@@ -385,6 +380,22 @@ export default function Ordenes() {
                 menuPortalTarget={document.body}
               />
             </div>
+
+            {checkpointList.length > 0 && (
+            <div className="fld" style={{ width: 160 }}>
+              <label className={hv(filters.checkpoint)}>CheckPoint</label>
+              <select
+                className={`ot-filter-select ${hv(filters.checkpoint)}`}
+                value={filters.checkpoint}
+                onChange={e => setF('checkpoint', e.target.value)}
+              >
+                <option value="">Todos</option>
+                {checkpointList.map(cp => (
+                  <option key={cp.id} value={cp.id}>{cp.descripcion}</option>
+                ))}
+              </select>
+            </div>
+            )}
 
             {/* Email toggle */}
             {showEmail && (
@@ -530,7 +541,7 @@ export default function Ordenes() {
                             {a.label.length > 8 ? a.label.slice(0, 7) + '.' : a.label}
                           </th>
                         ))}
-                        <th style={{ textAlign:'center', width: selectedAreas.length ? '18%' : '23%' }}>Acciones</th>
+                        <th style={{ textAlign:'center', width: selectedAreas.length ? '15%' : '18%' }}>Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -583,13 +594,9 @@ export default function Ordenes() {
                             })}
                             <td>
                               <div className="action-icons">
-                                <div className="action-icon ai-view"   title="Ver orden" onClick={() => navigate(`/ordenes/${r.numero}`)} ><IcoEye /></div>
-                                <div className="action-icon ai-mail"   title="Enviar email"><IcoMail /></div>
-                                <div className="action-icon ai-copy"   title="Copiar número" onClick={() => { navigator.clipboard.writeText(r.numero); }}><IcoCopy /></div>
-                                <div className="action-icon ai-print"  title="Imprimir" onClick={() => window.open(`/ordenes/${r.numero}/print`, '_blank')}><IcoPrint /></div>
+                                <div className="action-icon ai-view"   title="Ver orden" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoEye /></div>
                                 <div className="action-icon ai-bar"    title="Código de barras" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoBarcode /></div>
-                                <div className="action-icon ai-bsf"    title="Factura BsF.">BsF.</div>
-                                <div className="action-icon ai-edit"   title="Reportar resultados" onClick={() => {
+                                <div className="action-icon ai-edit"   title="Analizar" onClick={() => {
                                   const f = filtersRef.current
                                   const qs = new URLSearchParams()
                                   if (f.area?.length) qs.set('area', f.area.map(a => a.value).join(','))
@@ -598,7 +605,8 @@ export default function Ordenes() {
                                   const qStr = qs.toString()
                                   navigate(`/ordenes/${r.numero}/lab${qStr ? '?' + qStr : ''}`)
                                 }}><IcoEdit /></div>
-                                <div className="action-icon ai-result" title="Ver resultados" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoPrintR /></div>
+                                <div className={`action-icon ai-result${r.status_id >= 4 ? '' : ' ai-disabled'}`} title={r.status_id >= 4 ? 'Descargar resultados PDF' : 'Sin resultados validados'} onClick={() => { if (r.status_id >= 4) window.open(`/api/ordenes/${r.numero}/resultados-pdf`, '_blank') }}><IcoDownload /></div>
+                                <div className={`action-icon ai-print${r.status_id >= 4 ? '' : ' ai-disabled'}`} title={r.status_id >= 4 ? 'Imprimir resultados' : 'Sin resultados validados'} onClick={() => { if (r.status_id >= 4) window.open(`/ordenes/${r.numero}/resultados`, '_blank') }}><IcoPrint /></div>
                               </div>
                             </td>
                           </tr>
