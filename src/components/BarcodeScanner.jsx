@@ -188,7 +188,6 @@ export default function BarcodeScanner({ onScan, onClose }) {
 
   useEffect(() => {
     mountedRef.current = true
-    let html5QrInstance = null
 
     const startNativeScanner = async () => {
       try {
@@ -232,7 +231,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
         if (caps?.torch) setTorchSupported(true)
 
         if (detectorRef.current) {
-          // Native BarcodeDetector — continuous scan loop
+          // Native BarcodeDetector — continuous scan loop (Android Chrome)
           let frameCount = 0
           const scanLoop = async () => {
             if (!mountedRef.current) return
@@ -248,26 +247,9 @@ export default function BarcodeScanner({ onScan, onClose }) {
             rafRef.current = requestAnimationFrame(scanLoop)
           }
           rafRef.current = requestAnimationFrame(scanLoop)
-        } else {
-          // Fallback: html5-qrcode continuous scanning
-          const { Html5Qrcode } = await import('html5-qrcode')
-          const scannerId = 'barcode-fallback-region'
-          let div = document.getElementById(scannerId)
-          if (!div) {
-            div = document.createElement('div')
-            div.id = scannerId
-            div.style.display = 'none'
-            document.body.appendChild(div)
-          }
-          html5QrInstance = new Html5Qrcode(scannerId)
-          await html5QrInstance.start(
-            { facingMode: 'environment' },
-            { fps: 15, qrbox: { width: 320, height: 100 },
-              formatsToSupport: [2, 1, 4, 5, 9, 10, 0] },
-            (text) => handleDetection(text),
-            () => {}
-          )
         }
+        // If no native detector (iOS), user uses "Capturar foto" button
+        // which calls Html5Qrcode.scanFile() on the captured frame
       } catch (err) {
         if (!mountedRef.current) return
         const msg = err.toString()
@@ -287,13 +269,6 @@ export default function BarcodeScanner({ onScan, onClose }) {
       mountedRef.current = false
       stopCamera()
       detectorRef.current = null
-      if (html5QrInstance) {
-        try {
-          const state = html5QrInstance.getState()
-          if (state === 2 || state === 3) html5QrInstance.stop()
-          html5QrInstance.clear()
-        } catch {}
-      }
     }
   }, [handleDetection, stopCamera])
 
