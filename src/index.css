@@ -10697,7 +10697,7 @@ body[data-lab-theme="dark"] .scan-header__info h1 { color: #f1f5f9; }
   border-radius: 8px; transition: all 0.2s;
 }
 .barcode-scanner-torch svg { width: 20px; height: 20px; }
-.barcode-scanner-torch svg:first-child { display: none; }
+.barcode-scanner-torch svg { pointer-events: none; }
 .barcode-scanner-torch.active {
   background: rgba(251,191,36,0.2); border-color: #fbbf24; color: #fbbf24;
 }
@@ -10705,6 +10705,17 @@ body[data-lab-theme="dark"] .scan-header__info h1 { color: #f1f5f9; }
 .barcode-scanner-viewport-wrap {
   position: relative; width: 100%; overflow: hidden;
   background: #000;
+}
+.barcode-scanner-video {
+  width: 100%; height: auto; display: block;
+  min-height: 300px; object-fit: cover;
+  background: #000;
+}
+.barcode-scanner-badge {
+  display: inline-block; margin-left: 8px; padding: 1px 6px;
+  font-size: 10px; font-weight: 700; border-radius: 4px;
+  background: rgba(34,197,94,0.2); color: #22c55e;
+  letter-spacing: 0.5px; vertical-align: middle;
 }
 .barcode-scanner-viewport {
   width: 100%; min-height: 300px;

@@ -1,21 +1,27 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Html5Qrcode } from 'html5-qrcode'
 
 /**
- * BarcodeScanner — High-precision camera barcode scanner optimized for 1D codes.
- * Features: HD resolution, continuous autofocus, torch toggle, anti-duplicate,
- * laser-line overlay, vibration + beep feedback, narrow scan zone.
+ * BarcodeScanner — High-precision camera barcode scanner.
+ * Uses native BarcodeDetector API (Chrome/Android) for best accuracy,
+ * falls back to html5-qrcode library if native API not available.
+ * Features: HD resolution, continuous autofocus, torch, anti-duplicate,
+ * laser overlay, vibration + beep feedback.
  */
 export default function BarcodeScanner({ onScan, onClose }) {
-  const scannerRef = useRef(null)
-  const html5QrRef = useRef(null)
+  const videoRef = useRef(null)
+  const canvasRef = useRef(null)
+  const streamRef = useRef(null)
+  const rafRef = useRef(null)
   const lastScanRef = useRef({ code: '', time: 0 })
+  const mountedRef = useRef(true)
+
   const [error, setError] = useState('')
   const [cameraReady, setCameraReady] = useState(false)
   const [torchOn, setTorchOn] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
   const [lastCode, setLastCode] = useState('')
   const [scanFlash, setScanFlash] = useState(false)
+  const [useNative, setUseNative] = useState(false)
 
   // Beep sound on successful scan (1200Hz, 150ms)
   const playBeep = useCallback(() => {
@@ -34,125 +40,160 @@ export default function BarcodeScanner({ onScan, onClose }) {
     } catch { /* audio not available */ }
   }, [])
 
-  const stopScanner = useCallback(async () => {
-    try {
-      if (html5QrRef.current) {
-        const state = html5QrRef.current.getState()
-        if (state === 2 || state === 3) {
-          await html5QrRef.current.stop()
-        }
-        html5QrRef.current.clear()
-        html5QrRef.current = null
-      }
-    } catch { /* ignore cleanup errors */ }
+  const handleDetection = useCallback((code) => {
+    if (!mountedRef.current) return
+    const now = Date.now()
+    // Anti-duplicate: ignore same code within 1.5s
+    if (code === lastScanRef.current.code && now - lastScanRef.current.time < 1500) return
+    lastScanRef.current = { code, time: now }
+
+    // Feedback
+    if (navigator.vibrate) navigator.vibrate(200)
+    playBeep()
+    setLastCode(code)
+    setScanFlash(true)
+    setTimeout(() => setScanFlash(false), 400)
+
+    onScan(code)
+  }, [onScan, playBeep])
+
+  // Stop camera
+  const stopCamera = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = null
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
   }, [])
 
-  // Toggle torch/flash
+  // Toggle torch
   const toggleTorch = useCallback(async () => {
     try {
-      if (!html5QrRef.current) return
-      const videoEl = document.querySelector('#barcode-scanner-region video')
-      if (!videoEl?.srcObject) return
-      const track = videoEl.srcObject.getVideoTracks()[0]
+      if (!streamRef.current) return
+      const track = streamRef.current.getVideoTracks()[0]
       if (!track) return
-      const newTorch = !torchOn
-      await track.applyConstraints({ advanced: [{ torch: newTorch }] })
-      setTorchOn(newTorch)
-    } catch { /* torch toggle failed */ }
+      const newVal = !torchOn
+      await track.applyConstraints({ advanced: [{ torch: newVal }] })
+      setTorchOn(newVal)
+    } catch { /* torch failed */ }
   }, [torchOn])
 
   useEffect(() => {
-    let mounted = true
+    mountedRef.current = true
+    let detector = null
+    let html5QrInstance = null
 
-    const startScanner = async () => {
+    const startNativeScanner = async () => {
       try {
-        const scannerId = 'barcode-scanner-region'
-        const html5Qr = new Html5Qrcode(scannerId)
-        html5QrRef.current = html5Qr
-
-        // Use facingMode constraint for reliable back camera + HD resolution
-        const cameraConstraints = {
-          facingMode: 'environment',
-          width: { min: 1280, ideal: 1920 },
-          height: { min: 720, ideal: 1080 },
-          focusMode: 'continuous',
+        // Check native BarcodeDetector support
+        const hasNative = 'BarcodeDetector' in window
+        if (hasNative) {
+          const supported = await window.BarcodeDetector.getSupportedFormats()
+          if (supported.includes('code_128') || supported.includes('ean_13')) {
+            detector = new window.BarcodeDetector({
+              formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'itf', 'codabar', 'qr_code']
+            })
+            setUseNative(true)
+          }
         }
 
-        await html5Qr.start(
-          { facingMode: 'environment' },
-          {
-            fps: 15,
-            qrbox: { width: 320, height: 80 },
-            aspectRatio: 1.777,
-            videoConstraints: cameraConstraints,
-            formatsToSupport: [
-              2,  // CODE_128 (Labsis primary)
-              1,  // CODE_39
-              4,  // EAN_13
-              5,  // EAN_8
-              9,  // ITF
-              10, // CODABAR
-              0,  // QR_CODE
-            ]
+        // Get camera stream with HD constraints
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { min: 1280, ideal: 1920 },
+            height: { min: 720, ideal: 1080 },
+            focusMode: 'continuous',
+            focusDistance: 0,
           },
-          (decodedText) => {
-            if (!mounted) return
-            // Anti-duplicate: ignore same code within 1.5s cooldown
-            const now = Date.now()
-            if (decodedText === lastScanRef.current.code &&
-                now - lastScanRef.current.time < 1500) {
-              return
-            }
-            lastScanRef.current = { code: decodedText, time: now }
+          audio: false,
+        })
 
-            // Feedback: vibrate + beep + flash
-            if (navigator.vibrate) navigator.vibrate(200)
-            playBeep()
-            setLastCode(decodedText)
-            setScanFlash(true)
-            setTimeout(() => setScanFlash(false), 400)
+        if (!mountedRef.current) { stream.getTracks().forEach(t => t.stop()); return }
+        streamRef.current = stream
 
-            onScan(decodedText)
-          },
-          () => { /* ignore scan failures */ }
-        )
+        const video = videoRef.current
+        if (!video) return
+        video.srcObject = stream
+        await video.play()
 
-        if (mounted) {
-          setCameraReady(true)
-          // Check torch support
-          setTimeout(() => {
-            try {
-              const videoEl = document.querySelector('#barcode-scanner-region video')
-              if (videoEl?.srcObject) {
-                const track = videoEl.srcObject.getVideoTracks()[0]
-                const capabilities = track?.getCapabilities?.()
-                if (capabilities?.torch) {
-                  setTorchSupported(true)
+        setCameraReady(true)
+
+        // Check torch support
+        const track = stream.getVideoTracks()[0]
+        const caps = track?.getCapabilities?.()
+        if (caps?.torch) setTorchSupported(true)
+
+        if (detector) {
+          // Native BarcodeDetector — scan loop via requestAnimationFrame
+          let frameCount = 0
+          const scanLoop = async () => {
+            if (!mountedRef.current) return
+            frameCount++
+            // Scan every 3rd frame (~20fps on 60fps display = ~6-7 scans/sec)
+            if (frameCount % 3 === 0 && video.readyState === video.HAVE_ENOUGH_DATA) {
+              try {
+                const barcodes = await detector.detect(video)
+                if (barcodes.length > 0) {
+                  handleDetection(barcodes[0].rawValue)
                 }
-              }
-            } catch { /* no torch */ }
-          }, 500)
+              } catch { /* detection error, continue */ }
+            }
+            rafRef.current = requestAnimationFrame(scanLoop)
+          }
+          rafRef.current = requestAnimationFrame(scanLoop)
+        } else {
+          // Fallback: html5-qrcode with video element
+          const { Html5Qrcode } = await import('html5-qrcode')
+          const scannerId = 'barcode-fallback-region'
+          // Create a hidden div for html5-qrcode
+          let div = document.getElementById(scannerId)
+          if (!div) {
+            div = document.createElement('div')
+            div.id = scannerId
+            div.style.display = 'none'
+            document.body.appendChild(div)
+          }
+          html5QrInstance = new Html5Qrcode(scannerId)
+          await html5QrInstance.start(
+            { facingMode: 'environment' },
+            { fps: 15, qrbox: { width: 320, height: 100 },
+              formatsToSupport: [2, 1, 4, 5, 9, 10, 0] },
+            (text) => handleDetection(text),
+            () => {}
+          )
         }
       } catch (err) {
-        if (!mounted) return
-        if (err.toString().includes('NotAllowedError') || err.toString().includes('Permission')) {
+        if (!mountedRef.current) return
+        const msg = err.toString()
+        if (msg.includes('NotAllowedError') || msg.includes('Permission')) {
           setError('Permiso de cámara denegado. Habilítalo en la configuración del navegador.')
+        } else if (msg.includes('secure context') || msg.includes('https')) {
+          setError('La cámara requiere HTTPS. Usa la URL https://...')
         } else {
           setError(`Error al iniciar cámara: ${err.message || err}`)
         }
       }
     }
 
-    startScanner()
+    startNativeScanner()
 
     return () => {
-      mounted = false
-      stopScanner()
+      mountedRef.current = false
+      stopCamera()
+      if (html5QrInstance) {
+        try {
+          const state = html5QrInstance.getState()
+          if (state === 2 || state === 3) html5QrInstance.stop()
+          html5QrInstance.clear()
+        } catch {}
+      }
     }
-  }, [onScan, stopScanner, playBeep])
+  }, [handleDetection, stopCamera])
 
   const handleClose = () => {
-    stopScanner()
+    stopCamera()
     onClose()
   }
 
@@ -160,7 +201,10 @@ export default function BarcodeScanner({ onScan, onClose }) {
     <div className="barcode-scanner-overlay">
       <div className="barcode-scanner-modal">
         <div className="barcode-scanner-header">
-          <span>Escanear con cámara</span>
+          <span>
+            Escanear con cámara
+            {useNative && <span className="barcode-scanner-badge">HD</span>}
+          </span>
           <div className="barcode-scanner-header-actions">
             {torchSupported && (
               <button
@@ -169,10 +213,6 @@ export default function BarcodeScanner({ onScan, onClose }) {
                 onClick={toggleTorch}
                 title={torchOn ? 'Apagar linterna' : 'Encender linterna'}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
-                </svg>
-                {/* Flash/bolt icon */}
                 <svg viewBox="0 0 24 24" fill={torchOn ? '#fbbf24' : 'none'} stroke="currentColor" strokeWidth="2">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                 </svg>
@@ -187,11 +227,14 @@ export default function BarcodeScanner({ onScan, onClose }) {
         </div>
 
         <div className="barcode-scanner-viewport-wrap">
-          <div
-            id="barcode-scanner-region"
-            ref={scannerRef}
-            className="barcode-scanner-viewport"
+          <video
+            ref={videoRef}
+            className="barcode-scanner-video"
+            playsInline
+            muted
+            autoPlay
           />
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
           {cameraReady && <div className="barcode-scanner-laser" />}
           {scanFlash && <div className="barcode-scanner-flash" />}
         </div>
