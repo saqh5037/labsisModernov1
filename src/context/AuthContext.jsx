@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 
+const API = import.meta.env.BASE_URL.replace(/\/$/, '') + '/api'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
@@ -9,7 +10,7 @@ export function AuthProvider({ children }) {
 
   // Revalidar sesión al montar (cookie httpOnly se envía automáticamente)
   useEffect(() => {
-    fetch('/api/auth/me', { credentials: 'include' })
+    fetch(`${API}/auth/me`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => {
         setUser(data.user)
@@ -23,7 +24,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = useCallback(async (username, password) => {
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(`${API}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -37,7 +38,7 @@ export function AuthProvider({ children }) {
     setUser(data.user)
     // Cargar permisos
     try {
-      const meRes = await fetch('/api/auth/me', { credentials: 'include' })
+      const meRes = await fetch(`${API}/auth/me`, { credentials: 'include' })
       if (meRes.ok) {
         const meData = await meRes.json()
         setPermisos(meData.permisos || {})
@@ -47,7 +48,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback(async () => {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include' })
     setUser(null)
     setPermisos({})
   }, [])

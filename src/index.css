@@ -10036,6 +10036,7 @@ span.flatpickr-weekday { font-size:10px !important; font-weight:700 !important; 
   display: flex; align-items: center; gap: 8px;
   padding: 8px 12px; background: var(--surface-card, rgba(255,255,255,0.7));
   border: 2px solid var(--accent, #3b82f6); border-radius: 12px;
+  max-width: 100%; overflow: hidden;
 }
 .scan-input-icon { width: 24px; height: 24px; color: var(--accent, #3b82f6); flex-shrink: 0; }
 .scan-input {
@@ -10110,7 +10111,10 @@ span.flatpickr-weekday { font-size:10px !important; font-weight:700 !important; 
   .scan-content { grid-template-columns: 1fr; }
   .scan-page { padding: 12px; }
   .scan-header { flex-wrap: wrap; }
-  .scan-input { font-size: 16px; }
+  .scan-input { font-size: 16px; min-width: 0; }
+  .scan-btn { padding: 8px 14px; font-size: 13px; }
+  .scan-camera-btn { width: 40px; height: 40px; }
+  .scan-camera-btn svg { width: 20px; height: 20px; }
 }
 
 /* ── Dark mode ── */

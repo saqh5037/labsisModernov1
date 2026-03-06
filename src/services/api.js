@@ -1,4 +1,4 @@
-const BASE = '/api'
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '') + '/api'
 
 export async function getHealth() {
   try {

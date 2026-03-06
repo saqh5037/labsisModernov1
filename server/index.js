@@ -51,11 +51,12 @@ import path from 'path'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 app.use('/api/qa/screenshots', requireAuth, express.static(path.join(__dirname, 'data/qa/screenshots')))
 
-// Production: serve Vite build
+// Production: serve Vite build (may be under /labsis/ prefix via Nginx)
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '..', 'dist')))
+  const distDir = path.join(__dirname, '..', 'dist')
+  app.use(express.static(distDir))
   app.get('{*path}', (_req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'))
+    res.sendFile(path.join(distDir, 'index.html'))
   })
 }
 
