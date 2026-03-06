@@ -10765,6 +10765,66 @@ body[data-lab-theme="dark"] .scan-header__info h1 { color: #f1f5f9; }
 .barcode-scanner-last-code strong {
   font-size: 15px; letter-spacing: 1px;
 }
+/* Capture photo button */
+.barcode-scanner-capture-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 12px auto;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 50px;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+}
+.barcode-scanner-capture-btn:active {
+  transform: scale(0.93);
+  box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+}
+.barcode-scanner-capture-btn svg {
+  flex-shrink: 0;
+}
+/* Capture overlay (analyzing / failed) */
+.barcode-scanner-capture-overlay {
+  position: absolute; inset: 0; z-index: 15;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  background: rgba(15,23,42,0.8);
+  color: #f8fafc;
+  font-size: 14px; font-weight: 500;
+}
+.barcode-scanner-capture-overlay.failed {
+  background: rgba(127,29,29,0.75);
+}
+.barcode-scanner-capture-overlay.failed svg {
+  color: #fca5a5;
+}
+.barcode-scanner-capture-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: capture-spin 0.8s linear infinite;
+}
+@keyframes capture-spin {
+  to { transform: rotate(360deg); }
+}
+.barcode-scanner-retry-btn {
+  margin-top: 4px;
+  padding: 10px 24px;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 8px;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.barcode-scanner-retry-btn:active {
+  background: rgba(255,255,255,0.25);
+}
 /* Hint */
 .barcode-scanner-hint {
   padding: 10px 14px;
@@ -10772,4 +10832,5 @@ body[data-lab-theme="dark"] .scan-header__info h1 { color: #f1f5f9; }
   font-size: 12px;
   color: #64748b;
   border-top: 1px solid rgba(148,163,184,0.15);
+  min-height: 34px;
 }
