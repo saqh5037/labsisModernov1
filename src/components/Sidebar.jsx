@@ -25,6 +25,13 @@ const icons = {
       <polyline points="22 4 12 14.01 9 11.01" />
     </svg>
   ),
+  'scan': (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" />
+      <path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+      <line x1="7" y1="12" x2="17" y2="12" />
+    </svg>
+  ),
 }
 
 const chevronDown = (
@@ -54,6 +61,12 @@ const MENU_SECTIONS = [
     id: 'pacientes', label: 'Pacientes', icon: 'heart',
     items: [
       { label: 'Lista de Pacientes', path: '/pacientes' },
+    ]
+  },
+  {
+    id: 'trazabilidad', label: 'Trazabilidad', icon: 'scan',
+    items: [
+      { label: 'Checkpoints', path: '/trazabilidad' },
     ]
   },
   {

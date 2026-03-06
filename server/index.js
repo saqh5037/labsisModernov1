@@ -14,6 +14,7 @@ import validacionRouter from './routes/validacion.js'
 import devRouter from './routes/dev.js'
 import qaRouter from './routes/qa.js'
 import qaPublicRouter from './routes/qa-public.js'
+import trazabilidadRouter from './routes/trazabilidad.js'
 
 // db.js already loads dotenv with the correct .env file
 
@@ -42,6 +43,7 @@ app.use('/api/pacientes', requireAuth, pacientesRouter)
 app.use('/api/qa', qaPublicRouter)          // Public mobile session endpoints (no auth - MUST be before catalogos)
 app.use('/api', requireAuth, catalogosRouter)
 app.use('/api/qa', requireAuth, qaRouter)   // Protected QA endpoints
+app.use('/api/trazabilidad', requireAuth, trazabilidadRouter)
 
 // Static files for QA screenshots
 import { fileURLToPath } from 'url'

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { getOrdenLab, saveResultados, getHistorico, getLabQueue, getLabAreas, corregirResultado, getCorrecciones, getMe, getVBOrdenArea, saveVBResultados, labQuickSearch, verificarResultados, setAreaEspera, getNotasPredefinidas } from '../services/api'
+import { getOrdenLab, saveResultados, getHistorico, getLabQueue, getLabAreas, corregirResultado, getCorrecciones, getMe, getVBOrdenArea, saveVBResultados, labQuickSearch, verificarResultados, setAreaEspera, getNotasPredefinidas, getCheckpoints } from '../services/api'
 import { useValidationMode } from '../hooks/useValidationMode'
 
 /* ── SVG Icons ── */
@@ -348,15 +348,17 @@ export default function OrdenLabPage() {
   const [queuePage, setQueuePage] = useState(1)
   const [queueHasMore, setQueueHasMore] = useState(false)
   const [queueFilters, setQueueFilters] = useState({
+    checkpoint: searchParams.get('checkpoint') || '',
     area: searchParams.get('area') || '',
     fechaDesde: searchParams.get('fechaDesde') || '',
     fechaHasta: searchParams.get('fechaHasta') || '',
     transmitido: '', estado: ''
   })
   const [showQueueFilters, setShowQueueFilters] = useState(
-    !!(searchParams.get('area') || searchParams.get('fechaDesde'))
+    !!(searchParams.get('area') || searchParams.get('fechaDesde') || searchParams.get('checkpoint'))
   )
   const [labAreas, setLabAreas] = useState([])
+  const [checkpointList, setCheckpointList] = useState([])
 
   // Usuario autenticado y permisos
   const [userInfo, setUserInfo] = useState(null)
@@ -469,9 +471,10 @@ export default function OrdenLabPage() {
 
   useEffect(() => { loadQueue() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load areas for queue filter dropdown
+  // Load areas and checkpoints for queue filter dropdowns
   useEffect(() => {
     getLabAreas().then(r => setLabAreas(r.data || [])).catch(() => {})
+    getCheckpoints().then(setCheckpointList).catch(() => {})
   }, [])
 
   // Toast auto-dismiss
@@ -1073,6 +1076,12 @@ export default function OrdenLabPage() {
 
               {showQueueFilters && (
                 <div className="lab-queue-filters">
+                  <label>CheckPoint</label>
+                  <select value={queueFilters.checkpoint} onChange={e => setQueueFilters(f => ({ ...f, checkpoint: e.target.value }))}>
+                    <option value="">Todos</option>
+                    {checkpointList.map(cp => <option key={cp.id} value={cp.id}>{cp.descripcion}</option>)}
+                  </select>
+
                   <label>Área</label>
                   <select value={queueFilters.area} onChange={e => setQueueFilters(f => ({ ...f, area: e.target.value }))}>
                     <option value="">Todas</option>
@@ -1541,6 +1550,9 @@ export default function OrdenLabPage() {
                   </button>
                   <button className="lab-btn lab-btn-outline" onClick={() => navigate(`/ordenes/${numero}`)}>
                     <IcoEye /> Ver Detalles
+                  </button>
+                  <button className="lab-btn lab-btn-outline" onClick={() => window.open(`/ordenes/${numero}/resultados`, '_blank')}>
+                    <IcoNote /> Resultados
                   </button>
                   <div className="lab-toolbar-spacer" />
                   {canVerify && someVal && !allVerified && (

@@ -1,0 +1,30 @@
+{
+  "id": 14,
+  "runId": null,
+  "testCaseId": null,
+  "titulo": "Boton guardar cortado en mobile",
+  "descripcion": "Tabla de pacientes no muestra celular",
+  "comportamientoEsperado": "",
+  "comportamientoActual": "Tabla de pacientes no muestra celular",
+  "pasosReproducir": "",
+  "severidad": "menor",
+  "estado": "abierto",
+  "screenshots": [],
+  "logs": "",
+  "browserInfo": "",
+  "tipoError": "visual",
+  "codigoError": "",
+  "dondeOcurre": "",
+  "queEsperabas": "",
+  "contextoExtra": "",
+  "brandTokens": [],
+  "zonaPantalla": "",
+  "reportadoPor": {
+    "id": 0,
+    "nombre": " "
+  },
+  "asignadoA": null,
+  "comments": [],
+  "createdAt": "2026-03-05T21:18:59.564Z",
+  "updatedAt": "2026-03-05T21:18:59.564Z"
+}
