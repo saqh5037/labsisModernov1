@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 
-const API = import.meta.env.BASE_URL.replace(/\/$/, '') + '/api'
+const API = (window.location.pathname.startsWith('/labsis') ? '/labsis' : '') + '/api'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {

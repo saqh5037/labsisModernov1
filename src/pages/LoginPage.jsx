@@ -21,7 +21,7 @@ export default function LoginPage() {
   }, [isAuthenticated, navigate])
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/auth/lab-info`)
+    fetch(`${window.location.pathname.startsWith('/labsis') ? '/labsis' : ''}/api/auth/lab-info`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { d && setLabInfo(d); setTimeout(() => setReady(true), 50) })
       .catch(() => setTimeout(() => setReady(true), 50))

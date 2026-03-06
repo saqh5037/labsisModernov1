@@ -1,4 +1,4 @@
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, '') + '/api'
+const BASE = (window.location.pathname.startsWith('/labsis') ? '/labsis' : '') + '/api'
 
 export async function getHealth() {
   try {
