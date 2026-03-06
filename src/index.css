@@ -10636,3 +10636,67 @@ body[data-lab-theme="dark"] .scan-header__info h1 { color: #f1f5f9; }
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* -- Camera scan button (next to input) -- */
+.scan-camera-btn {
+  flex-shrink: 0;
+  width: 44px; height: 44px;
+  border: 1px solid var(--border, rgba(148,163,184,0.2));
+  border-radius: var(--r-sm, 8px);
+  background: var(--glass-bg, rgba(255,255,255,0.08));
+  color: var(--accent, #3b82f6);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.scan-camera-btn svg { width: 22px; height: 22px; }
+.scan-camera-btn:hover { background: rgba(59,130,246,0.12); border-color: var(--accent, #3b82f6); }
+.scan-camera-btn:disabled { opacity: 0.4; pointer-events: none; }
+
+/* -- Barcode Scanner overlay (camera) -- */
+.barcode-scanner-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.barcode-scanner-modal {
+  background: var(--surface, #1e293b);
+  border-radius: var(--r-md, 12px);
+  width: 100%; max-width: 400px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.barcode-scanner-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  font-size: 14px; font-weight: 600;
+  color: var(--text-1, #f8fafc);
+  border-bottom: 1px solid var(--border, rgba(148,163,184,0.15));
+}
+.barcode-scanner-close {
+  width: 32px; height: 32px; border: none; background: none;
+  color: var(--text-3, #94a3b8); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.barcode-scanner-close svg { width: 18px; height: 18px; }
+.barcode-scanner-close:hover { background: rgba(255,255,255,0.1); }
+.barcode-scanner-viewport {
+  width: 100%; min-height: 280px;
+  background: #000;
+}
+.barcode-scanner-viewport video { width: 100% !important; height: auto !important; }
+.barcode-scanner-loading, .barcode-scanner-error {
+  padding: 24px; text-align: center; font-size: 13px;
+}
+.barcode-scanner-loading { color: var(--text-3, #94a3b8); }
+.barcode-scanner-error { color: #ef4444; }
+.barcode-scanner-hint {
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-4, #64748b);
+  border-top: 1px solid var(--border, rgba(148,163,184,0.15));
+}

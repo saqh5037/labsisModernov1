@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getTrazabilidadCheckpoints, scanBarcode, getMuestraLogs, getOrdenMuestras } from '../services/api'
 import { useNotificationSound } from '../hooks/useNotificationSound'
+import BarcodeScanner from '../components/BarcodeScanner'
 
 const STATUS_COLORS = {
   REC: '#22c55e', TRA: '#f59e0b', ACM: '#3b82f6', DIS: '#8b5cf6',
@@ -25,6 +26,17 @@ export default function TrazabilidadScanPage() {
   const [otMuestras, setOtMuestras] = useState([])
   const [showOtMuestras, setShowOtMuestras] = useState(false)
   const [feedback, setFeedback] = useState(null) // { type: 'ok'|'error', text }
+  const [showCamera, setShowCamera] = useState(false)
+  const [hasCamera, setHasCamera] = useState(false)
+
+  // Detect if device has a camera
+  useEffect(() => {
+    if (navigator.mediaDevices?.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices().then(devices => {
+        setHasCamera(devices.some(d => d.kind === 'videoinput'))
+      }).catch(() => setHasCamera(false))
+    }
+  }, [])
 
   // Error beep (300Hz grave)
   const playErrorBeep = useCallback(() => {
@@ -101,6 +113,44 @@ export default function TrazabilidadScanPage() {
     }
   }, [barcode, checkpointId, scanning, playDing, playErrorBeep])
 
+  // Camera scan: auto-submit when barcode detected
+  const handleCameraScan = useCallback((code) => {
+    if (!code || scanning) return
+    setShowCamera(false)
+    setBarcode(code)
+    // Auto-submit after a tick so state updates
+    setTimeout(async () => {
+      setScanning(true)
+      setError('')
+      try {
+        const result = await scanBarcode(parseInt(checkpointId), code)
+        setLastScan(result)
+        setScanHistory(prev => [{
+          barcode: code,
+          muestra: result.muestra,
+          statusAnterior: result.statusAnterior,
+          statusNuevo: result.statusNuevo,
+          time: new Date(),
+        }, ...prev].slice(0, 50))
+        setBarcode('')
+        playDing()
+        setFeedback({ type: 'ok', text: `${result.statusAnterior.codigo} → ${result.statusNuevo.codigo}` })
+        setTimeout(() => setFeedback(null), 2000)
+        if (result.muestra?.orden_id) {
+          getOrdenMuestras(result.muestra.orden_id).then(setOtMuestras).catch(() => setOtMuestras([]))
+        }
+      } catch (err) {
+        setError(err.message)
+        playErrorBeep()
+        setFeedback({ type: 'error', text: 'Error' })
+        setTimeout(() => setFeedback(null), 2000)
+      } finally {
+        setScanning(false)
+        inputRef.current?.focus()
+      }
+    }, 50)
+  }, [scanning, checkpointId, playDing, playErrorBeep])
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -121,6 +171,13 @@ export default function TrazabilidadScanPage() {
       {/* Audio feedback toast */}
       {feedback && (
         <div className={`scan-feedback scan-feedback--${feedback.type}`}>{feedback.text}</div>
+      )}
+      {/* Camera scanner overlay */}
+      {showCamera && (
+        <BarcodeScanner
+          onScan={handleCameraScan}
+          onClose={() => setShowCamera(false)}
+        />
       )}
       {/* Header */}
       <div className="scan-header">
@@ -169,6 +226,20 @@ export default function TrazabilidadScanPage() {
           <button className="scan-btn" onClick={handleScan} disabled={!barcode.trim() || scanning}>
             {scanning ? 'Procesando...' : 'Ingresar'}
           </button>
+          {hasCamera && (
+            <button
+              type="button"
+              className="scan-camera-btn"
+              onClick={() => setShowCamera(true)}
+              title="Escanear con cámara"
+              disabled={scanning}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+            </button>
+          )}
         </div>
         {error && <div className="scan-error">{error}</div>}
         {lastScan?.ok && (
