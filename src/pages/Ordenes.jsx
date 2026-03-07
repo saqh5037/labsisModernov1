@@ -336,7 +336,7 @@ export default function Ordenes() {
 
           {/* ── FILTROS NIVEL 1 (siempre visibles) ── */}
           <div className="ordenes-filters-primary anim d2">
-            <div className="fld" style={{ width: 120 }}>
+            <div className="fld fld-sm">
               <label className={hv(filters.numero)}>N. Orden</label>
               <input type="text" placeholder="2603020001"
                 className={hv(filters.numero)}
@@ -346,7 +346,7 @@ export default function Ordenes() {
               />
             </div>
             {showCi && (
-            <div className="fld" style={{ width: 140 }}>
+            <div className="fld fld-sm">
               <label className={hv(filters.cedula)}>{ciLabel}</label>
               <input type="text" placeholder={ciPlaceholder}
                 className={hv(filters.cedula)}
@@ -356,7 +356,7 @@ export default function Ordenes() {
               />
             </div>
             )}
-            <div className="fld" style={{ width: 220 }}>
+            <div className="fld fld-lg">
               <label className={filters.estado.length > 0 ? 'has-value' : ''}>Estado(s)</label>
               <Select styles={glassStyles} theme={glassTheme} options={estadoOpts}
                 value={filters.estado}
@@ -371,7 +371,7 @@ export default function Ordenes() {
                 )}
               />
             </div>
-            <div className="fld" style={{ width: 220 }}>
+            <div className="fld fld-lg">
               <label className={filters.fechaRange?.from ? 'has-value' : ''}>Fecha</label>
               <DatePickerGlass
                 mode="range"
@@ -380,7 +380,7 @@ export default function Ordenes() {
                 placeholder="Rango de fechas"
               />
             </div>
-            <div className="fld" style={{ width: 160 }}>
+            <div className="fld fld-md">
               <label className={filters.area.length > 0 ? 'has-value' : ''}>Área</label>
               <Select styles={glassStyles} theme={glassTheme} options={areaOpts}
                 value={filters.area} onChange={opts => setF('area', opts || [])}
@@ -391,7 +391,7 @@ export default function Ordenes() {
             </div>
 
             {checkpointList.length > 0 && (
-            <div className="fld" style={{ width: 160 }}>
+            <div className="fld fld-md">
               <label className={hv(filters.checkpoint)}>CheckPoint</label>
               <select
                 className={`ot-filter-select ${hv(filters.checkpoint)}`}

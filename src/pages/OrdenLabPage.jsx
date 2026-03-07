@@ -355,6 +355,7 @@ export default function OrdenLabPage() {
     transmitido: '', estado: ''
   })
   const [showQueueFilters, setShowQueueFilters] = useState(false)
+  const [queueExpanded, setQueueExpanded] = useState(false)
   const [labAreas, setLabAreas] = useState([])
   const [checkpointList, setCheckpointList] = useState([])
   const queueListRef = useRef(null)
@@ -1056,8 +1057,8 @@ export default function OrdenLabPage() {
           {isValidation ? (
             <ValidationPanel validation={validation} onSelect={loadValidationOrden} />
           ) : (
-          <div className="lab-queue-panel">
-            <div className="lab-queue-header">
+          <div className={`lab-queue-panel ${queueExpanded ? 'lab-queue--expanded' : ''}`}>
+            <div className="lab-queue-header" onClick={() => setQueueExpanded(e => !e)}>
               <span className="lab-queue-title">Cola de trabajo</span>
               {findCurrentQueueIndex() >= 0 && <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>{findCurrentQueueIndex() + 1}/{queue.length}</span>}
               <span className="lab-queue-count">{queue.length}</span>
@@ -1202,6 +1203,7 @@ export default function OrdenLabPage() {
                   Object.entries(queueFilters).forEach(([k, v]) => { if (v) params.set(k, v) })
                   const qs = params.toString()
                   navigate(`/ordenes/${q.numero}/lab${qs ? '?' + qs : ''}`)
+                  setQueueExpanded(false)
                 }
                 return (
                   <div key={q.numero} className={`lab-queue-item ${isCurrent ? 'active' : ''}`} onClick={queueNav}>

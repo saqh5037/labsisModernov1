@@ -796,6 +796,15 @@ body[data-lab-font="large"] .lab-ref-bar { height: 8px !important; }
 .fg-6 { grid-template-columns:repeat(6,1fr); }
 
 .fld { display:flex; flex-direction:column; gap:3px; }
+.fld-sm { flex: 0 1 120px; min-width: 80px; }
+.fld-md { flex: 0 1 160px; min-width: 100px; }
+.fld-lg { flex: 0 1 220px; min-width: 140px; }
+@media (max-width: 768px) {
+  .ordenes-filters-primary .fld { flex: 1 1 calc(50% - 4px); min-width: 0; }
+}
+@media (max-width: 480px) {
+  .ordenes-filters-primary .fld { flex: 1 1 100%; }
+}
 .fld label {
   font-size:11px; font-weight:500; text-transform:none;
   letter-spacing:normal; color:var(--text-3); padding-left:2px;
@@ -5041,10 +5050,29 @@ span.flatpickr-weekday { font-size:10px !important; font-weight:700 !important; 
 }
 @media (max-width: 1024px) {
   .lab-3col { grid-template-columns: 1fr; height: auto; }
-  .lab-center-col { height: auto; overflow: visible; }
-  .lab-queue-panel { height: auto; max-height: 200px; }
+  .lab-center-col { height: auto; overflow: visible; padding-bottom: 56px; }
   .lab-split { grid-template-columns: 1fr; }
   .lab-split-side { height: auto; max-height: none; }
+
+  /* Cola como drawer fijo abajo — peek 48px, expande a 55vh */
+  .lab-queue-panel {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    z-index: 50; height: auto; max-height: 55vh;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.12);
+    transform: translateY(calc(100% - 48px));
+    transition: transform 280ms ease;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    overflow-y: auto;
+  }
+  .lab-queue-panel.lab-queue--expanded {
+    transform: translateY(0);
+  }
+  .lab-queue-header {
+    cursor: pointer;
+    min-height: 48px;
+    padding: 12px 16px;
+  }
 }
 
 /* ── Patient header strip — premium ── */
@@ -5941,11 +5969,14 @@ span.flatpickr-weekday { font-size:10px !important; font-weight:700 !important; 
   color: var(--text-1, #1e293b);
 }
 
-/* Shortcuts responsive: hide labels on small screens */
+/* Responsive navbar: hide shortcuts on mobile, use hamburger */
 @media (max-width: 768px) {
-  .nav-shortcut__label { display: none; }
-  .nav-shortcut { padding: 6px; }
-  .nav-shortcuts { gap: 0; margin-left: 8px; }
+  .nav-shortcuts { display: none; }
+  .app-navbar { height: 48px; padding: 0 12px; }
+  .nav-logo-img { height: 26px; }
+}
+@media (max-width: 360px) {
+  .app-navbar { padding: 0 8px; }
 }
 
 /* Ordenes local toolbar */
@@ -9931,6 +9962,59 @@ th.lab-tip::after { white-space: nowrap; z-index: 200; }
     min-height: 48px !important;
     font-size: 15px !important;
   }
+
+  /* Global touch targets — all interactive elements */
+  .fld input, .fld select,
+  .ot-tab-btn, .pag-btn,
+  .btn-brand, .ordenes-btn-search,
+  .lab-queue-filter-toggle, .lab-btn,
+  .lab-queue-item {
+    min-height: 44px;
+  }
+}
+
+/* ══ GLOBAL RESPONSIVE — padding, dashboard, headers ══ */
+
+/* Safe area insets (iPhone notch/home bar) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .app-navbar { padding-top: env(safe-area-inset-top); }
+  .app-footer { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* Padding reducido en movil */
+@media (max-width: 576px) {
+  .app-layout-content { padding: 8px; }
+  .ordenes-filters-primary { padding: 8px; gap: 6px; }
+  .page-tpl-header { padding: 10px 12px; }
+  .ot-content { padding: 10px 8px; }
+  .lab-header-strip { padding: 8px 10px; gap: 8px; flex-direction: column; align-items: flex-start; }
+  .lab-header-right { width: 100%; display: flex; flex-wrap: wrap; gap: 4px; }
+  .lab-header-name { font-size: 13px; }
+}
+@media (max-width: 360px) {
+  .app-layout-content { padding: 4px; }
+}
+
+/* Dashboard ordenes como scroll horizontal en tablet */
+@media (max-width: 768px) {
+  .ordenes-dashboard {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    gap: 10px;
+    padding-bottom: 8px;
+  }
+  .ordenes-dashboard > * {
+    flex: 0 0 260px;
+    scroll-snap-align: start;
+  }
+}
+
+/* Pacientes tabla responsive */
+@media (max-width: 768px) {
+  .pac-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .pac-table { min-width: 600px; }
 }
 
 /* Swipe hint — hidden on desktop */
@@ -10836,4 +10920,20 @@ body[data-lab-theme="dark"] .scan-header__info h1 { color: #f1f5f9; }
   color: #fff;
   letter-spacing: 2px;
   text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+/* ══ RESPONSIVE UTILITIES ══ */
+.hide-mobile { }
+.show-mobile { display: none !important; }
+.show-mobile-flex { display: none !important; }
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: block !important; }
+  .show-mobile-flex { display: flex !important; }
+  .stack-mobile { flex-direction: column !important; }
+  .full-mobile { width: 100% !important; flex: 1 1 100% !important; }
+}
+.table-scroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }

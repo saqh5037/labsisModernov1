@@ -63,6 +63,24 @@ Reemplazar el frontend de Labsis (Java/Seam/XHTML de 2014) con React moderno.
 - Si necesitas algo que NO tiene código, pregunta antes de inventar
 - Brand manual visual: `/public/labsis-brand-manual-v3.html` (~287 códigos etiquetados)
 
+## Responsive Design (OBLIGATORIO para nuevos módulos)
+
+**Breakpoints canónicos:**
+- 360px — teléfono pequeño (Galaxy S, iPhone SE)
+- 576px — teléfono grande / landscape
+- 768px — tablet portrait (iPad Mini)
+- 1024px — tablet landscape / laptop pequeño
+- 1280px — desktop
+
+**Reglas:**
+1. NUNCA usar `style={{ width: N }}` en contenedores de layout. Usar `.fld-sm/.fld-md/.fld-lg`
+2. Todo grid debe definir su colapso a 1024px y 768px
+3. Sidebars/paneles deben tener toggle o drawer en móvil
+4. Tablas de datos van dentro de `.table-scroll-wrap`
+5. Touch targets mínimo 44px (se aplica automático via `@media (pointer:coarse)`)
+6. Usar `.hide-mobile` / `.show-mobile` / `.stack-mobile` / `.full-mobile`
+7. Probar en 360px, 768px, 1280px antes de considerar una página lista
+
 ## BD — Tablas principales
 - `orden_trabajo` (455K filas) — status_id, procedencia_id, usuario_id, paciente_id, medico_id
 - `paciente` — nombre, apellido, ci_paciente, fecha_nacimiento, sexo, telefono, email
