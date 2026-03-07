@@ -334,95 +334,99 @@ export default function Ordenes() {
             <span className="ot-panel-title">Órdenes de Trabajo</span>
           </div>
 
-          {/* ── FILTROS NIVEL 1 (siempre visibles) ── */}
+          {/* ── FILTROS NIVEL 1 ── */}
           <div className="ordenes-filters-primary anim d2">
-            <div className="fld fld-sm">
-              <label className={hv(filters.numero)}>N. Orden</label>
-              <input type="text" placeholder="2603020001"
-                className={hv(filters.numero)}
-                value={filters.numero}
-                onChange={e => setF('numero', e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && doSearch(1)}
-              />
-            </div>
-            {showCi && (
-            <div className="fld fld-sm">
-              <label className={hv(filters.cedula)}>{ciLabel}</label>
-              <input type="text" placeholder={ciPlaceholder}
-                className={hv(filters.cedula)}
-                value={filters.cedula}
-                onChange={e => setF('cedula', e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && doSearch(1)}
-              />
-            </div>
-            )}
-            <div className="fld fld-lg">
-              <label className={filters.estado.length > 0 ? 'has-value' : ''}>Estado(s)</label>
-              <Select styles={glassStyles} theme={glassTheme} options={estadoOpts}
-                value={filters.estado}
-                onChange={opts => setF('estado', opts || [])}
-                placeholder="Todos" isMulti isClearable isSearchable={false}
-                menuPortalTarget={document.body}
-                formatOptionLabel={opt => (
-                  <div style={{ display:'flex', alignItems:'center', gap: 6 }}>
-                    <span style={{ display:'inline-block', width:10, height:10, borderRadius:'50%', background: opt.color, flexShrink:0 }} />
-                    <span>{opt.label}</span>
-                  </div>
-                )}
-              />
-            </div>
-            <div className="fld fld-lg">
-              <label className={filters.fechaRange?.from ? 'has-value' : ''}>Fecha</label>
-              <DatePickerGlass
-                mode="range"
-                value={filters.fechaRange}
-                onChange={v => setF('fechaRange', v)}
-                placeholder="Rango de fechas"
-              />
-            </div>
-            <div className="fld fld-md">
-              <label className={filters.area.length > 0 ? 'has-value' : ''}>Área</label>
-              <Select styles={glassStyles} theme={glassTheme} options={areaOpts}
-                value={filters.area} onChange={opts => setF('area', opts || [])}
-                placeholder="Todas" isMulti isClearable closeMenuOnSelect={false}
-                noOptionsMessage={() => 'Sin áreas'}
-                menuPortalTarget={document.body}
-              />
+            <div className={`ordenes-fields-wrap ${showMore ? 'ordenes-fields--open' : ''}`}>
+              <div className="fld fld-sm">
+                <label className={hv(filters.numero)}>N. Orden</label>
+                <input type="text" placeholder="2603020001"
+                  className={hv(filters.numero)}
+                  value={filters.numero}
+                  onChange={e => setF('numero', e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && doSearch(1)}
+                />
+              </div>
+              {showCi && (
+              <div className="fld fld-sm">
+                <label className={hv(filters.cedula)}>{ciLabel}</label>
+                <input type="text" placeholder={ciPlaceholder}
+                  className={hv(filters.cedula)}
+                  value={filters.cedula}
+                  onChange={e => setF('cedula', e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && doSearch(1)}
+                />
+              </div>
+              )}
+              <div className="fld fld-lg">
+                <label className={filters.estado.length > 0 ? 'has-value' : ''}>Estado(s)</label>
+                <Select styles={glassStyles} theme={glassTheme} options={estadoOpts}
+                  value={filters.estado}
+                  onChange={opts => setF('estado', opts || [])}
+                  placeholder="Todos" isMulti isClearable isSearchable={false}
+                  menuPortalTarget={document.body}
+                  formatOptionLabel={opt => (
+                    <div style={{ display:'flex', alignItems:'center', gap: 6 }}>
+                      <span style={{ display:'inline-block', width:10, height:10, borderRadius:'50%', background: opt.color, flexShrink:0 }} />
+                      <span>{opt.label}</span>
+                    </div>
+                  )}
+                />
+              </div>
+              <div className="fld fld-lg">
+                <label className={filters.fechaRange?.from ? 'has-value' : ''}>Fecha</label>
+                <DatePickerGlass
+                  mode="range"
+                  value={filters.fechaRange}
+                  onChange={v => setF('fechaRange', v)}
+                  placeholder="Rango de fechas"
+                />
+              </div>
+              <div className="fld fld-md">
+                <label className={filters.area.length > 0 ? 'has-value' : ''}>Área</label>
+                <Select styles={glassStyles} theme={glassTheme} options={areaOpts}
+                  value={filters.area} onChange={opts => setF('area', opts || [])}
+                  placeholder="Todas" isMulti isClearable closeMenuOnSelect={false}
+                  noOptionsMessage={() => 'Sin áreas'}
+                  menuPortalTarget={document.body}
+                />
+              </div>
+
+              {checkpointList.length > 0 && (
+              <div className="fld fld-md">
+                <label className={hv(filters.checkpoint)}>CheckPoint</label>
+                <select
+                  className={`ot-filter-select ${hv(filters.checkpoint)}`}
+                  value={filters.checkpoint}
+                  onChange={e => setF('checkpoint', e.target.value)}
+                >
+                  <option value="">Todos</option>
+                  {checkpointList.map(cp => (
+                    <option key={cp.id} value={cp.id}>{cp.descripcion}</option>
+                  ))}
+                </select>
+              </div>
+              )}
+
+              {/* Email toggle */}
+              {showEmail && (
+              <div className="email-toggle" data-state={emailState}
+                title={filters.emailFilter === 0 ? 'Filtro email: off' : filters.emailFilter === 1 ? 'Solo email enviado' : 'Solo email NO enviado'}
+                onClick={toggleEmail}>
+                <IcoMail />
+              </div>
+              )}
             </div>
 
-            {checkpointList.length > 0 && (
-            <div className="fld fld-md">
-              <label className={hv(filters.checkpoint)}>CheckPoint</label>
-              <select
-                className={`ot-filter-select ${hv(filters.checkpoint)}`}
-                value={filters.checkpoint}
-                onChange={e => setF('checkpoint', e.target.value)}
-              >
-                <option value="">Todos</option>
-                {checkpointList.map(cp => (
-                  <option key={cp.id} value={cp.id}>{cp.descripcion}</option>
-                ))}
-              </select>
+            <div className="ordenes-actions-wrap">
+              <button className="btn btn-primary" onClick={() => doSearch(1)} disabled={loading}>
+                <IcoSearch />
+                {loading ? 'Buscando...' : 'Buscar'}
+              </button>
+              <button className="btn-toggle-filters" onClick={() => setShowMore(!showMore)}>
+                {showMore ? 'Ocultar' : 'Filtros'}
+              </button>
+              <button className="btn-ghost" onClick={clear}>Limpiar</button>
             </div>
-            )}
-
-            {/* Email toggle */}
-            {showEmail && (
-            <div className="email-toggle" data-state={emailState}
-              title={filters.emailFilter === 0 ? 'Filtro email: off' : filters.emailFilter === 1 ? 'Solo email enviado' : 'Solo email NO enviado'}
-              onClick={toggleEmail}>
-              <IcoMail />
-            </div>
-            )}
-
-            <button className="btn btn-primary" onClick={() => doSearch(1)} disabled={loading}>
-              <IcoSearch />
-              {loading ? 'Buscando...' : 'Buscar'}
-            </button>
-            <button className="btn-toggle-filters" onClick={() => setShowMore(!showMore)}>
-              {showMore ? 'Menos filtros' : '+Filtros'}
-            </button>
-            <button className="btn-ghost" onClick={clear}>Limpiar</button>
           </div>
 
           {/* ── FILTROS NIVEL 2 (colapsable) ── */}

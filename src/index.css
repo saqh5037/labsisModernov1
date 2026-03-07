@@ -799,12 +799,27 @@ body[data-lab-font="large"] .lab-ref-bar { height: 8px !important; }
 .fld-sm { flex: 0 1 120px; min-width: 80px; }
 .fld-md { flex: 0 1 160px; min-width: 100px; }
 .fld-lg { flex: 0 1 220px; min-width: 140px; }
+
+/* Ordenes filter layout — fields wrap + actions wrap */
+.ordenes-fields-wrap {
+  display: flex; flex-wrap: wrap; gap: var(--sp-2, 8px); align-items: flex-end; flex: 1;
+}
+.ordenes-actions-wrap {
+  display: flex; gap: 8px; align-items: center; flex-shrink: 0;
+}
+
+/* Mobile: fields hidden by default, toggle with +Filtros to show */
 @media (max-width: 768px) {
-  .ordenes-filters-primary .fld { flex: 1 1 calc(50% - 4px); min-width: 0; }
+  .ordenes-filters-primary { flex-direction: column; }
+  .ordenes-fields-wrap { display: none; width: 100%; }
+  .ordenes-fields-wrap.ordenes-fields--open { display: flex; }
+  .ordenes-fields-wrap .fld { flex: 1 1 calc(50% - 4px); min-width: 0; }
+  .ordenes-actions-wrap { width: 100%; }
 }
 @media (max-width: 480px) {
-  .ordenes-filters-primary .fld { flex: 1 1 100%; }
+  .ordenes-fields-wrap .fld { flex: 1 1 100%; }
 }
+
 .fld label {
   font-size:11px; font-weight:500; text-transform:none;
   letter-spacing:normal; color:var(--text-3); padding-left:2px;
@@ -10055,6 +10070,25 @@ th.lab-tip::after { white-space: nowrap; z-index: 200; }
     font-size: 11px;
   }
   .lab-toolbar-spacer { display: none; }
+}
+
+/* Fix: Lab landscape phone — compact everything to show table */
+@media (max-height: 500px) and (max-width: 1024px) {
+  .app-navbar { height: 40px; padding: 0 8px; }
+  .nav-logo-img { height: 22px; }
+  .ot-local-toolbar { padding: 4px 0; }
+  .lab-header-strip { padding: 6px 10px; margin-bottom: 2px; }
+  .lab-header-name { font-size: 12px; }
+  .lab-header-tags { display: none; }
+  .lab-header-right { font-size: 10px; }
+  .ot-tab-row { padding: 2px 0; }
+  .ot-tab-btn { padding: 4px 10px; font-size: 11px; }
+  .lab-area-toolbar { padding: 4px 10px; }
+  .lab-toolbar { padding: 4px 8px; gap: 4px; }
+  .lab-btn { padding: 5px 8px; font-size: 10px; }
+  .lab-queue-panel { transform: translateY(100%); } /* hide drawer completely in landscape */
+  .lab-queue-panel.lab-queue--expanded { transform: translateY(calc(100% - 200px)); }
+  .lab-center-col { padding-bottom: 0 !important; }
 }
 
 /* Swipe hint — hidden on desktop */
