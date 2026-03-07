@@ -3,8 +3,8 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 /**
  * BarcodeScanner — Dual-mode camera barcode scanner.
  * Mode 1: Continuous video scanning (native BarcodeDetector on Android)
- * Mode 2: Photo capture + analyze (works on ALL browsers including iOS)
- * Features: HD resolution, torch, anti-duplicate, laser overlay, vibration + beep.
+ * Mode 2: Photo capture + analyze with ZXing WASM (works on ALL browsers)
+ * Uses zxing-wasm (ZXing C++ → WebAssembly) for maximum 1D barcode detection.
  */
 export default function BarcodeScanner({ onScan, onClose }) {
   const videoRef = useRef(null)
@@ -22,10 +22,8 @@ export default function BarcodeScanner({ onScan, onClose }) {
   const [lastCode, setLastCode] = useState('')
   const [scanFlash, setScanFlash] = useState(false)
   const [useNative, setUseNative] = useState(false)
-  // 'idle' = live video, 'analyzing' = processing capture, 'failed' = no barcode found
   const [captureState, setCaptureState] = useState('idle')
 
-  // Beep sound on successful scan (1200Hz, 150ms)
   const playBeep = useCallback(() => {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)()
@@ -58,7 +56,6 @@ export default function BarcodeScanner({ onScan, onClose }) {
     onScan(code)
   }, [onScan, playBeep])
 
-  // Stop camera
   const stopCamera = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
     rafRef.current = null
@@ -68,13 +65,11 @@ export default function BarcodeScanner({ onScan, onClose }) {
     }
   }, [])
 
-  // Resume continuous scanning
   const resumeScanning = useCallback(() => {
     const video = videoRef.current
     const detector = detectorRef.current
     if (!video || !detector || !mountedRef.current) return
 
-    // Hide canvas, show video
     const canvas = canvasRef.current
     if (canvas) canvas.style.display = 'none'
 
@@ -95,7 +90,6 @@ export default function BarcodeScanner({ onScan, onClose }) {
     rafRef.current = requestAnimationFrame(scanLoop)
   }, [handleDetection])
 
-  // Toggle torch
   const toggleTorch = useCallback(async () => {
     try {
       if (!streamRef.current) return
@@ -107,27 +101,33 @@ export default function BarcodeScanner({ onScan, onClose }) {
     } catch { /* torch failed */ }
   }, [torchOn])
 
-  // Helper: canvas to File
-  const canvasToFile = useCallback((cvs) => {
-    return new Promise(resolve => {
-      cvs.toBlob(blob => {
-        resolve(blob ? new File([blob], 'capture.png', { type: 'image/png' }) : null)
-      }, 'image/png')
-    })
-  }, [])
-
-  // Helper: try scanFile with html5-qrcode
-  const tryScanFile = useCallback(async (file) => {
-    if (!file) return null
+  // === ZXing WASM decoder (primary engine) ===
+  const tryZxingDecode = useCallback(async (imageData) => {
     try {
-      const { Html5Qrcode } = await import('html5-qrcode')
-      return await Html5Qrcode.scanFile(file, /* showImage */ false)
-    } catch {
-      return null
-    }
+      const { readBarcodes } = await import('zxing-wasm/reader')
+      const results = await readBarcodes(imageData, {
+        formats: ['Code128', 'Code39', 'EAN-13', 'EAN-8', 'ITF', 'Codabar', 'QRCode'],
+        tryHarder: true,
+        tryRotate: true,
+        tryInvert: true,
+        tryDownscale: true,
+        maxNumberOfSymbols: 1,
+        minLineCount: 1,
+      })
+      if (results.length > 0 && results[0].text) {
+        return results[0].text
+      }
+    } catch { /* zxing decode failed */ }
+    return null
   }, [])
 
-  // Helper: create a processed version of the canvas (cropped center + binarized)
+  // Get ImageData from a canvas
+  const getImageData = useCallback((cvs) => {
+    const ctx = cvs.getContext('2d')
+    return ctx.getImageData(0, 0, cvs.width, cvs.height)
+  }, [])
+
+  // Create processed canvas
   const processImage = useCallback((srcCanvas, mode) => {
     const tmp = document.createElement('canvas')
     const ctx = tmp.getContext('2d')
@@ -135,39 +135,29 @@ export default function BarcodeScanner({ onScan, onClose }) {
     const sh = srcCanvas.height
 
     if (mode === 'crop') {
-      // Crop center 80% width, 40% height (where barcode likely is)
-      const cropW = Math.round(sw * 0.8)
-      const cropH = Math.round(sh * 0.4)
+      const cropW = Math.round(sw * 0.85)
+      const cropH = Math.round(sh * 0.45)
       const cropX = Math.round((sw - cropW) / 2)
       const cropY = Math.round((sh - cropH) / 2)
       tmp.width = cropW
       tmp.height = cropH
       ctx.drawImage(srcCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH)
     } else if (mode === 'binarize') {
-      // Crop + binarize (pure black & white, high contrast)
-      const cropW = Math.round(sw * 0.8)
-      const cropH = Math.round(sh * 0.4)
+      const cropW = Math.round(sw * 0.85)
+      const cropH = Math.round(sh * 0.45)
       const cropX = Math.round((sw - cropW) / 2)
       const cropY = Math.round((sh - cropH) / 2)
       tmp.width = cropW
       tmp.height = cropH
       ctx.drawImage(srcCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH)
-      const imageData = ctx.getImageData(0, 0, cropW, cropH)
-      const d = imageData.data
+      const imgData = ctx.getImageData(0, 0, cropW, cropH)
+      const d = imgData.data
       for (let i = 0; i < d.length; i += 4) {
-        // Luminance
         const lum = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114
-        const val = lum > 140 ? 255 : 0  // threshold
+        const val = lum > 128 ? 255 : 0
         d[i] = d[i+1] = d[i+2] = val
       }
-      ctx.putImageData(imageData, 0, 0)
-    } else if (mode === 'sharpen') {
-      // Full image with increased contrast
-      tmp.width = sw
-      tmp.height = sh
-      ctx.filter = 'contrast(1.8) brightness(1.1)'
-      ctx.drawImage(srcCanvas, 0, 0)
-      ctx.filter = 'none'
+      ctx.putImageData(imgData, 0, 0)
     }
     return tmp
   }, [])
@@ -176,7 +166,6 @@ export default function BarcodeScanner({ onScan, onClose }) {
   const captureAndAnalyze = useCallback(async () => {
     if (!streamRef.current || !videoRef.current) return
 
-    // 1. Pause continuous scanning
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current)
       rafRef.current = null
@@ -188,25 +177,20 @@ export default function BarcodeScanner({ onScan, onClose }) {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    // 2. Get real stream resolution
     const track = streamRef.current.getVideoTracks()[0]
     const settings = track?.getSettings?.() || {}
     const w = settings.width || video.videoWidth || 1280
     const h = settings.height || video.videoHeight || 720
 
-    // 3. Draw frame to canvas at full resolution
     canvas.width = w
     canvas.height = h
     const ctx2d = canvas.getContext('2d')
     ctx2d.drawImage(video, 0, 0, w, h)
-
-    // Show canvas (frozen frame) over video
     canvas.style.display = 'block'
 
-    // 4. Multi-pass detection pipeline
     let detected = false
 
-    // Pass 1: Native BarcodeDetector on full image (fast, Android only)
+    // Pass 1: Native BarcodeDetector (Android only, fast)
     if (!detected && detectorRef.current) {
       try {
         const barcodes = await detectorRef.current.detect(canvas)
@@ -217,50 +201,36 @@ export default function BarcodeScanner({ onScan, onClose }) {
       } catch { /* native detection failed */ }
     }
 
-    // Pass 2: scanFile on full image
+    // Pass 2: ZXing WASM on full image
     if (!detected) {
-      const file = await canvasToFile(canvas)
-      const code = await tryScanFile(file)
+      const code = await tryZxingDecode(getImageData(canvas))
       if (code) { handleDetection(code); detected = true }
     }
 
-    // Pass 3: scanFile on cropped center (less noise)
+    // Pass 3: ZXing WASM on cropped center
     if (!detected) {
       const cropped = processImage(canvas, 'crop')
-      const file = await canvasToFile(cropped)
-      const code = await tryScanFile(file)
+      const code = await tryZxingDecode(getImageData(cropped))
       if (code) { handleDetection(code); detected = true }
     }
 
-    // Pass 4: scanFile on binarized crop (pure B&W, max contrast)
+    // Pass 4: ZXing WASM on binarized crop
     if (!detected) {
       const bin = processImage(canvas, 'binarize')
-      const file = await canvasToFile(bin)
-      const code = await tryScanFile(file)
+      const code = await tryZxingDecode(getImageData(bin))
       if (code) { handleDetection(code); detected = true }
     }
 
-    // Pass 5: scanFile with enhanced contrast full image
-    if (!detected) {
-      const sharp = processImage(canvas, 'sharpen')
-      const file = await canvasToFile(sharp)
-      const code = await tryScanFile(file)
-      if (code) { handleDetection(code); detected = true }
-    }
-
-    // 5. If nothing detected, show retry
     if (!detected && mountedRef.current) {
       setCaptureState('failed')
     }
-  }, [handleDetection, canvasToFile, tryScanFile, processImage])
+  }, [handleDetection, tryZxingDecode, getImageData, processImage])
 
-  // Retry: go back to live video
   const retryCapture = useCallback(() => {
     setCaptureState('idle')
     const canvas = canvasRef.current
     if (canvas) canvas.style.display = 'none'
 
-    // Resume continuous scanning if native detector available
     if (detectorRef.current) {
       resumeScanning()
     }
@@ -271,7 +241,6 @@ export default function BarcodeScanner({ onScan, onClose }) {
 
     const startNativeScanner = async () => {
       try {
-        // Check native BarcodeDetector support
         const hasNative = 'BarcodeDetector' in window
         if (hasNative) {
           const supported = await window.BarcodeDetector.getSupportedFormats()
@@ -283,7 +252,6 @@ export default function BarcodeScanner({ onScan, onClose }) {
           }
         }
 
-        // Get camera stream with HD constraints
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: 'environment',
@@ -305,13 +273,11 @@ export default function BarcodeScanner({ onScan, onClose }) {
 
         setCameraReady(true)
 
-        // Check torch support
         const track = stream.getVideoTracks()[0]
         const caps = track?.getCapabilities?.()
         if (caps?.torch) setTorchSupported(true)
 
         if (detectorRef.current) {
-          // Native BarcodeDetector — continuous scan loop (Android Chrome)
           let frameCount = 0
           const scanLoop = async () => {
             if (!mountedRef.current) return
@@ -328,8 +294,6 @@ export default function BarcodeScanner({ onScan, onClose }) {
           }
           rafRef.current = requestAnimationFrame(scanLoop)
         }
-        // If no native detector (iOS), user uses "Capturar foto" button
-        // which calls Html5Qrcode.scanFile() on the captured frame
       } catch (err) {
         if (!mountedRef.current) return
         const msg = err.toString()
@@ -403,7 +367,6 @@ export default function BarcodeScanner({ onScan, onClose }) {
           {cameraReady && captureState === 'idle' && <div className="barcode-scanner-laser" />}
           {scanFlash && <div className="barcode-scanner-flash" />}
 
-          {/* Analyzing overlay */}
           {captureState === 'analyzing' && (
             <div className="barcode-scanner-capture-overlay">
               <div className="barcode-scanner-capture-spinner" />
@@ -411,7 +374,6 @@ export default function BarcodeScanner({ onScan, onClose }) {
             </div>
           )}
 
-          {/* Failed overlay */}
           {captureState === 'failed' && (
             <div className="barcode-scanner-capture-overlay failed">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="32" height="32">
@@ -441,7 +403,6 @@ export default function BarcodeScanner({ onScan, onClose }) {
           </div>
         )}
 
-        {/* Capture button — always visible when camera is ready */}
         {cameraReady && captureState === 'idle' && (
           <button type="button" className="barcode-scanner-capture-btn" onClick={captureAndAnalyze}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
