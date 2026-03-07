@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getOrdenLab, saveResultados, getHistorico, getLabQueue, getLabAreas, corregirResultado, getCorrecciones, getMe, getVBOrdenArea, saveVBResultados, labQuickSearch, verificarResultados, setAreaEspera, getNotasPredefinidas, getCheckpoints } from '../services/api'
 import { useValidationMode } from '../hooks/useValidationMode'
@@ -354,11 +354,10 @@ export default function OrdenLabPage() {
     fechaHasta: searchParams.get('fechaHasta') || '',
     transmitido: '', estado: ''
   })
-  const [showQueueFilters, setShowQueueFilters] = useState(
-    !!(searchParams.get('area') || searchParams.get('fechaDesde') || searchParams.get('checkpoint'))
-  )
+  const [showQueueFilters, setShowQueueFilters] = useState(false)
   const [labAreas, setLabAreas] = useState([])
   const [checkpointList, setCheckpointList] = useState([])
+  const queueListRef = useRef(null)
 
   // Usuario autenticado y permisos
   const [userInfo, setUserInfo] = useState(null)
@@ -470,6 +469,42 @@ export default function OrdenLabPage() {
   }, [queueFilters])
 
   useEffect(() => { loadQueue() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Queue keyboard navigation helpers
+  const findCurrentQueueIndex = () => queue.findIndex(q => String(q.numero) === String(numero))
+
+  const navigateToQueueItem = (item) => {
+    if (!item) return
+    const params = new URLSearchParams()
+    Object.entries(queueFilters).forEach(([k, v]) => { if (v) params.set(k, v) })
+    const qs = params.toString()
+    navigate(`/ordenes/${item.numero}/lab${qs ? '?' + qs : ''}`)
+  }
+
+  const handleQueueNav = (direction) => {
+    const idx = findCurrentQueueIndex()
+    if (idx === -1) return
+    const target = queue[idx + direction]
+    if (!target) return
+    if (Object.keys(dirty).length > 0) {
+      setConfirmModal({
+        type: 'unsaved',
+        title: 'Cambios sin guardar',
+        message: '¿Deseas descartar los cambios sin guardar?',
+        items: [],
+        onConfirm: () => { setConfirmModal(null); navigateToQueueItem(target) }
+      })
+      return
+    }
+    navigateToQueueItem(target)
+  }
+
+  // Auto-scroll queue to active item
+  useEffect(() => {
+    if (!queueListRef.current) return
+    const active = queueListRef.current.querySelector('.lab-queue-item.active')
+    if (active) active.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [numero, queue])
 
   // Load areas and checkpoints for queue filter dropdowns
   useEffect(() => {
@@ -800,24 +835,46 @@ export default function OrdenLabPage() {
     } finally { setSaving(false) }
   }
 
-  // Keyboard shortcuts (Cmd/Ctrl+S = save, Cmd/Ctrl+Enter = validate all, Esc = back)
+  // Keyboard shortcuts (F2/F3 nav, Alt+Arrow area, Cmd+S save, Cmd+Enter validate, Esc back)
   useEffect(() => {
     const handler = (e) => {
+      const inInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)
+
+      // F2 = orden anterior, F3 = orden siguiente (siempre activos)
+      if (e.key === 'F2') { e.preventDefault(); handleQueueNav(-1); return }
+      if (e.key === 'F3') { e.preventDefault(); handleQueueNav(1); return }
+
+      // Alt+Arrow = cambiar area (siempre activo)
+      if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && data?.areas?.length > 1) {
+        e.preventDefault()
+        const areaIds = data.areas.map(a => a.id)
+        const curIdx = areaIds.indexOf(Number(activeArea))
+        if (curIdx === -1) return
+        const nextIdx = e.key === 'ArrowRight'
+          ? (curIdx + 1) % areaIds.length
+          : (curIdx - 1 + areaIds.length) % areaIds.length
+        setActiveArea(areaIds[nextIdx])
+        return
+      }
+
+      // Cmd/Ctrl+S = guardar
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 's') {
         e.preventDefault()
         handleSave(false)
       }
+      // Cmd/Ctrl+Enter = validar todo
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault()
         handleSave(true)
       }
-      if (e.key === 'Escape' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+      // Esc = volver (solo fuera de inputs)
+      if (e.key === 'Escape' && !inInput) {
         navigate('/ordenes')
       }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }) // re-register on every render to capture latest handleSave
+  }) // re-register on every render to capture latest state
 
   // Validate all in active area (with warnings)
   const handleValidarTodo = () => {
@@ -1002,6 +1059,7 @@ export default function OrdenLabPage() {
           <div className="lab-queue-panel">
             <div className="lab-queue-header">
               <span className="lab-queue-title">Cola de trabajo</span>
+              {findCurrentQueueIndex() >= 0 && <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>{findCurrentQueueIndex() + 1}/{queue.length}</span>}
               <span className="lab-queue-count">{queue.length}</span>
             </div>
 
@@ -1132,7 +1190,7 @@ export default function OrdenLabPage() {
               )}
             </div>
 
-            <div className="lab-queue-list">
+            <div className="lab-queue-list" ref={queueListRef}>
               {queueLoading && <div style={{ padding: 8, fontSize: 11, color: 'var(--text-4)' }}>Cargando...</div>}
               {!queueLoading && queue.length === 0 && <div style={{ padding: 12, fontSize: 11, color: 'var(--text-4)', textAlign: 'center' }}>No hay órdenes pendientes.<br/>Ajusta las fechas o filtros.</div>}
               {queue.map(q => {
@@ -1855,11 +1913,18 @@ export default function OrdenLabPage() {
                   </CollapsibleCard>
 
                   {/* Keyboard shortcuts */}
+                  {(() => { const MOD = /Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? '\u2318' : 'Ctrl'; return (
                   <div className="ote-shortcuts" style={{ marginTop: 12 }}>
-                    <div className="ote-shortcut-row"><kbd>{/Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? '\u2318' : 'Ctrl'}+S</kbd><span>Guardar</span></div>
-                    <div className="ote-shortcut-row"><kbd>{/Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? '\u2318' : 'Ctrl'}+Enter</kbd><span>Validar Todo</span></div>
+                    <div className="ote-shortcut-title">Navegación</div>
+                    <div className="ote-shortcut-row"><kbd>F2</kbd><span>Orden anterior</span></div>
+                    <div className="ote-shortcut-row"><kbd>F3</kbd><span>Orden siguiente</span></div>
+                    <div className="ote-shortcut-row"><kbd>Alt+←→</kbd><span>Cambiar área</span></div>
+                    <div className="ote-shortcut-title" style={{ marginTop: 8 }}>Acciones</div>
+                    <div className="ote-shortcut-row"><kbd>{MOD}+S</kbd><span>Guardar</span></div>
+                    <div className="ote-shortcut-row"><kbd>{MOD}+Enter</kbd><span>Validar Todo</span></div>
                     <div className="ote-shortcut-row"><kbd>Esc</kbd><span>Volver a Lista</span></div>
                   </div>
+                  ) })()}
             </div>
           )}
           </>
