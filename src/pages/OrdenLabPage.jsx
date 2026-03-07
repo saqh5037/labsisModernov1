@@ -477,25 +477,6 @@ export default function OrdenLabPage() {
     getCheckpoints().then(setCheckpointList).catch(() => {})
   }, [])
 
-  // Keyboard shortcuts (Cmd/Ctrl+S = save, Cmd/Ctrl+Enter = validate all, Esc = back)
-  useEffect(() => {
-    const handler = (e) => {
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 's') {
-        e.preventDefault()
-        handleSave(false)
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault()
-        handleSave(true)
-      }
-      if (e.key === 'Escape' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
-        navigate('/ordenes')
-      }
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [handleSave, navigate]) // eslint-disable-line react-hooks/exhaustive-deps
-
   // Toast auto-dismiss
   useEffect(() => {
     if (!toast) return
@@ -818,6 +799,25 @@ export default function OrdenLabPage() {
       setToast({ message: 'Error al guardar: ' + e.message, type: 'error' })
     } finally { setSaving(false) }
   }
+
+  // Keyboard shortcuts (Cmd/Ctrl+S = save, Cmd/Ctrl+Enter = validate all, Esc = back)
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 's') {
+        e.preventDefault()
+        handleSave(false)
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault()
+        handleSave(true)
+      }
+      if (e.key === 'Escape' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+        navigate('/ordenes')
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }) // re-register on every render to capture latest handleSave
 
   // Validate all in active area (with warnings)
   const handleValidarTodo = () => {
