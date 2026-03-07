@@ -322,104 +322,103 @@ export default function BarcodeScanner({ onScan, onClose }) {
   }
 
   return (
-    <div className="barcode-scanner-overlay">
-      <div className="barcode-scanner-modal">
-        <div className="barcode-scanner-header">
-          <span>
-            Escanear con cámara
-            {useNative && <span className="barcode-scanner-badge">HD</span>}
-          </span>
-          <div className="barcode-scanner-header-actions">
-            {torchSupported && (
-              <button
-                type="button"
-                className={`barcode-scanner-torch ${torchOn ? 'active' : ''}`}
-                onClick={toggleTorch}
-                title={torchOn ? 'Apagar linterna' : 'Encender linterna'}
-              >
-                <svg viewBox="0 0 24 24" fill={torchOn ? '#fbbf24' : 'none'} stroke="currentColor" strokeWidth="2">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                </svg>
-              </button>
-            )}
-            <button type="button" className="barcode-scanner-close" onClick={handleClose}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div className="barcode-scanner-viewport-wrap">
-          <video
-            ref={videoRef}
-            className="barcode-scanner-video"
-            playsInline
-            muted
-            autoPlay
-            style={{ display: captureState !== 'idle' ? 'none' : undefined }}
-          />
-          <canvas
-            ref={canvasRef}
-            className="barcode-scanner-video"
-            style={{ display: captureState !== 'idle' ? 'block' : 'none' }}
-          />
-          {cameraReady && captureState === 'idle' && <div className="barcode-scanner-laser" />}
-          {scanFlash && <div className="barcode-scanner-flash" />}
-
-          {captureState === 'analyzing' && (
-            <div className="barcode-scanner-capture-overlay">
-              <div className="barcode-scanner-capture-spinner" />
-              <span>Analizando foto...</span>
-            </div>
-          )}
-
-          {captureState === 'failed' && (
-            <div className="barcode-scanner-capture-overlay failed">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="32" height="32">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="15" y1="9" x2="9" y2="15" />
-                <line x1="9" y1="9" x2="15" y2="15" />
-              </svg>
-              <span>No se detectó código</span>
-              <button type="button" className="barcode-scanner-retry-btn" onClick={retryCapture}>
-                Reintentar
-              </button>
-            </div>
-          )}
-        </div>
-
-        {!cameraReady && !error && (
-          <div className="barcode-scanner-loading">Iniciando cámara HD...</div>
-        )}
-
-        {error && (
-          <div className="barcode-scanner-error">{error}</div>
-        )}
-
-        {lastCode && (
-          <div className="barcode-scanner-last-code">
-            Ultimo: <strong>{lastCode}</strong>
-          </div>
-        )}
-
-        {cameraReady && captureState === 'idle' && (
-          <button type="button" className="barcode-scanner-capture-btn" onClick={captureAndAnalyze}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-              <circle cx="12" cy="13" r="4" />
+    <div className="bscan-fullscreen">
+      {/* Top bar — close + torch, floating over video */}
+      <div className="bscan-topbar">
+        <button type="button" className="bscan-close-btn" onClick={handleClose}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+        {torchSupported && (
+          <button
+            type="button"
+            className={`bscan-torch-btn ${torchOn ? 'active' : ''}`}
+            onClick={toggleTorch}
+          >
+            <svg viewBox="0 0 24 24" fill={torchOn ? '#fbbf24' : 'none'} stroke="currentColor" strokeWidth="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
             </svg>
-            <span>Capturar foto</span>
           </button>
         )}
+      </div>
 
-        <div className="barcode-scanner-hint">
-          {captureState === 'idle'
-            ? 'Enfoca el código y toca Capturar foto'
-            : captureState === 'failed'
-            ? 'Acerca más la cámara al código de barras'
-            : ''}
+      {/* Camera viewport — fills screen */}
+      <video
+        ref={videoRef}
+        className="bscan-video"
+        playsInline
+        muted
+        autoPlay
+        style={{ display: captureState !== 'idle' ? 'none' : undefined }}
+      />
+      <canvas
+        ref={canvasRef}
+        className="bscan-video"
+        style={{ display: captureState !== 'idle' ? 'block' : 'none' }}
+      />
+
+      {/* Laser line */}
+      {cameraReady && captureState === 'idle' && <div className="bscan-laser" />}
+
+      {/* Green flash on scan */}
+      {scanFlash && <div className="bscan-flash" />}
+
+      {/* Analyzing overlay */}
+      {captureState === 'analyzing' && (
+        <div className="bscan-status-overlay">
+          <div className="bscan-spinner" />
+          <span>Analizando...</span>
         </div>
+      )}
+
+      {/* Failed overlay */}
+      {captureState === 'failed' && (
+        <div className="bscan-status-overlay failed">
+          <span>No se detectó código</span>
+          <button type="button" className="bscan-retry-btn" onClick={retryCapture}>
+            Reintentar
+          </button>
+        </div>
+      )}
+
+      {/* Loading state */}
+      {!cameraReady && !error && (
+        <div className="bscan-status-overlay">
+          <div className="bscan-spinner" />
+          <span>Iniciando cámara...</span>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <div className="bscan-status-overlay failed">
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Bottom action zone — optimized for thumb reach */}
+      <div className="bscan-bottom">
+        {/* Last scanned code */}
+        {lastCode && (
+          <div className="bscan-last-code">
+            <span className="bscan-last-label">Escaneado:</span>
+            <strong>{lastCode}</strong>
+          </div>
+        )}
+
+        {/* BIG capture button — main CTA */}
+        {cameraReady && captureState === 'idle' && (
+          <button type="button" className="bscan-shutter" onClick={captureAndAnalyze}>
+            <div className="bscan-shutter-ring">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="32" height="32">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+            </div>
+            <span className="bscan-shutter-label">ESCANEAR</span>
+          </button>
+        )}
       </div>
     </div>
   )
