@@ -198,8 +198,8 @@ export default function TrazabilidadScanPage() {
               style={{ background: STATUS_COLORS[checkpoint.status_codigo] || '#94a3b8' }}
             />
             <span>Asigna: <strong>{checkpoint.status_nombre}</strong> ({checkpoint.status_codigo})</span>
-            {checkpoint.entrada_lab && <span className="scan-header__badge">Entrada Lab</span>}
-            {checkpoint.muestra_recibida && <span className="scan-header__badge">Marca Recibida</span>}
+            {checkpoint.entrada_lab && <span className="scan-header__badge lab-tip" data-tip="Registra entrada de muestras al laboratorio">Entrada Lab</span>}
+            {checkpoint.muestra_recibida && <span className="scan-header__badge lab-tip" data-tip="Al escanear, marca la muestra como recibida">Marca Recibida</span>}
           </div>
         </div>
         <div className="scan-header__count">

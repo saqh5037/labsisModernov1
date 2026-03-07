@@ -14,9 +14,9 @@ const COLS = [
 function formatFecha(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
-  return d.toLocaleDateString('es-VE', {
+  return d.toLocaleDateString('es-MX', {
     day: '2-digit', month: '2-digit', year: 'numeric',
-  }) + ' ' + d.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })
+  }) + ' ' + d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
 }
 
 export default function DataTable({ rows, loading }) {

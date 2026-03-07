@@ -119,7 +119,7 @@ export default function QABugDetailPage() {
     setCommentSending(false)
   }
 
-  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
 
   if (loading) return <div className="dv"><QANav active="bugs" /><div className="dv-loading"><div className="dv-spinner" />Cargando bug...</div></div>
   if (!bug) return <div className="dv"><QANav active="bugs" /><div className="dv-loading">Bug no encontrado</div></div>

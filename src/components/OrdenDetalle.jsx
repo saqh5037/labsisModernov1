@@ -20,8 +20,8 @@ const calcAge = (bd) => {
   return a
 }
 
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-VE', { day:'2-digit', month:'short', year:'numeric' }) : '—'
-const fmtDateTime = (d) => d ? new Date(d).toLocaleString('es-VE', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) : '—'
+const fmtDateTime = (d) => d ? new Date(d).toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'
 
 export default function OrdenDetalle({ numero, onClose }) {
   const [data, setData] = useState(null)

@@ -19,7 +19,7 @@ export default function QARunListPage() {
   useEffect(() => { loadRuns() }, [filters.estado, filters.usuario_id])
   useEffect(() => { getQAUsers().then(setUsers).catch(() => {}) }, [])
 
-  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
 
   const selectStyle = { padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border, #e2e8f0)', fontSize: 13, background: 'var(--surface, #fff)' }
 

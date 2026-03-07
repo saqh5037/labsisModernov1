@@ -287,8 +287,8 @@ export default function PacienteListPage() {
                   <td className="cell-mono">{p.ci_paciente || '—'}</td>
                   <td className="cell-name">
                     {p.apellido}{p.apellido_segundo ? ' ' + p.apellido_segundo : ''}, {p.nombre}
-                    {p.vip && <span className="badge-pill badge-pill-gold">VIP</span>}
-                    {p.empresa && <span className="badge-pill badge-pill-blue">E</span>}
+                    {p.vip && <span className="badge-pill badge-pill-gold lab-tip" data-tip="Paciente VIP">VIP</span>}
+                    {p.empresa && <span className="badge-pill badge-pill-blue lab-tip" data-tip="Paciente de empresa (convenio)">E</span>}
                     {p.activo === false && <span className="badge-pill badge-pill-red">Inactivo</span>}
                   </td>
                   <td className="cell-dim">{calcAge(p.fecha_nacimiento)} / {p.sexo}</td>
@@ -305,14 +305,14 @@ export default function PacienteListPage() {
                   </td>
                   <td className="cell-center">
                     <div className="cell-actions-row">
-                      <button className="action-icon" title="Ver" onClick={(e) => { e.stopPropagation(); navigate(`/pacientes/${p.id}`) }}>
+                      <button className="action-icon lab-tip" data-tip="Ver paciente" onClick={(e) => { e.stopPropagation(); navigate(`/pacientes/${p.id}`) }}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="10"/>
                           <polyline points="12 16 16 12 12 8"/>
                           <line x1="8" y1="12" x2="16" y2="12"/>
                         </svg>
                       </button>
-                      <button className="action-icon" title="Editar" onClick={(e) => { e.stopPropagation(); navigate(`/pacientes/${p.id}/editar`) }}>
+                      <button className="action-icon lab-tip" data-tip="Editar paciente" onClick={(e) => { e.stopPropagation(); navigate(`/pacientes/${p.id}/editar`) }}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
                         </svg>
@@ -322,7 +322,10 @@ export default function PacienteListPage() {
                 </tr>
               ))}
               {!loading && pacientes.length === 0 && (
-                <tr><td colSpan="8" className="cell-empty">No se encontraron pacientes</td></tr>
+                <tr><td colSpan="8" className="cell-empty" style={{ padding: '32px 16px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 13, color: 'var(--text-4)' }}>No se encontraron pacientes</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-5, #b0b8c4)', marginTop: 4 }}>Intenta con otro término de búsqueda o ajusta los filtros</div>
+                </td></tr>
               )}
             </tbody>
           </table>

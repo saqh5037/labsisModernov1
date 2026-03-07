@@ -30,7 +30,7 @@ export default function QADashboardPage() {
     <div className="dv"><QANav active="dashboard" /><div className="dv-loading">Error cargando dashboard</div></div>
   )
 
-  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
 
   return (
     <div className="dv">

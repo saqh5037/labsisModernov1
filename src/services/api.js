@@ -1,5 +1,13 @@
 const BASE = (window.location.pathname.startsWith('/labsis') ? '/labsis' : '') + '/api'
 
+async function throwIfError(res) {
+  if (res.ok) return
+  const text = await res.text()
+  let msg
+  try { msg = JSON.parse(text).error } catch { msg = null }
+  throw new Error(msg || `Error ${res.status}: ${res.statusText}`)
+}
+
 export async function getHealth() {
   try {
     const res = await fetch(`${BASE}/health`)
@@ -15,43 +23,43 @@ export async function getOrdenes(params = {}) {
     Object.entries(params).filter(([, v]) => v !== '' && v != null)
   ).toString()
   const res = await fetch(`${BASE}/ordenes${qs ? '?' + qs : ''}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getStatus() {
   const res = await fetch(`${BASE}/ordenes/status`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getProcedencias() {
   const res = await fetch(`${BASE}/procedencias`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getAreas() {
   const res = await fetch(`${BASE}/areas`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getUsuarios() {
   const res = await fetch(`${BASE}/usuarios`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getServiciosMedicos() {
   const res = await fetch(`${BASE}/servicios-medicos`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getCheckpoints() {
   const res = await fetch(`${BASE}/ordenes/checkpoints`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -60,25 +68,25 @@ export async function getDashboard(params = {}) {
     Object.entries(params).filter(([, v]) => v !== '' && v != null)
   ).toString()
   const res = await fetch(`${BASE}/ordenes/dashboard${qs ? '?' + qs : ''}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getOrdenDetalle(numero) {
   const res = await fetch(`${BASE}/ordenes/${numero}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getLaboratorio() {
   const res = await fetch(`${BASE}/laboratorio`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function searchMedicos(q) {
   const res = await fetch(`${BASE}/medicos?q=${encodeURIComponent(q)}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -87,7 +95,7 @@ export async function createMedico(data) {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -96,7 +104,7 @@ export async function updateOrdenMedico(numero, medico_id) {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ medico_id })
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -105,7 +113,7 @@ export async function updateOrdenInfoClinica(numero, informacion_clinica) {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ informacion_clinica })
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -114,7 +122,7 @@ export async function updateOrdenFechaToma(numero, fecha_toma_muestra) {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fecha_toma_muestra })
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -122,7 +130,7 @@ export async function updateOrdenStat(numero) {
   const res = await fetch(`${BASE}/ordenes/${numero}/stat`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -130,7 +138,7 @@ export async function abortarOrden(numero) {
   const res = await fetch(`${BASE}/ordenes/${numero}/abortar`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -138,7 +146,7 @@ export async function activarOrden(numero) {
   const res = await fetch(`${BASE}/ordenes/${numero}/activar`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -146,26 +154,26 @@ export async function searchPruebas(q, area) {
   const params = new URLSearchParams({ q })
   if (area) params.set('area', area)
   const res = await fetch(`${BASE}/pruebas?${params}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 // ── Print / Acciones adicionales ──
 export async function getInstrucciones(numero) {
   const res = await fetch(`${BASE}/ordenes/${numero}/instrucciones`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getPreguntas(numero) {
   const res = await fetch(`${BASE}/ordenes/${numero}/preguntas`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getReciboData(numero) {
   const res = await fetch(`${BASE}/ordenes/${numero}/recibo`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -173,7 +181,7 @@ export async function marcarMuestrasNoEntregadas(numero) {
   const res = await fetch(`${BASE}/ordenes/${numero}/muestras-no-entregadas`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -194,7 +202,7 @@ export async function loginUser(username, password) {
 
 export async function getMe() {
   const res = await fetch(`${BASE}/auth/me`, { credentials: 'include' })
-  if (!res.ok) throw new Error('No autenticado')
+  if (!res.ok) throw new Error('No autenticado') // keep specific msg for auth check
   return res.json()
 }
 
@@ -205,7 +213,7 @@ export async function logoutUser() {
 // ── Lab Results ──
 export async function getOrdenLab(numero) {
   const res = await fetch(`${BASE}/ordenes/${numero}/lab`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -214,13 +222,13 @@ export async function saveResultados(numero, resultados, observaciones_area) {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ resultados, observaciones_area })
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getHistorico(numero, pruebaOrdenId) {
   const res = await fetch(`${BASE}/ordenes/${numero}/lab/historico/${pruebaOrdenId}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -229,19 +237,19 @@ export async function getLabQueue(filters = {}) {
   Object.entries(filters).forEach(([k, v]) => { if (v != null && v !== '') params.append(k, String(v)) })
   const qs = params.toString()
   const res = await fetch(`${BASE}/ordenes/lab/queue${qs ? '?' + qs : ''}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json() // { rows, page, hasMore }
 }
 
 export async function getLabAreas() {
   const res = await fetch(`${BASE}/ordenes/lab/areas`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function labQuickSearch(q) {
   const res = await fetch(`${BASE}/ordenes/lab/quick-search?q=${encodeURIComponent(q)}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -259,7 +267,7 @@ export async function corregirResultado(numero, data) {
 
 export async function getCorrecciones(numero, pruebaOrdenId) {
   const res = await fetch(`${BASE}/ordenes/${numero}/lab/correcciones/${pruebaOrdenId}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -268,7 +276,7 @@ export async function verificarResultados(numero, prueba_orden_ids, verificado) 
     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prueba_orden_ids, verificado })
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -277,19 +285,19 @@ export async function setAreaEspera(numero, areaId, en_espera) {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ en_espera })
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getNotasPredefinidas() {
   const res = await fetch(`${BASE}/ordenes/lab/notas-predefinidas`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getResultadosPrint(numero) {
   const res = await fetch(`${BASE}/ordenes/${numero}/resultados-print`)
-  if (!res.ok) throw new Error('Error cargando resultados')
+  await throwIfError(res)
   return res.json()
 }
 
@@ -299,37 +307,37 @@ export async function getPacientes(params = {}) {
     Object.entries(params).filter(([, v]) => v !== '' && v != null)
   ).toString()
   const res = await fetch(`${BASE}/pacientes${qs ? '?' + qs : ''}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getPacienteStats() {
   const res = await fetch(`${BASE}/pacientes/stats`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getPaciente(id) {
   const res = await fetch(`${BASE}/pacientes/${id}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getPacienteConfig() {
   const res = await fetch(`${BASE}/pacientes/config/campos`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getCatalogoRazas() {
   const res = await fetch(`${BASE}/razas`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getCatalogoSaludos() {
   const res = await fetch(`${BASE}/saludos`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -359,20 +367,20 @@ export async function updatePaciente(id, data) {
 
 export async function desactivarPaciente(id) {
   const res = await fetch(`${BASE}/pacientes/${id}/desactivar`, { method: 'PATCH' })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function activarPaciente(id) {
   const res = await fetch(`${BASE}/pacientes/${id}/activar`, { method: 'PATCH' })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function validarCiPaciente(ci, excludeId) {
   const params = excludeId ? `?exclude=${excludeId}` : ''
   const res = await fetch(`${BASE}/pacientes/validar-ci/${encodeURIComponent(ci)}${params}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -387,7 +395,7 @@ export async function deletePaciente(id) {
 
 export async function getVinculos() {
   const res = await fetch(`${BASE}/pacientes/vinculos`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -395,13 +403,13 @@ export async function getVinculos() {
 export async function getOTEditNew(pacienteId) {
   const qs = pacienteId ? `?pacienteId=${pacienteId}` : ''
   const res = await fetch(`${BASE}/ot/edit/new${qs}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getOTEdit(numero) {
   const res = await fetch(`${BASE}/ot/edit/${numero}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -409,13 +417,13 @@ export async function searchPruebasOT(q, servicioId) {
   const params = new URLSearchParams({ q })
   if (servicioId) params.set('servicio_id', servicioId)
   const res = await fetch(`${BASE}/ot/search-pruebas?${params}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function resolveServicio(procedenciaId) {
   const res = await fetch(`${BASE}/ot/resolve-servicio?procedencia_id=${procedenciaId}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -424,13 +432,13 @@ export async function recalcPrecios(servicioId, pruebaIds, gpIds) {
   if (pruebaIds.length) params.set('prueba_ids', pruebaIds.join(','))
   if (gpIds.length) params.set('gp_ids', gpIds.join(','))
   const res = await fetch(`${BASE}/ot/recalc-precios?${params}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getGrupoPruebas(gpId) {
   const res = await fetch(`${BASE}/ot/grupo-prueba/${gpId}/pruebas`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -460,13 +468,13 @@ export async function updateOT(numero, data) {
 
 export async function searchPacienteOT(q) {
   const res = await fetch(`${BASE}/ot/search-paciente?q=${encodeURIComponent(q)}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function searchMedicoOT(q) {
   const res = await fetch(`${BASE}/ot/search-medico?q=${encodeURIComponent(q)}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -475,7 +483,7 @@ export async function createMedicoOT(data) {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -484,19 +492,19 @@ export async function facturarOT(numero, data) {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getOTDescuentos(servicioId) {
   const res = await fetch(`${BASE}/ot/descuentos/${servicioId}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getFacturaData(numero) {
   const res = await fetch(`${BASE}/ot/factura/${numero}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -505,13 +513,13 @@ export async function registrarPago(facturaId, data) {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function anularPago(facturaId, pagoId) {
   const res = await fetch(`${BASE}/ot/factura/${facturaId}/pago/${pagoId}/anular`, { method: 'POST' })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -520,7 +528,7 @@ export async function anularFactura(facturaId, motivo) {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ motivo })
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -529,7 +537,7 @@ export async function crearNotaCredito(facturaId, data) {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -537,20 +545,20 @@ export async function crearNotaCredito(facturaId, data) {
 
 export async function getVBAreas() {
   const res = await fetch(`${BASE}/validacion/areas`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getVBMuestras(fechaDesde, fechaHasta, areaId, validada) {
   const params = new URLSearchParams({ fechaDesde, fechaHasta, areaId, validada })
   const res = await fetch(`${BASE}/validacion/muestras?${params}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getVBOrdenArea(numero, areaId) {
   const res = await fetch(`${BASE}/validacion/orden/${numero}/area/${areaId}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -559,7 +567,7 @@ export async function saveVBResultados(numero, areaId, data) {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -567,19 +575,19 @@ export async function saveVBResultados(numero, areaId, data) {
 
 export async function getQADashboard() {
   const res = await fetch(`${BASE}/qa/dashboard`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getQASuites() {
   const res = await fetch(`${BASE}/qa/suites`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getQASuite(id) {
   const res = await fetch(`${BASE}/qa/suites/${id}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -589,7 +597,7 @@ export async function createQARun(suiteId) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ suiteId }),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -598,13 +606,13 @@ export async function getQARuns(params = {}) {
     Object.entries(params).filter(([, v]) => v !== '' && v != null)
   ).toString()
   const res = await fetch(`${BASE}/qa/runs${qs ? '?' + qs : ''}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getQARun(id) {
   const res = await fetch(`${BASE}/qa/runs/${id}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -614,7 +622,7 @@ export async function updateQARun(id, data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -624,19 +632,19 @@ export async function saveQAResults(runId, results) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ results }),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getQABugs() {
   const res = await fetch(`${BASE}/qa/bugs`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getQABug(id) {
   const res = await fetch(`${BASE}/qa/bugs/${id}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -646,7 +654,7 @@ export async function createQABug(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -656,7 +664,7 @@ export async function updateQABug(id, data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -667,31 +675,31 @@ export async function uploadQAScreenshots(bugId, files) {
     method: 'POST',
     body: formData,
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getQAUsers() {
   const res = await fetch(`${BASE}/qa/users`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 export async function getQABugPrompt(bugId) {
   const res = await fetch(`${BASE}/qa/bugs/${bugId}/prompt`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getQABrandTokens() {
   const res = await fetch(`${BASE}/qa/brand-tokens`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 // ── QA Assignments ──
 export async function getQAAssignments() {
   const res = await fetch(`${BASE}/qa/assignments`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -701,20 +709,20 @@ export async function saveQAAssignments(assignments) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ assignments }),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getQAMyAssignments() {
   const res = await fetch(`${BASE}/qa/assignments/me`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 // ── QA Team Dashboard ──
 export async function getQATeamDashboard() {
   const res = await fetch(`${BASE}/qa/dashboard/team`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -722,19 +730,19 @@ export async function getQATeamDashboard() {
 export async function getQANotifications(unread = false) {
   const qs = unread ? '?unread=true' : ''
   const res = await fetch(`${BASE}/qa/notifications${qs}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function markQANotificationRead(id) {
   const res = await fetch(`${BASE}/qa/notifications/${id}/read`, { method: 'PUT' })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function markAllQANotificationsRead() {
   const res = await fetch(`${BASE}/qa/notifications/read-all`, { method: 'PUT' })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -745,13 +753,13 @@ export async function createQASession(runId) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ runId }),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getQASession(token) {
   const res = await fetch(`${BASE}/qa/sessions/${token}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -761,7 +769,7 @@ export async function saveQASessionResult(token, results) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ results }),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -771,7 +779,7 @@ export async function createQASessionBug(token, data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -781,20 +789,20 @@ export async function addQABugComment(bugId, text) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getQAMyBugs() {
   const res = await fetch(`${BASE}/qa/bugs/mine`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 // ─── QA Notepad ─────────────────────────────────────────
 export async function getQANotes() {
   const res = await fetch(`${BASE}/qa/notepad`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -804,7 +812,7 @@ export async function createQANote(text) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -814,13 +822,13 @@ export async function updateQANote(noteId, text) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function deleteQANote(noteId) {
   const res = await fetch(`${BASE}/qa/notepad/${noteId}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -830,7 +838,7 @@ export async function promoteQANote(noteId, data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -838,19 +846,19 @@ export async function promoteQANote(noteId, data) {
 
 export async function getTrazabilidadCheckpoints() {
   const res = await fetch(`${BASE}/trazabilidad/checkpoints`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getTrazabilidadCheckpointsByIp() {
   const res = await fetch(`${BASE}/trazabilidad/checkpoints/by-ip`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getStatusMuestra() {
   const res = await fetch(`${BASE}/trazabilidad/status-muestra`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -869,20 +877,20 @@ export async function scanBarcode(checkpointId, barcode) {
 
 export async function getMuestraLogs(muestraId) {
   const res = await fetch(`${BASE}/trazabilidad/muestra/${muestraId}/logs`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getOrdenMuestras(ordenId) {
   const res = await fetch(`${BASE}/trazabilidad/orden/${ordenId}/muestras`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 // == CHECKPOINT ADMIN ==
 export async function getCheckpointDetail(id) {
   const res = await fetch(`${BASE}/trazabilidad/checkpoints/${id}`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -892,7 +900,7 @@ export async function createCheckpoint(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -902,7 +910,7 @@ export async function updateCheckpoint(id, data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -917,19 +925,19 @@ export async function deleteCheckpoint(id) {
 
 export async function getTrazDepartamentos() {
   const res = await fetch(`${BASE}/trazabilidad/catalogos/departamentos`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getTrazCAPs() {
   const res = await fetch(`${BASE}/trazabilidad/catalogos/caps`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
 export async function getMuestraTrazabilidad(barcode) {
   const res = await fetch(`${BASE}/trazabilidad/muestra/barcode/${encodeURIComponent(barcode)}/trazabilidad`)
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }
 
@@ -939,6 +947,6 @@ export async function createQABugsBatch(bugs) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ bugs }),
   })
-  if (!res.ok) throw new Error(await res.text())
+  await throwIfError(res)
   return res.json()
 }

@@ -250,9 +250,9 @@ export default function OrdenDetallePage() {
                       </div>
                       {(data.telefono || data.email) && (
                         <div className="ot-pcontact">
-                          {data.telefono && <span><IcoPhone /> {data.telefono}</span>}
-                          {data.telefono_celular && <span><IcoPhone /> {data.telefono_celular}</span>}
-                          {data.email && <span><IcoMail /> {data.email}</span>}
+                          {data.telefono && <span className="lab-tip" data-tip="Teléfono"><IcoPhone /> {data.telefono}</span>}
+                          {data.telefono_celular && <span className="lab-tip" data-tip="Celular"><IcoPhone /> {data.telefono_celular}</span>}
+                          {data.email && <span className="lab-tip" data-tip="Email"><IcoMail /> {data.email}</span>}
                         </div>
                       )}
                     </div>

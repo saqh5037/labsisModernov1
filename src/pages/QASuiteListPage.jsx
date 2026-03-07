@@ -7,11 +7,18 @@ export default function QASuiteListPage() {
   const [suites, setSuites] = useState([])
   const [loading, setLoading] = useState(true)
   const [starting, setStarting] = useState(null)
+  const [toast, setToast] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
     getQASuites().then(s => { setSuites(s); setLoading(false) }).catch(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 4000)
+    return () => clearTimeout(t)
+  }, [toast])
 
   const handleStartRun = async (suiteId) => {
     setStarting(suiteId)
@@ -19,12 +26,12 @@ export default function QASuiteListPage() {
       const run = await createQARun(suiteId)
       navigate(`/qa/runs/${run.id}`)
     } catch (err) {
-      alert('Error creando run: ' + err.message)
+      setToast({ type: 'error', message: 'Error creando run: ' + err.message })
       setStarting(null)
     }
   }
 
-  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
 
   if (loading) return (
     <div className="dv"><QANav active="suites" /><div className="dv-loading"><div className="dv-spinner" />Cargando suites...</div></div>
@@ -87,6 +94,12 @@ export default function QASuiteListPage() {
           ))}
         </div>
       </div>
+
+      {toast && (
+        <div className={`lab-toast lab-toast-${toast.type}`}>
+          {toast.message}
+        </div>
+      )}
 
       <footer className="dv-footer">QA Testing Module — labsisModernov1</footer>
     </div>

@@ -9708,6 +9708,15 @@ span.flatpickr-weekday { font-size:10px !important; font-weight:700 !important; 
 .lab-tip:hover::after {
   transform: translateX(-50%) scale(1);
 }
+/* Guards: lab-tip on <th>, badges, and action-icons */
+th.lab-tip { overflow: visible; }
+th.lab-tip::after { white-space: nowrap; z-index: 200; }
+.badge-pill.lab-tip { overflow: visible; position: relative; }
+.action-icon.lab-tip { overflow: visible; position: relative; }
+.scan-header__badge.lab-tip { position: relative; }
+.lab-badge-auto.lab-tip,
+.lab-badge-source.lab-tip,
+.lab-type-badge.lab-tip { position: relative; overflow: visible; }
 
 .lab-area-espera-banner {
   display: flex; align-items: center; justify-content: space-between;

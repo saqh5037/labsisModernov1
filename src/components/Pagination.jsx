@@ -7,7 +7,7 @@ export default function Pagination({ page, totalPages, total, limit, onPage }) {
   return (
     <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
       <span className="text-[12px] text-slate-500">
-        {total === 0 ? 'Sin resultados' : `Mostrando ${from}–${to} de ${total.toLocaleString('es-VE')}`}
+        {total === 0 ? 'Sin resultados' : `Mostrando ${from}–${to} de ${total.toLocaleString('es-MX')}`}
       </span>
       <div className="flex items-center gap-1">
         <button

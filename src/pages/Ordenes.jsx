@@ -143,6 +143,7 @@ export default function Ordenes() {
   const [showMore, setShowMore] = useState(false)
   const [dashboard, setDashboard] = useState(null)
   const [areaStatuses, setAreaStatuses] = useState(null)
+  const [toast, setToast] = useState(null)
 
   // Lab config (for dynamic labels)
   const [labConfig, setLabConfig] = useState(null)
@@ -172,6 +173,13 @@ export default function Ordenes() {
     getCheckpoints().then(setCheckpointList).catch(() => {})
     getLaboratorio().then(setLabConfig).catch(() => {})
   }, [])
+
+  // Toast auto-dismiss
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 4000)
+    return () => clearTimeout(t)
+  }, [toast])
 
   // Dynamic labels & visibility based on lab config
   const ciLabel = labConfig?.configuracion_especial === 'Lapi' ? 'Nro. Registro' : 'Cédula'
@@ -248,6 +256,7 @@ export default function Ordenes() {
       console.error('Error en búsqueda:', err)
       setRows([])
       setDashboard(null)
+      setToast({ type: 'error', message: 'Error al buscar órdenes' })
     } finally {
       setLoading(false)
     }
@@ -308,7 +317,7 @@ export default function Ordenes() {
       {/* ── Local toolbar — solo botón crear ── */}
       <div className="ordenes-toolbar">
         <div className="nav-tools">
-          <div className="nav-tool nav-tool-crear" title="Crear Orden de Trabajo" onClick={() => navigate('/ordenes/crear')}>
+          <div className="nav-tool nav-tool-crear lab-tip" data-tip="Nueva Orden de Trabajo" onClick={() => navigate('/ordenes/crear')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </div>
         </div>
@@ -594,9 +603,9 @@ export default function Ordenes() {
                             })}
                             <td>
                               <div className="action-icons">
-                                <div className="action-icon ai-view"   title="Ver orden" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoEye /></div>
-                                <div className="action-icon ai-bar"    title="Código de barras" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoBarcode /></div>
-                                <div className="action-icon ai-edit"   title="Analizar" onClick={() => {
+                                <div className="action-icon ai-view lab-tip"   data-tip="Ver orden" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoEye /></div>
+                                <div className="action-icon ai-bar lab-tip"    data-tip="Código de barras" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoBarcode /></div>
+                                <div className="action-icon ai-edit lab-tip"   data-tip="Analizar" onClick={() => {
                                   const f = filtersRef.current
                                   const qs = new URLSearchParams()
                                   if (f.area?.length) qs.set('area', f.area.map(a => a.value).join(','))
@@ -605,8 +614,8 @@ export default function Ordenes() {
                                   const qStr = qs.toString()
                                   navigate(`/ordenes/${r.numero}/lab${qStr ? '?' + qStr : ''}`)
                                 }}><IcoEdit /></div>
-                                <div className={`action-icon ai-result${r.status_id >= 4 ? '' : ' ai-disabled'}`} title={r.status_id >= 4 ? 'Descargar resultados PDF' : 'Sin resultados validados'} onClick={() => { if (r.status_id >= 4) window.open(`/api/ordenes/${r.numero}/resultados-pdf`, '_blank') }}><IcoDownload /></div>
-                                <div className={`action-icon ai-print${r.status_id >= 4 ? '' : ' ai-disabled'}`} title={r.status_id >= 4 ? 'Imprimir resultados' : 'Sin resultados validados'} onClick={() => { if (r.status_id >= 4) window.open(`/ordenes/${r.numero}/resultados`, '_blank') }}><IcoPrint /></div>
+                                <div className={`action-icon ai-result lab-tip${r.status_id >= 4 ? '' : ' ai-disabled'}`} data-tip={r.status_id >= 4 ? 'Descargar resultados PDF' : 'Sin resultados validados'} onClick={() => { if (r.status_id >= 4) window.open(`/api/ordenes/${r.numero}/resultados-pdf`, '_blank') }}><IcoDownload /></div>
+                                <div className={`action-icon ai-print lab-tip${r.status_id >= 4 ? '' : ' ai-disabled'}`} data-tip={r.status_id >= 4 ? 'Imprimir resultados' : 'Sin resultados validados'} onClick={() => { if (r.status_id >= 4) window.open(`/ordenes/${r.numero}/resultados`, '_blank') }}><IcoPrint /></div>
                               </div>
                             </td>
                           </tr>
@@ -634,7 +643,7 @@ export default function Ordenes() {
             <div className="empty-state anim d3">
               <IcoClipboard />
               <p className="empty-title">Ingresa filtros y presiona <span className="text-blue">Buscar</span></p>
-              <p className="empty-sub">455,204 registros · Laboratorio EG · 2014 — hoy</p>
+              <p className="empty-sub">Usa los filtros de fecha, estado o área para encontrar órdenes</p>
             </div>
           )}
         </div>
@@ -647,6 +656,12 @@ export default function Ordenes() {
         </aside>
 
       </div>
+
+      {toast && (
+        <div className={`lab-toast lab-toast-${toast.type}`}>
+          {toast.message}
+        </div>
+      )}
     </div>
   )
 }

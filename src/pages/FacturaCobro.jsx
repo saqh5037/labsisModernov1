@@ -25,11 +25,11 @@ const IcoCheck = () => (
 /* ── Helpers ── */
 const fmtPrice = (n) => {
   const num = parseFloat(n) || 0
-  return num.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return num.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 const fmtDate = (d) => {
   if (!d) return '-'
-  return new Date(d).toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 const STATUS_MAP = {
   1: { label: 'PENDIENTE', color: '#dc2626', bg: '#fef2f2' },

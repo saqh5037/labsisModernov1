@@ -11,7 +11,7 @@ import {
 /* ── Helpers ── */
 export const fmtPrice = (n) => {
   const num = parseFloat(n) || 0
-  return num.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return num.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 export const calcAge = (bd) => {

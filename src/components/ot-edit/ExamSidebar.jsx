@@ -1,5 +1,8 @@
 import { fmtPrice } from './useOTEditState.js'
 
+const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent)
+const MOD = isMac ? '\u2318' : 'Ctrl'
+
 const IcoSave = () => (
   <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -181,13 +184,13 @@ export default function ExamSidebar({
       {/* Keyboard shortcuts hint */}
       <div className="ote-shortcuts">
         <div className="ote-shortcut-row">
-          <kbd>Ctrl+S</kbd><span>Guardar</span>
+          <kbd>{MOD}+S</kbd><span>Guardar</span>
         </div>
         <div className="ote-shortcut-row">
-          <kbd>Ctrl+Shift+S</kbd><span>Guardar+Cobrar</span>
+          <kbd>{MOD}+Shift+S</kbd><span>Guardar+Cobrar</span>
         </div>
         <div className="ote-shortcut-row">
-          <kbd>Ctrl+1/2/3</kbd><span>Ir a paso</span>
+          <kbd>{MOD}+1/2/3</kbd><span>Ir a paso</span>
         </div>
         <div className="ote-shortcut-row">
           <kbd>/</kbd><span>Buscar examen</span>

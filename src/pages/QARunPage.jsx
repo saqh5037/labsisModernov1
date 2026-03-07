@@ -530,7 +530,7 @@ export default function QARunPage() {
                 </div>
 
                 <div style={{ fontSize: 10, color: 'var(--text-4)', marginBottom: 12 }}>
-                  Expira: {new Date(qrSession.expiresAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+                  Expira: {new Date(qrSession.expiresAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </>
             ) : (

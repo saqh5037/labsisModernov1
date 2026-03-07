@@ -80,7 +80,7 @@ export default function QATeamPage() {
   const getUserAssignment = (userId) => assignments.find(a => a.userId === userId)
   const getUserStats = (userId) => teamData?.team?.find(t => t.userId === userId)
 
-  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
 
   if (loading) return <div className="dv"><QANav active="team" /><div className="dv-loading"><div className="dv-spinner" />Cargando equipo...</div></div>
 

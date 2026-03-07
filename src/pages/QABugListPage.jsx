@@ -16,7 +16,7 @@ export default function QABugListPage() {
     getQABugs().then(b => { setBugs(b); setLoading(false) }).catch(() => setLoading(false))
   }, [])
 
-  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
   const isAuto = (b) => b.titulo?.startsWith('[Auto]')
 
   let filtered = bugs

@@ -477,6 +477,25 @@ export default function OrdenLabPage() {
     getCheckpoints().then(setCheckpointList).catch(() => {})
   }, [])
 
+  // Keyboard shortcuts (Cmd/Ctrl+S = save, Cmd/Ctrl+Enter = validate all, Esc = back)
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 's') {
+        e.preventDefault()
+        handleSave(false)
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault()
+        handleSave(true)
+      }
+      if (e.key === 'Escape' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+        navigate('/ordenes')
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [handleSave, navigate]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Toast auto-dismiss
   useEffect(() => {
     if (!toast) return
@@ -1115,7 +1134,7 @@ export default function OrdenLabPage() {
 
             <div className="lab-queue-list">
               {queueLoading && <div style={{ padding: 8, fontSize: 11, color: 'var(--text-4)' }}>Cargando...</div>}
-              {!queueLoading && queue.length === 0 && <div style={{ padding: 8, fontSize: 11, color: 'var(--text-4)' }}>Sin resultados</div>}
+              {!queueLoading && queue.length === 0 && <div style={{ padding: 12, fontSize: 11, color: 'var(--text-4)', textAlign: 'center' }}>No hay órdenes pendientes.<br/>Ajusta las fechas o filtros.</div>}
               {queue.map(q => {
                 const isCurrent = String(q.numero) === String(numero)
                 const pct = q.total_pruebas ? Math.round(q.validadas / q.total_pruebas * 100) : 0
@@ -1171,7 +1190,7 @@ export default function OrdenLabPage() {
                     <span className="lab-tag">{calcAge(data.paciente.fecha_nacimiento)}</span>
                     <span className="lab-tag">{fmtDate(data.paciente.fecha_nacimiento)}</span>
                     {data.paciente.num_historia && <span className="lab-tag">HC: {data.paciente.num_historia}</span>}
-                    {data.paciente.vip && <span className="lab-tag lab-tag-vip">VIP</span>}
+                    {data.paciente.vip && <span className="lab-tag lab-tag-vip lab-tip" data-tip="Paciente VIP — atención prioritaria">VIP</span>}
                   </span>
                 </div>
               </div>
@@ -1179,8 +1198,8 @@ export default function OrdenLabPage() {
                 <span className="lab-header-orden">Orden {data.orden.numero}</span>
                 <span className="lab-header-detail">{fmtDate(data.orden.fecha)}</span>
                 {data.orden.medico && <span className="lab-header-detail">Dr. {data.orden.medico}</span>}
-                {data.orden.stat && <span className="lab-tag lab-tag-stat">STAT</span>}
-                {data.orden.embarazada && <span className="lab-tag lab-tag-emb">Embarazo{data.orden.semanas_embarazo ? ` ${data.orden.semanas_embarazo}s` : ''}</span>}
+                {data.orden.stat && <span className="lab-tag lab-tag-stat lab-tip" data-tip="Orden urgente — prioridad inmediata">STAT</span>}
+                {data.orden.embarazada && <span className="lab-tag lab-tag-emb lab-tip" data-tip="Rangos de referencia ajustados para embarazo">Embarazo{data.orden.semanas_embarazo ? ` ${data.orden.semanas_embarazo}s` : ''}</span>}
               </div>
             </div>
 
@@ -1255,11 +1274,11 @@ export default function OrdenLabPage() {
                         <tr>
                           <th className="lab-th-prueba">Prueba</th>
                           <th className="lab-th-resultado">Resultado</th>
-                          <th className="lab-th-flag"></th>
+                          <th className="lab-th-flag lab-tip" data-tip="Bandera (N=Normal, H=Alto, L=Bajo)"></th>
                           <th className="lab-th-unidad">Ud.</th>
                           <th className="lab-th-ref">Referencia</th>
-                          <th className="lab-th-val">V</th>
-                          <th className="lab-th-hist">H</th>
+                          <th className="lab-th-val lab-tip" data-tip="Validar resultado">V</th>
+                          <th className="lab-th-hist lab-tip" data-tip="Historial del paciente">H</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1292,12 +1311,12 @@ export default function OrdenLabPage() {
                                   <div style={{ display: 'flex', alignItems: 'center' }}>
                                     <span className="lab-cell-prueba">{po.prueba}</span>
                                     {po.tiene_regla_autovalidacion && (
-                                      <span className={`lab-badge-auto ${po.fue_autovalidada ? 'lab-badge-auto-ok' : 'lab-badge-auto-fail'}`}
-                                        title={po.fue_autovalidada ? 'Autovalidada OK' : 'No pasó autovalidación'}>A</span>
+                                      <span className={`lab-badge-auto lab-tip ${po.fue_autovalidada ? 'lab-badge-auto-ok' : 'lab-badge-auto-fail'}`}
+                                        data-tip={po.fue_autovalidada ? 'Autovalidada OK' : 'No pasó autovalidación'}>A</span>
                                     )}
                                     {val && (
-                                      <span className={`lab-badge-source ${po.transmision_equipo ? 'lab-badge-source-equipo' : 'lab-badge-source-manual'}`}
-                                        title={po.transmision_equipo ? `Transmitido por ${po.equipo || 'equipo'}` : 'Captura manual'}>
+                                      <span className={`lab-badge-source lab-tip ${po.transmision_equipo ? 'lab-badge-source-equipo' : 'lab-badge-source-manual'}`}
+                                        data-tip={po.transmision_equipo ? `Transmitido por ${po.equipo || 'equipo'}` : 'Captura manual'}>
                                         {''}
                                       </span>
                                     )}
@@ -1397,7 +1416,7 @@ export default function OrdenLabPage() {
                                     <div style={{ display: 'flex', alignItems: 'center' }}>
                                       <input className="lab-input" type="text" value={val}
                                         onChange={e => setResultado(po.id, e.target.value)} readOnly={isValidado || !canLab || areaEnEspera} />
-                                      <span className="lab-type-badge">{po.tipo}</span>
+                                      <span className="lab-type-badge lab-tip" data-tip={{NUM:'Numérico',CAL:'Calculado',TXT:'Texto libre',ALF:'Alfanumérico',SEL:'Selección',AYU:'Ayuda',MEMO:'Memo'}[po.tipo] || po.tipo}>{po.tipo}</span>
                                     </div>
                                   )}
                                 </td>
@@ -1834,6 +1853,13 @@ export default function OrdenLabPage() {
                       </div>
                     )}
                   </CollapsibleCard>
+
+                  {/* Keyboard shortcuts */}
+                  <div className="ote-shortcuts" style={{ marginTop: 12 }}>
+                    <div className="ote-shortcut-row"><kbd>{/Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? '\u2318' : 'Ctrl'}+S</kbd><span>Guardar</span></div>
+                    <div className="ote-shortcut-row"><kbd>{/Mac|iPod|iPhone|iPad/.test(navigator.userAgent) ? '\u2318' : 'Ctrl'}+Enter</kbd><span>Validar Todo</span></div>
+                    <div className="ote-shortcut-row"><kbd>Esc</kbd><span>Volver a Lista</span></div>
+                  </div>
             </div>
           )}
           </>
