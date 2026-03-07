@@ -5050,7 +5050,8 @@ span.flatpickr-weekday { font-size:10px !important; font-weight:700 !important; 
 }
 @media (max-width: 1024px) {
   .lab-3col { grid-template-columns: 1fr; height: auto; }
-  .lab-center-col { height: auto; overflow: visible; padding-bottom: 56px; }
+  .lab-center-col { height: auto; overflow: visible; padding-bottom: 64px; }
+  .lab-toolbar { margin-bottom: 52px; }
   .lab-split { grid-template-columns: 1fr; }
   .lab-split-side { height: auto; max-height: none; }
 
@@ -10015,6 +10016,45 @@ th.lab-tip::after { white-space: nowrap; z-index: 200; }
 @media (max-width: 768px) {
   .pac-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .pac-table { min-width: 600px; }
+}
+
+/* ══ MOBILE FIXES — tablas, toolbar, filtros ══ */
+
+/* Fix 1: Ordenes + genérica — tabla scroll horizontal en movil */
+@media (max-width: 768px) {
+  .ot-list-results .table-scroll,
+  .page-tpl .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ot-list-results .data-table {
+    min-width: 700px;
+    table-layout: auto;
+  }
+  .page-tpl .data-table {
+    min-width: 600px;
+    table-layout: auto;
+  }
+}
+
+/* Fix 2: Filtros secundarios 1 columna en movil */
+@media (max-width: 768px) {
+  .ordenes-filters-secondary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Fix 3: Lab toolbar — botones compactos en movil */
+@media (max-width: 768px) {
+  .lab-toolbar {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .lab-btn {
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+  .lab-toolbar-spacer { display: none; }
 }
 
 /* Swipe hint — hidden on desktop */
