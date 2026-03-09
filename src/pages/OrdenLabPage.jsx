@@ -673,6 +673,22 @@ export default function OrdenLabPage() {
   const currentArea = data?.areas?.find(a => Number(a.id) === Number(activeArea))
   const areaEnEspera = data?.areasStatus?.find(as => Number(as.area_id) === Number(activeArea))?.status_id === 10
   const hasDirty = Object.keys(dirty).length > 0
+
+  // Switch area with dirty-state protection
+  const switchArea = (newAreaId) => {
+    if (hasDirty) {
+      setConfirmModal({
+        type: 'unsaved',
+        title: 'Cambios sin guardar',
+        message: '¿Deseas descartar los cambios y cambiar de área?',
+        items: [],
+        onConfirm: () => { setConfirmModal(null); setDirty({}); setActiveArea(newAreaId) }
+      })
+      return
+    }
+    setActiveArea(newAreaId)
+  }
+
   const someVal = currentArea?.pruebas?.some(po => getValidado(po))
   const allVerified = currentArea?.pruebas?.every(po => po.verificado || !(po.status_id === 4 || po.status_id === 7))
   const canVerify = userInfo?.roles?.some(r => ['ADM', 'COORD'].includes(r))
@@ -790,6 +806,16 @@ export default function OrdenLabPage() {
         const resultados = Object.entries(saveDirty).map(([poId, changes]) => ({
           prueba_orden_id: parseInt(poId), ...changes
         }))
+        // If validarTodo but everything already validated, nothing to send
+        if (validarTodo && resultados.length === 0) {
+          const vbArea = data?.areas?.[0]
+          const allAlreadyValidated = vbArea?.pruebas?.every(po => getValidado(po))
+          if (allAlreadyValidated) {
+            setSaving(false)
+            setToast({ message: 'No hay cambios pendientes', type: 'info' })
+            return
+          }
+        }
         const resp = await saveVBResultados(data.orden.numero, activeArea, { resultados, validarTodo, observaciones_area: obsArea[activeArea] || '' })
         if (resp.areaValidated && validation.muestraActualId) {
           validation.markValidated(validation.muestraActualId)
@@ -828,6 +854,11 @@ export default function OrdenLabPage() {
             }
           })
         }
+        if (resultados.length === 0) {
+          setSaving(false)
+          setToast({ message: 'No hay cambios pendientes', type: 'info' })
+          return
+        }
         await saveResultados(numero, resultados, obsArea)
         const d = await getOrdenLab(numero)
         setData(d)
@@ -858,7 +889,7 @@ export default function OrdenLabPage() {
         const nextIdx = e.key === 'ArrowRight'
           ? (curIdx + 1) % areaIds.length
           : (curIdx - 1 + areaIds.length) % areaIds.length
-        setActiveArea(areaIds[nextIdx])
+        switchArea(areaIds[nextIdx])
         return
       }
 
@@ -1279,7 +1310,7 @@ export default function OrdenLabPage() {
                   <button
                     key={area.id}
                     className={`ot-tab-btn ${activeArea === area.id ? 'active' : ''} ${aComplete ? 'lab-tab-done' : ''}`}
-                    onClick={() => setActiveArea(area.id)}
+                    onClick={() => switchArea(area.id)}
                   >
                     {aComplete && <span className="lab-tab-check">✓</span>}
                     {area.nombre}
@@ -1613,9 +1644,8 @@ export default function OrdenLabPage() {
                   <button className="lab-btn lab-btn-danger lab-btn-sm" disabled={saving}
                     onClick={(e) => {
                       addRipple(e)
-                      const area = data?.areas?.[0]
-                      if (!area) return
-                      const unvalidated = area.pruebas.filter(po => !getValidado(po))
+                      if (!currentArea) return
+                      const unvalidated = currentArea.pruebas.filter(po => !getValidado(po))
                       checkValidationWarnings(unvalidated, () => handleSave(true))
                     }}>
                     <IcoCheck /> Validar Todo
