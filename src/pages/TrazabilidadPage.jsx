@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getTrazabilidadCheckpoints, getTrazabilidadCheckpointsByIp } from '../services/api'
+import { CHECKPOINT_STATUS as STATUS_COLORS } from '../constants/status'
 
 /* ── Icons ── */
 const IcoScan = () => (
@@ -16,11 +17,6 @@ const IcoArrow = () => (
     <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
   </svg>
 )
-
-const STATUS_COLORS = {
-  REC: '#22c55e', TRA: '#f59e0b', ACM: '#3b82f6', DIS: '#8b5cf6',
-  PRO: '#06b6d4', ALM: '#64748b', NOE: '#ef4444', DES: '#dc2626',
-}
 
 export default function TrazabilidadPage() {
   const navigate = useNavigate()

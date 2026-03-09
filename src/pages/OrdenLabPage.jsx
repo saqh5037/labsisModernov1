@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'rea
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getOrdenLab, saveResultados, getHistorico, getLabQueue, getLabAreas, corregirResultado, getCorrecciones, getMe, getVBOrdenArea, saveVBResultados, labQuickSearch, verificarResultados, setAreaEspera, getNotasPredefinidas, getCheckpoints } from '../services/api'
 import { useValidationMode } from '../hooks/useValidationMode'
+import { useToast } from '../hooks/useToast'
+import Toast from '../components/Toast'
 
 /* ── SVG Icons ── */
 const Ico = ({ d, vb = '0 0 24 24', w = 1.8, size = 16 }) => (
@@ -324,7 +326,7 @@ export default function OrdenLabPage() {
   const [activeArea, setActiveArea] = useState(null)
   const [dirty, setDirty] = useState({})
   const [saving, setSaving] = useState(false)
-  const [toast, setToast] = useState(null)
+  const { toast, setToast } = useToast(3000)
 
   // Histórico
   const [historico, setHistorico] = useState({})
@@ -512,13 +514,6 @@ export default function OrdenLabPage() {
     getLabAreas().then(r => setLabAreas(r.data || [])).catch(() => {})
     getCheckpoints().then(setCheckpointList).catch(() => {})
   }, [])
-
-  // Toast auto-dismiss
-  useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(t)
-  }, [toast])
 
   // Warn before navigating away with unsaved changes
   useEffect(() => {
@@ -2045,12 +2040,7 @@ export default function OrdenLabPage() {
         </div>
       )}
 
-      {/* Toast */}
-      {toast && (
-        <div className={`lab-toast lab-toast-${toast.type}`}>
-          {toast.type === 'success' ? '✓' : '✕'} {toast.message}
-        </div>
-      )}
+      <Toast toast={toast} />
     </div>
   )
 }

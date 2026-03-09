@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getTrazabilidadCheckpoints, deleteCheckpoint } from '../services/api'
-
-const STATUS_COLORS = {
-  REC: '#22c55e', TRA: '#f59e0b', ACM: '#3b82f6', DIS: '#8b5cf6',
-  PRO: '#06b6d4', ALM: '#64748b', NOE: '#ef4444', DES: '#dc2626',
-}
+import { CHECKPOINT_STATUS as STATUS_COLORS } from '../constants/status'
 
 export default function CheckPointList() {
   const navigate = useNavigate()

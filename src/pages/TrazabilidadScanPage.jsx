@@ -3,11 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getTrazabilidadCheckpoints, scanBarcode, getMuestraLogs, getOrdenMuestras } from '../services/api'
 import { useNotificationSound } from '../hooks/useNotificationSound'
 import BarcodeScanner from '../components/BarcodeScanner'
-
-const STATUS_COLORS = {
-  REC: '#22c55e', TRA: '#f59e0b', ACM: '#3b82f6', DIS: '#8b5cf6',
-  PRO: '#06b6d4', ALM: '#64748b', NOE: '#ef4444', DES: '#dc2626',
-}
+import { CHECKPOINT_STATUS as STATUS_COLORS } from '../constants/status'
 
 export default function TrazabilidadScanPage() {
   const { checkpointId } = useParams()

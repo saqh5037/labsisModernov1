@@ -6,8 +6,11 @@ import DatePickerGlass from '../components/DatePickerGlass'
 import DashboardProgress from '../components/DashboardProgress'
 import DashboardStatusChart from '../components/DashboardStatusChart'
 import DashboardAreaProgress from '../components/DashboardAreaProgress'
+import Toast from '../components/Toast'
+import { useToast } from '../hooks/useToast'
 import { useNavigate } from 'react-router-dom'
 import { getOrdenes, getDashboard, getStatus, getProcedencias, getAreas, getUsuarios, getServiciosMedicos, searchPruebas, getLaboratorio, getCheckpoints } from '../services/api'
+import { ORDER_STATUS } from '../constants/status'
 
 /* ── Icons ── */
 const Ico = ({ d, vb = '0 0 24 24', w = 1.8 }) => (
@@ -38,21 +41,7 @@ const IcoChevron  = ({ dir = 'up' }) => (
   </svg>
 )
 
-/* ── Status colors from Labsis BD (status_orden table) ── */
-const STATUS_MAP = {
-  6:  { label: 'Abortada',       color: '#000000', icon: 'x' },
-  0:  { label: 'Inactivo',       color: '#94a3b8', icon: 'dot' },
-  1:  { label: 'Activo',         color: '#d44836', icon: 'dot' },
-  2:  { label: 'Iniciada',       color: '#ffa500', icon: 'dot' },
-  8:  { label: 'Por Validar',    color: '#f472b6', icon: 'dot' },
-  9:  { label: 'Transmitido',    color: '#3e65b0', icon: 'arrows' },
-  10: { label: 'En Espera',      color: '#4888f1', icon: 'dot' },
-  11: { label: 'Reflejo',        color: '#919386', icon: 'dot' },
-  7:  { label: 'Vacío Validado', color: '#63981f', icon: 'dot' },
-  5:  { label: 'No Validado',    color: '#d44836', icon: 'dot' },
-  4:  { label: 'Validado',       color: '#63981f', icon: 'check' },
-  3:  { label: 'Finalizada',     color: '#d44836', icon: 'dot' },
-}
+const STATUS_MAP = ORDER_STATUS
 
 const StatusDot = ({ statusId, color }) => {
   const info = STATUS_MAP[statusId]
@@ -143,7 +132,7 @@ export default function Ordenes() {
   const [showMore, setShowMore] = useState(false)
   const [dashboard, setDashboard] = useState(null)
   const [areaStatuses, setAreaStatuses] = useState(null)
-  const [toast, setToast] = useState(null)
+  const { toast, setToast } = useToast()
 
   // Lab config (for dynamic labels)
   const [labConfig, setLabConfig] = useState(null)
@@ -173,13 +162,6 @@ export default function Ordenes() {
     getCheckpoints().then(setCheckpointList).catch(() => {})
     getLaboratorio().then(setLabConfig).catch(() => {})
   }, [])
-
-  // Toast auto-dismiss
-  useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 4000)
-    return () => clearTimeout(t)
-  }, [toast])
 
   // Dynamic labels & visibility based on lab config
   const ciLabel = labConfig?.configuracion_especial === 'Lapi' ? 'Nro. Registro' : 'Cédula'
@@ -489,6 +471,7 @@ export default function Ordenes() {
                   className={hv(filters.numIngreso)}
                   value={filters.numIngreso}
                   onChange={e => setF('numIngreso', e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && doSearch(1)}
                 />
               </div>
               )}
@@ -498,6 +481,7 @@ export default function Ordenes() {
                   className={hv(filters.numFactura)}
                   value={filters.numFactura}
                   onChange={e => setF('numFactura', e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && doSearch(1)}
                 />
               </div>
             </div>
@@ -632,9 +616,11 @@ export default function Ordenes() {
                   {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="ot-list-pagination">
-                      <button className="pag-btn" disabled={page <= 1} onClick={() => doSearch(page - 1)}>‹ Anterior</button>
+                      <button className="pag-btn" disabled={page <= 1} onClick={() => doSearch(1)} title="Primera página">&laquo;</button>
+                      <button className="pag-btn" disabled={page <= 1} onClick={() => doSearch(page - 1)}>&lsaquo; Anterior</button>
                       <span className="pag-info">Página {page} de {totalPages}</span>
-                      <button className="pag-btn" disabled={page >= totalPages} onClick={() => doSearch(page + 1)}>Siguiente ›</button>
+                      <button className="pag-btn" disabled={page >= totalPages} onClick={() => doSearch(page + 1)}>Siguiente &rsaquo;</button>
+                      <button className="pag-btn" disabled={page >= totalPages} onClick={() => doSearch(totalPages)} title="Última página">&raquo;</button>
                     </div>
                   )}
                 </>
@@ -661,11 +647,7 @@ export default function Ordenes() {
 
       </div>
 
-      {toast && (
-        <div className={`lab-toast lab-toast-${toast.type}`}>
-          {toast.message}
-        </div>
-      )}
+      <Toast toast={toast} />
     </div>
   )
 }

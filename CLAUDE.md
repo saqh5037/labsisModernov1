@@ -36,25 +36,54 @@ Reemplazar el frontend de Labsis (Java/Seam/XHTML de 2014) con React moderno.
 
 ## Pantallas del sistema (flujo Labsis)
 ```
-1. OrdenTrabajoList ←— DONE (funcional, filtros reales, react-select)
-2. OrdenTrabajo (detalle) ←— EN PROGRESO (backend OK, CSS necesita rehacerse)
-3. OrdenTrabajoLab (ingreso resultados) — PENDIENTE
-4. OrdenTrabajoLabVisualizacion (ver resultados) — PENDIENTE
-5. Reportes/Impresión — PENDIENTE
+1. OrdenTrabajoList ←— DONE (filtros, react-select, responsive, mobile)
+2. OrdenTrabajo (detalle) ←— DONE (layout 2 cols, datos reales, responsive)
+3. OrdenTrabajoLab (ingreso resultados) ←— DONE (keyboard nav F2/F3, Alt+Arrow, responsive)
+4. OT Edit/Create ←— EN PROGRESO (~70% — falta descuentos, IVA)
+5. Facturación ←— EN PROGRESO (~50% — falta cancelación, notas crédito)
+6. Pacientes ←— AVANZADO (~80% — faltan 6 campos demográficos)
+7. Checkpoint/Trazabilidad ←— IMPLEMENTADO (scanner barcode, scan history)
+8. Reportes/Impresión — PENDIENTE
 ```
 
-## Estado actual (3-Mar-2026)
-- **Última actividad:** Pantalla detalle — layout 2 columnas con datos reales
-- **Problema:** CSS del detalle tiene parches y no se parece a Labsis. Necesita reescritura limpia.
-- **Solución:** El detalle usa `ot-shell` (NO `app-shell`) para evitar overflow:hidden
+## Estado actual (9-Mar-2026)
+- **Últimos avances (3–9 Mar):**
+  - Responsive design completo: mobile (360px), tablet (768px), desktop (1280px)
+  - Keyboard navigation en Lab: F2/F3 para órdenes, Alt+Arrow para áreas
+  - Mobile fixes: table scroll, toolbar buttons, queue drawer overlap
+  - Filtros colapsables en phone, lab landscape compact
+  - QA readiness: tooltips, shortcuts, locale, error handling
+  - Scanner barcode: zxing-wasm, photo capture, fullscreen UX
 - **Dev server:** `npm run dev` → Vite en 5173, Express en 3001
+- **QA server:** PM2 fork mode en 52.55.189.120 (deploy con `/labsis-qa-deploy`)
+
+## Skills de Desarrollo (Ecosistema de Productividad)
+
+**Flujo de desarrollo recomendado:**
+1. `/labsis-dev-start` → Arranca entorno limpio (mata zombies, verifica BD)
+2. `/labsis-screen-dev` → Carga contexto de la pantalla a trabajar
+3. `/labsis-brand-ux` → Consulta códigos de diseño durante implementación
+4. `/labsis-responsive-check` → Verifica responsive antes de commit
+5. `/labsis-session-save` → Guarda contexto al terminar sesión
+6. `/labsis-qa-deploy` → Deploy a QA cuando esté listo
+
+**Skills adicionales:**
+- `/labsis-expert` → Consultas sobre el sistema Java legacy
+- `/labsis-code-analyzer` → Análisis profundo de código Java
 
 ## Sistema de Diseño (OBLIGATORIO para UI)
 
 **ANTES de escribir CSS o componentes de UI, LEE estos archivos:**
-1. `memory/labsis/_AGENT_DESIGN_GUIDE.md` — Guía rápida con top 30 códigos y restricciones
-2. `memory/labsis/_BRAND_CODES.md` — Catálogo completo de ~287 códigos
+1. `memory/labsis/_AGENT_DESIGN_GUIDE.md` — Guía rápida con top 30 códigos y restricciones (symlink)
+2. `memory/labsis/_BRAND_CODES.md` — Catálogo completo de ~287 códigos (symlink)
 3. `src/design-tokens.json` — Tokens en formato JSON consumible
+
+**Memoria del proyecto (symlinks a memoria global):**
+- `memory/labsis/_GAPS_AUDIT.md` — Auditoría de gaps React vs Legacy (73 gaps tracked)
+- `memory/labsis/_PATTERNS.md` — Patrones de código del proyecto
+- `memory/labsis/_SCREENS_INVENTORY.md` — Inventario de pantallas
+- `memory/labsis/prompts/_PROMPTS_INDEX.md` — Índice de 19 prompts de desarrollo
+- `memory/labsis/screens/` — Memoria por pantalla (estado, decisiones, bugs)
 
 **Reglas:**
 - NUNCA inventes estilos. Busca si ya existe un código (BTN-001, TBL-005, etc.)
