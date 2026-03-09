@@ -819,6 +819,15 @@ export default function OrdenLabPage() {
         const resultados = Object.entries(saveDirty).map(([poId, changes]) => ({
           prueba_orden_id: parseInt(poId), ...changes
         }))
+        // When validarTodo, include all unvalidated pruebas with validado: true
+        if (validarTodo && currentArea?.pruebas) {
+          const dirtyIds = new Set(resultados.map(r => r.prueba_orden_id))
+          currentArea.pruebas.forEach(po => {
+            if (!getValidado(po) && !dirtyIds.has(po.id)) {
+              resultados.push({ prueba_orden_id: po.id, validado: true })
+            }
+          })
+        }
         await saveResultados(numero, resultados, obsArea)
         const d = await getOrdenLab(numero)
         setData(d)
