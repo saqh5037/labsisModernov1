@@ -225,9 +225,11 @@ body[data-lab-theme="dark"] .lab-config-panel { background: #1e293b !important; 
 /* Dark: text */
 body[data-lab-theme="dark"] .lab-header-name,
 body[data-lab-theme="dark"] .lab-queue-pac { color: #f1f5f9 !important; }
+body[data-lab-theme="dark"] .lab-queue-pac-sm { color: #94a3b8 !important; }
 body[data-lab-theme="dark"] .lab-header-orden,
 body[data-lab-theme="dark"] .lab-queue-ord { color: #60a5fa !important; }
 body[data-lab-theme="dark"] .lab-queue-barcode { color: #93c5fd !important; }
+body[data-lab-theme="dark"] .lab-queue-barcode-main { color: #e2e8f0 !important; }
 body[data-lab-theme="dark"] .lab-queue-ingreso { color: #94a3b8 !important; }
 body[data-lab-theme="dark"] .lab-header-detail { color: #94a3b8 !important; }
 body[data-lab-theme="dark"] .lab-tag { color: #94a3b8 !important; }
@@ -350,6 +352,8 @@ body[data-lab-font="compact"] .lab-input { font-size: 11px !important; padding: 
 body[data-lab-font="compact"] .lab-header-name { font-size: 13px !important; }
 body[data-lab-font="compact"] .lab-header-strip { padding: 6px 12px !important; }
 body[data-lab-font="compact"] .lab-queue-pac { font-size: 10px !important; }
+body[data-lab-font="compact"] .lab-queue-pac-sm { font-size: 9px !important; }
+body[data-lab-font="compact"] .lab-queue-barcode-main { font-size: 11px !important; }
 body[data-lab-font="compact"] .lab-queue-item { padding: 4px 8px !important; }
 body[data-lab-font="compact"] .lab-flag { width: 18px !important; height: 18px !important; font-size: 9px !important; }
 body[data-lab-font="compact"] .lab-ref-bar { height: 4px !important; }
@@ -361,6 +365,8 @@ body[data-lab-font="large"] .lab-input { font-size: 14px !important; padding: 6p
 body[data-lab-font="large"] .lab-header-name { font-size: 17px !important; }
 body[data-lab-font="large"] .lab-header-strip { padding: 14px 20px !important; }
 body[data-lab-font="large"] .lab-queue-pac { font-size: 13px !important; }
+body[data-lab-font="large"] .lab-queue-pac-sm { font-size: 11px !important; }
+body[data-lab-font="large"] .lab-queue-barcode-main { font-size: 15px !important; }
 body[data-lab-font="large"] .lab-queue-item { padding: 10px 12px !important; }
 body[data-lab-font="large"] .lab-flag { width: 26px !important; height: 26px !important; font-size: 12px !important; }
 body[data-lab-font="large"] .lab-ref-bar { height: 8px !important; }
@@ -5341,9 +5347,19 @@ span.flatpickr-weekday { font-size:10px !important; font-weight:700 !important; 
   color: #1e3a5f; letter-spacing: 0.02em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.lab-queue-barcode-main {
+  font-size: 13px; font-weight: 700; font-family: var(--font-mono);
+  color: #0f172a; letter-spacing: 0.03em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .lab-queue-item-top { display: flex; align-items: center; gap: 6px; }
 .lab-queue-pac {
   font-size: 11px; font-weight: 600; color: #374151;
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lab-queue-pac-sm {
+  font-size: 10px; font-weight: 500; color: #6b7280;
   flex: 1; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -7801,7 +7817,7 @@ span.flatpickr-weekday { font-size:10px !important; font-weight:700 !important; 
 /* ═══ Compact Stats Strip ═══ */
 .pac-stats-strip {
   display: flex; align-items: center; gap: 0;
-  padding: 6px 20px;
+  padding: 4px 20px;
   border-bottom: 1px solid rgba(15,23,42,0.04);
   background: rgba(248,250,252,0.4);
   opacity: 0; animation: pacStripIn 350ms var(--ease-out) forwards;
@@ -7811,14 +7827,14 @@ span.flatpickr-weekday { font-size:10px !important; font-weight:700 !important; 
   to   { opacity: 1; transform: translateY(0); }
 }
 .pac-strip-item {
-  display: flex; align-items: center; gap: 6px;
-  padding: 4px 14px;
+  display: flex; align-items: center; gap: 5px;
+  padding: 2px 12px;
 }
 .pac-strip-sep {
   width: 1px; height: 20px; background: rgba(15,23,42,0.08); flex-shrink: 0;
 }
 .pac-strip-num {
-  font-family: var(--font-mono); font-size: 15px; font-weight: 700;
+  font-family: var(--font-mono); font-size: 13px; font-weight: 700;
   color: var(--text-1); letter-spacing: -0.03em; line-height: 1;
 }
 .pac-strip-label {

@@ -107,6 +107,7 @@ router.get('/', async (req, res) => {
     const {
       q,          // búsqueda general (nombre, apellido, CI — todo en uno)
       nombre, apellido, ci, email, telefono,  // filtros específicos
+      fechaDesde, fechaHasta,  // rango de última visita
       incluirInactivos, empresa,  // toggles de filtro
       page = 1, limit = 25
     } = req.query
@@ -181,6 +182,17 @@ router.get('/', async (req, res) => {
     if (telefono && telefono.trim()) {
       conditions.push(`(p.telefono LIKE '%' || $${paramIdx} || '%' OR p.telefono_celular LIKE '%' || $${paramIdx} || '%')`)
       params.push(telefono.trim())
+      paramIdx++
+    }
+    // Filtro por fecha de última visita
+    if (fechaDesde && fechaDesde.trim()) {
+      conditions.push(`EXISTS (SELECT 1 FROM orden_trabajo ot WHERE ot.paciente_id = p.id AND ot.fecha >= $${paramIdx}::date)`)
+      params.push(fechaDesde.trim())
+      paramIdx++
+    }
+    if (fechaHasta && fechaHasta.trim()) {
+      conditions.push(`EXISTS (SELECT 1 FROM orden_trabajo ot WHERE ot.paciente_id = p.id AND ot.fecha <= $${paramIdx}::date)`)
+      params.push(fechaHasta.trim())
       paramIdx++
     }
 

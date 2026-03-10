@@ -566,6 +566,7 @@ export default function Ordenes() {
                           <tr key={r.numero} style={rowH ? { height: rowH } : undefined}>
                             <td>
                               <a className="order-link" href={labUrl} onClick={e => {
+                                if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return
                                 e.preventDefault()
                                 navigate(labUrl)
                               }}>{r.numero}</a>
@@ -626,9 +627,9 @@ export default function Ordenes() {
                             })}
                             <td>
                               <div className="action-icons">
-                                <a className="action-icon ai-view lab-tip" href={detailUrl} data-tip="Ver orden" onClick={e => { e.preventDefault(); navigate(detailUrl) }}><IcoEye /></a>
+                                <a className="action-icon ai-view lab-tip" href={detailUrl} data-tip="Ver orden" onClick={e => { if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return; e.preventDefault(); navigate(detailUrl) }}><IcoEye /></a>
                                 <div className="action-icon ai-bar lab-tip"    data-tip="Código de barras" onClick={() => navigate(detailUrl)}><IcoBarcode /></div>
-                                <a className="action-icon ai-edit lab-tip" href={labUrl} data-tip="Analizar" onClick={e => { e.preventDefault(); navigate(labUrl) }}><IcoEdit /></a>
+                                <a className="action-icon ai-edit lab-tip" href={labUrl} data-tip="Analizar" onClick={e => { if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return; e.preventDefault(); navigate(labUrl) }}><IcoEdit /></a>
                                 <div className={`action-icon ai-result lab-tip${r.status_id >= 4 ? '' : ' ai-disabled'}`} data-tip={r.status_id >= 4 ? 'Descargar resultados PDF' : 'Sin resultados validados'} onClick={() => { if (r.status_id >= 4) window.open(`/api/ordenes/${r.numero}/resultados-pdf`, '_blank') }}><IcoDownload /></div>
                                 <div className={`action-icon ai-print lab-tip${r.status_id >= 4 ? '' : ' ai-disabled'}`} data-tip={r.status_id >= 4 ? 'Imprimir resultados' : 'Sin resultados validados'} onClick={() => { if (r.status_id >= 4) window.open(`/ordenes/${r.numero}/resultados`, '_blank') }}><IcoPrint /></div>
                               </div>

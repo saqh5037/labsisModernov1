@@ -12,7 +12,7 @@ export default function PacienteListPage() {
   const [q, setQ] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [filters, setFilters] = useState({
-    nombre: '', apellido: '', ci: '', email: '', telefono: ''
+    nombre: '', apellido: '', ci: '', email: '', telefono: '', fechaDesde: '', fechaHasta: ''
   })
   const [incluirInactivos, setIncluirInactivos] = useState(false)
   const [soloEmpresa, setSoloEmpresa] = useState(false)
@@ -75,10 +75,10 @@ export default function PacienteListPage() {
 
   const clearFilters = () => {
     setQ('')
-    setFilters({ nombre: '', apellido: '', ci: '', email: '', telefono: '' })
+    setFilters({ nombre: '', apellido: '', ci: '', email: '', telefono: '', fechaDesde: '', fechaHasta: '' })
     setIncluirInactivos(false)
     setSoloEmpresa(false)
-    search('', { nombre: '', apellido: '', ci: '', email: '', telefono: '' }, 1, {})
+    search('', { nombre: '', apellido: '', ci: '', email: '', telefono: '', fechaDesde: '', fechaHasta: '' }, 1, {})
   }
 
   // Load global stats once on mount
@@ -180,6 +180,16 @@ export default function PacienteListPage() {
               <div className="page-tpl-field">
                 <label>Telefono</label>
                 <input value={filters.telefono} onChange={e => setFilters(f => ({ ...f, telefono: e.target.value }))} onKeyDown={e => e.key === 'Enter' && handleAdvancedSearch()} />
+              </div>
+            </div>
+            <div className="page-tpl-adv-row">
+              <div className="page-tpl-field">
+                <label>Última visita desde</label>
+                <input type="date" value={filters.fechaDesde} onChange={e => setFilters(f => ({ ...f, fechaDesde: e.target.value }))} />
+              </div>
+              <div className="page-tpl-field">
+                <label>Última visita hasta</label>
+                <input type="date" value={filters.fechaHasta} onChange={e => setFilters(f => ({ ...f, fechaHasta: e.target.value }))} />
               </div>
             </div>
             <div className="page-tpl-adv-bottom">

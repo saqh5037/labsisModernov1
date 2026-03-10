@@ -195,22 +195,32 @@ const barColor = (pct) => pct >= 100 ? 'var(--success, #059669)' : pct >= 50 ? '
 const fmtEst = (s) => s >= 60 ? `~${Math.round(s / 60)} min` : `~${s}s`
 
 const ValidationPanel = ({ validation, onSelect }) => {
+  const [showFilters, setShowFilters] = useState(true)
   if (!validation) return null
   const { areas, areaId, setAreaId, fechaDesde, setFechaDesde,
     fechaHasta, setFechaHasta, filtroValidada, setFiltroValidada,
     buscando, handleBuscar, muestras, muestraActualId, searchFilter, setSearchFilter,
     filteredMuestras, visitados, validadosCount, totalMuestras, pctValidado, avgTime, pendientes, estimadoSeg } = validation
 
+  const doBuscar = () => { handleBuscar(); setShowFilters(false) }
+
   return (
     <div className="lab-queue-panel">
       {/* Header */}
       <div className="lab-queue-header">
         <span className="lab-queue-title">Validación por Área</span>
-        {totalMuestras > 0 && <span className="lab-queue-count">{pendientes} pend.</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {totalMuestras > 0 && <span className="lab-queue-count">{pendientes} pend.</span>}
+          {muestras.length > 0 && (
+            <button className="lab-queue-filter-toggle" onClick={() => setShowFilters(!showFilters)}>
+              <IcoFilter size={11} /> {showFilters ? '▲' : '▼'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="lab-vb-filters">
+      {showFilters && <div className="lab-vb-filters">
         <div className="lab-vb-filter-row">
           <select className="lab-vb-filter-input" value={areaId}
             onChange={e => setAreaId(e.target.value)}
@@ -230,11 +240,11 @@ const ValidationPanel = ({ validation, onSelect }) => {
             <option value="1">Validadas</option>
             <option value="2">Pendientes</option>
           </select>
-          <button className="lab-queue-filter-apply" onClick={handleBuscar} disabled={buscando || !areaId} style={{ flex: 1 }}>
+          <button className="lab-queue-filter-apply" onClick={doBuscar} disabled={buscando || !areaId} style={{ flex: 1 }}>
             {buscando ? '...' : 'Buscar'}
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* Search */}
       {muestras.length > 0 && (
@@ -256,12 +266,12 @@ const ValidationPanel = ({ validation, onSelect }) => {
               className={`lab-queue-item ${isActive ? 'active' : ''} ${isValidated ? 'vb-muestra-validated' : ''} ${isVisited && !isActive ? 'vb-muestra-visited' : ''}`}
               onClick={() => onSelect(m)}>
               <div className="lab-queue-item-top">
-                <span className="lab-queue-pac" title={m.paciente_nombre}>{m.paciente_nombre}</span>
+                <span className="lab-queue-barcode-main" title={m.barcode || m.ot_numero}>{m.barcode || m.ot_numero}</span>
                 {m.stat && <span className="lab-tag lab-tag-stat" title="STAT">S</span>}
+                <span className="vb-dot" style={{ background: m.area_status_color || '#ccc' }} />
               </div>
               <div className="lab-queue-item-bot">
-                <span className="lab-queue-ord">{m.ot_numero}</span>
-                <span className="vb-dot" style={{ background: m.area_status_color || '#ccc' }} />
+                <span className="lab-queue-pac-sm" title={m.paciente_nombre}>{m.paciente_nombre}</span>
                 <span className="lab-queue-pct">{m.pruebas_validadas}/{m.pruebas_total} <span className="lab-queue-pct-sub">({pct}%)</span></span>
               </div>
               <div className="lab-queue-bar">
@@ -1277,10 +1287,10 @@ export default function OrdenLabPage({ mode } = {}) {
                 return (
                   <div key={q.numero} className={`lab-queue-item ${isCurrent ? 'active' : ''}`} onClick={queueNav}>
                     {q.barcodes && (
-                      <div className="lab-queue-barcode" title={q.barcodes}>{q.barcodes}</div>
+                      <div className="lab-queue-barcode-main" title={q.barcodes}>{q.barcodes}</div>
                     )}
                     <div className="lab-queue-item-top">
-                      <span className="lab-queue-pac" title={q.paciente}>{q.paciente}</span>
+                      <span className="lab-queue-pac-sm" title={q.paciente}>{q.paciente}</span>
                       {q.stat && <span className="lab-tag lab-tag-stat" title="STAT — Orden urgente">S</span>}
                       {q.anormales > 0 && <span className="lab-queue-alert" title={`${q.anormales} resultado${q.anormales > 1 ? 's' : ''} fuera de rango`}>{q.anormales}</span>}
                     </div>
