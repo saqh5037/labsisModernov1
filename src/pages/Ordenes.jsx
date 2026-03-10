@@ -131,7 +131,12 @@ export default function Ordenes() {
   const { user, bioanalistaAreas } = useAuth()
   const areaPrefs = useDashAreaPrefs(user?.id, bioanalistaAreas)
 
-  const [filters,  setFilters]  = useState(INIT)
+  // Pre-set area filter from bioanalista areas
+  const initialAreaFilter = bioanalistaAreas?.length > 0
+    ? bioanalistaAreas.map(a => ({ value: a.id, label: a.nombre || a.area }))
+    : []
+
+  const [filters,  setFilters]  = useState({ ...INIT, area: initialAreaFilter })
   const [rows,     setRows]     = useState([])
   const [total,    setTotal]    = useState(0)
   const [page,     setPage]     = useState(1)
@@ -161,6 +166,16 @@ export default function Ordenes() {
   // Use ref to access latest filters without causing re-renders
   const filtersRef = useRef(filters)
   filtersRef.current = filters
+
+  // If bioanalistaAreas loads after mount, pre-set area filter (only if still empty)
+  const bioareasAppliedRef = useRef(initialAreaFilter.length > 0)
+  useEffect(() => {
+    if (bioanalistaAreas?.length > 0 && !bioareasAppliedRef.current) {
+      bioareasAppliedRef.current = true
+      const areaOps = bioanalistaAreas.map(a => ({ value: a.id, label: a.nombre || a.area }))
+      setFilters(f => f.area.length === 0 ? { ...f, area: areaOps } : f)
+    }
+  }, [bioanalistaAreas])
 
   useEffect(() => {
     getStatus().then(setEstados).catch(() => {})

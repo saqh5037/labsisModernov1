@@ -48,13 +48,18 @@ function formatTat(minutes) {
 }
 
 /* ── Area Chips (interactive) ── */
-function AreaChips({ allAreas, selectedIds, onToggle, onSelectAll, onSelectMine, mineIds, onSave, isCustomized }) {
+function AreaChips({ allAreas, selectedIds, onToggle, mineIds }) {
   if (!allAreas || allAreas.length === 0) return null
+
+  // Only show areas that belong to the user (mineIds), not all areas
+  const visibleAreas = mineIds?.length > 0
+    ? allAreas.filter(a => mineIds.includes(a.id))
+    : allAreas
 
   return (
     <div className="arpt-area-chips-wrap">
       <div className="arpt-area-chips">
-        {allAreas.map(a => {
+        {visibleAreas.map(a => {
           const active = !selectedIds || selectedIds.includes(a.id)
           return (
             <button key={a.id}
@@ -65,15 +70,6 @@ function AreaChips({ allAreas, selectedIds, onToggle, onSelectAll, onSelectMine,
             </button>
           )
         })}
-      </div>
-      <div className="arpt-area-actions">
-        <button className="arpt-area-action-btn" onClick={onSelectAll}>Todas</button>
-        <button className="arpt-area-action-btn" onClick={onSelectMine}>Mis áreas</button>
-        {isCustomized && (
-          <button className="arpt-area-action-btn arpt-area-action-btn--save" onClick={onSave}>
-            Guardar
-          </button>
-        )}
       </div>
     </div>
   )
@@ -603,7 +599,7 @@ export default function AreaReportePage() {
   const { user, bioanalistaAreas } = useAuth()
   const hasBioAreas = bioanalistaAreas && bioanalistaAreas.length > 0
 
-  const { visibleAreaIds, setVisibleAreaIds, isCustomized } = useDashAreaPrefs(user?.id, bioanalistaAreas)
+  const { visibleAreaIds } = useDashAreaPrefs(user?.id, bioanalistaAreas)
 
   const [rango, setRango] = useState('semana')
   const [customDesde, setCustomDesde] = useState('')
@@ -611,9 +607,12 @@ export default function AreaReportePage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [selectedAreaIds, setSelectedAreaIds] = useState(null) // null = all
+  // Always start with user's areas — never "all"
+  const [selectedAreaIds, setSelectedAreaIds] = useState(
+    () => visibleAreaIds || bioanalistaAreas?.map(a => a.id) || null
+  )
 
-  // Initialize selectedAreaIds from visibleAreaIds once data loads
+  // Sync from saved prefs once they load
   useEffect(() => {
     if (visibleAreaIds && !selectedAreaIds) {
       setSelectedAreaIds(visibleAreaIds)
@@ -653,17 +652,6 @@ export default function AreaReportePage() {
       }
       return [...current, areaId]
     })
-  }
-
-  const handleSelectAll = () => setSelectedAreaIds(null)
-
-  const handleSelectMine = () => {
-    const mineIds = bioanalistaAreas.map(a => a.id)
-    setSelectedAreaIds(mineIds)
-  }
-
-  const handleSavePrefs = () => {
-    setVisibleAreaIds(selectedAreaIds)
   }
 
   if (!hasBioAreas) {
@@ -716,11 +704,7 @@ export default function AreaReportePage() {
             allAreas={data?.allAreas || data?.areas}
             selectedIds={selectedAreaIds}
             onToggle={handleAreaToggle}
-            onSelectAll={handleSelectAll}
-            onSelectMine={handleSelectMine}
             mineIds={bioanalistaAreas.map(a => a.id)}
-            onSave={handleSavePrefs}
-            isCustomized={isCustomized || (selectedAreaIds !== null)}
           />
         )}
       </div>
