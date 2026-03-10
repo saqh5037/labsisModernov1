@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { getMyAreaInsights } from '../services/api'
 
 function ZScoreDot({ z }) {
@@ -147,6 +148,8 @@ export default function AreaInsightsCard({ bioanalistaAreas }) {
           )}
         </div>
       )}
+
+      <Link to="/area-reporte" className="aic-report-link">Ver reporte completo →</Link>
     </div>
   )
 }

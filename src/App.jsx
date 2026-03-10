@@ -27,6 +27,9 @@ const PacienteListPage = lazy(() => import('./pages/PacienteListPage'))
 const PacienteDetallePage = lazy(() => import('./pages/PacienteDetallePage'))
 const PacienteEditPage = lazy(() => import('./pages/PacienteEditPage'))
 
+/* ── Lazy: area reporte ── */
+const AreaReportePage = lazy(() => import('./pages/AreaReportePage'))
+
 /* ── Lazy: trazabilidad ── */
 const TrazabilidadPage = lazy(() => import('./pages/TrazabilidadPage'))
 const TrazabilidadScanPage = lazy(() => import('./pages/TrazabilidadScanPage'))
@@ -86,6 +89,7 @@ export default function App() {
                 <Route path="/pacientes/:id/editar" element={<PacienteEditPage />} />
                 <Route path="/analizar" element={<OrdenLabPage mode="analizar" />} />
                 <Route path="/validacion" element={<OrdenLabPage />} />
+                <Route path="/area-reporte" element={<AreaReportePage />} />
                 <Route path="/trazabilidad" element={<TrazabilidadPage />} />
                 <Route path="/trazabilidad/:checkpointId" element={<TrazabilidadScanPage />} />
                 <Route path="/admin/checkpoints" element={<CheckPointList />} />
