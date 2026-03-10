@@ -6,6 +6,7 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [permisos, setPermisos] = useState({})
+  const [bioanalistaAreas, setBioanalistaAreas] = useState([])
   const [loading, setLoading] = useState(true)
 
   // Revalidar sesión al montar (cookie httpOnly se envía automáticamente)
@@ -15,10 +16,12 @@ export function AuthProvider({ children }) {
       .then(data => {
         setUser(data.user)
         setPermisos(data.permisos || {})
+        setBioanalistaAreas(data.bioanalistaAreas || [])
       })
       .catch(() => {
         setUser(null)
         setPermisos({})
+        setBioanalistaAreas([])
       })
       .finally(() => setLoading(false))
   }, [])
@@ -42,6 +45,7 @@ export function AuthProvider({ children }) {
       if (meRes.ok) {
         const meData = await meRes.json()
         setPermisos(meData.permisos || {})
+        setBioanalistaAreas(meData.bioanalistaAreas || [])
       }
     } catch { /* permisos se cargan lazy */ }
     return data.user
@@ -101,7 +105,7 @@ export function AuthProvider({ children }) {
   }, [user])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, hasPermission, hasRole, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, hasPermission, hasRole, isAuthenticated: !!user, bioanalistaAreas }}>
       {children}
     </AuthContext.Provider>
   )

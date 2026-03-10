@@ -210,6 +210,13 @@ export async function logoutUser() {
   await fetch(`${BASE}/auth/logout`, { method: 'POST', credentials: 'include' })
 }
 
+// ── Insights ──
+export async function getMyAreaInsights() {
+  const res = await fetch(`${BASE}/insights/mi-area`)
+  await throwIfError(res)
+  return res.json()
+}
+
 // ── Lab Results ──
 export async function getOrdenLab(numero) {
   const res = await fetch(`${BASE}/ordenes/${numero}/lab`)

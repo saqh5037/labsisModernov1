@@ -6,8 +6,13 @@ import DatePickerGlass from '../components/DatePickerGlass'
 import DashboardProgress from '../components/DashboardProgress'
 import DashboardStatusChart from '../components/DashboardStatusChart'
 import DashboardAreaProgress from '../components/DashboardAreaProgress'
+import SmartWelcomeCard from '../components/SmartWelcomeCard'
+import AreaInsightsCard from '../components/AreaInsightsCard'
+import RichHoverCard from '../components/RichHoverCard'
 import Toast from '../components/Toast'
 import { useToast } from '../hooks/useToast'
+import useDashAreaPrefs from '../hooks/useDashAreaPrefs'
+import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { getOrdenes, getDashboard, getStatus, getProcedencias, getAreas, getUsuarios, getServiciosMedicos, searchPruebas, getLaboratorio, getCheckpoints } from '../services/api'
 import { ORDER_STATUS } from '../constants/status'
@@ -123,6 +128,9 @@ const SkeletonRow = ({ extraCols = 0 }) => (
 )
 
 export default function Ordenes() {
+  const { user, bioanalistaAreas } = useAuth()
+  const areaPrefs = useDashAreaPrefs(user?.id, bioanalistaAreas)
+
   const [filters,  setFilters]  = useState(INIT)
   const [rows,     setRows]     = useState([])
   const [total,    setTotal]    = useState(0)
@@ -132,6 +140,7 @@ export default function Ordenes() {
   const [showMore, setShowMore] = useState(false)
   const [dashboard, setDashboard] = useState(null)
   const [areaStatuses, setAreaStatuses] = useState(null)
+  const [muestrasMap, setMuestrasMap] = useState(null)
   const { toast, setToast } = useToast()
 
   // Lab config (for dynamic labels)
@@ -170,6 +179,8 @@ export default function Ordenes() {
   const showProcedencia = labConfig?.ot_list_procedencia !== false
   const showServicioMed = labConfig?.ot_list_servicio_medico !== false
   const showNumIngreso = labConfig?.ot_list_num_ingreso !== false
+  const showNumHistoria = labConfig?.ot_list_num_historia === true
+  const showHabitacion = labConfig?.ot_list_habitacion === true
   const showEmail = labConfig?.show_send_mail !== false
 
   /* react-select options */
@@ -234,6 +245,7 @@ export default function Ordenes() {
       setPage(p)
       setDashboard(dash)
       setAreaStatuses(data.areaStatuses || null)
+      setMuestrasMap(data.muestras || null)
     } catch (err) {
       console.error('Error en búsqueda:', err)
       setRows([])
@@ -251,7 +263,7 @@ export default function Ordenes() {
 
   const clear = () => {
     setFilters(INIT)
-    setRows([]); setSearched(false); setTotal(0); setDashboard(null); setAreaStatuses(null)
+    setRows([]); setSearched(false); setTotal(0); setDashboard(null); setAreaStatuses(null); setMuestrasMap(null)
   }
 
   const totalPages = Math.ceil(total / LIMIT)
@@ -274,6 +286,16 @@ export default function Ordenes() {
   /* Selected areas for dynamic columns */
   const selectedAreas = filters.area // array of { value, label }
 
+  /* Procedencia counts for hover cards */
+  const procCounts = useMemo(() => {
+    const map = {}
+    for (const r of rows) {
+      const pid = r.procedencia_id
+      if (pid) map[pid] = (map[pid] || 0) + 1
+    }
+    return map
+  }, [rows])
+
   /* Dashboard clicks → filter table */
   const handleStatusBarClick = (statusId) => {
     const opt = estadoOpts.find(o => o.value === statusId)
@@ -294,27 +316,13 @@ export default function Ordenes() {
   }
 
   return (
-    <div className="ordenes-content">
-
-      {/* ── Local toolbar — solo botón crear ── */}
-      <div className="ordenes-toolbar">
-        <div className="nav-tools">
-          <div className="nav-tool nav-tool-crear lab-tip" data-tip="Nueva Orden de Trabajo" onClick={() => navigate('/ordenes/crear')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </div>
-        </div>
-      </div>
+    <div className="ordenes-content ordenes-content--compact">
 
       {/* ── 70/30 LAYOUT ── */}
       <div className="ordenes-layout">
 
         {/* ── LEFT PANEL (main) ── */}
         <div className="ordenes-main">
-
-          {/* TÍTULO */}
-          <div className="ot-list-section anim d1">
-            <span className="ot-panel-title">Órdenes de Trabajo</span>
-          </div>
 
           {/* ── FILTROS NIVEL 1 ── */}
           <div className="ordenes-filters-primary anim d2">
@@ -335,6 +343,17 @@ export default function Ordenes() {
                   className={hv(filters.cedula)}
                   value={filters.cedula}
                   onChange={e => setF('cedula', e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && doSearch(1)}
+                />
+              </div>
+              )}
+              {showNumIngreso && (
+              <div className="fld fld-sm">
+                <label className={hv(filters.numIngreso)}>Núm. ingreso</label>
+                <input type="text" placeholder="00000"
+                  className={hv(filters.numIngreso)}
+                  value={filters.numIngreso}
+                  onChange={e => setF('numIngreso', e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && doSearch(1)}
                 />
               </div>
@@ -464,17 +483,6 @@ export default function Ordenes() {
                   menuPortalTarget={document.body}
                 />
               </div>
-              {showNumIngreso && (
-              <div className="fld">
-                <label className={hv(filters.numIngreso)}>Núm. ingreso</label>
-                <input type="text" placeholder="00000"
-                  className={hv(filters.numIngreso)}
-                  value={filters.numIngreso}
-                  onChange={e => setF('numIngreso', e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && doSearch(1)}
-                />
-              </div>
-              )}
               <div className="fld">
                 <label className={hv(filters.numFactura)}>Núm. factura</label>
                 <input type="text" placeholder="000-00000"
@@ -523,6 +531,7 @@ export default function Ordenes() {
                             <IcoChevron dir={filters.orden === 'asc' ? 'up' : 'down'} />
                           </span>
                         </th>
+                        {muestrasMap && <th style={{ width:'12%' }}>Muestras</th>}
                         <th style={{ width:'10%' }}>Procedencia</th>
                         <th style={{ width: selectedAreas.length ? '8%' : '10%' }}>Servicio</th>
                         <th style={{ width: selectedAreas.length ? '20%' : '25%' }}>Paciente</th>
@@ -545,23 +554,49 @@ export default function Ordenes() {
                       {rows.map(r => {
                         const sid = r.status_id ?? r.statusId
                         const info = STATUS_MAP[sid] || {}
+                        const f = filtersRef.current
+                        const qs = new URLSearchParams()
+                        if (f.area?.length) qs.set('area', f.area.map(a => a.value).join(','))
+                        if (f.fechaRange?.from) qs.set('fechaDesde', f.fechaRange.from)
+                        if (f.fechaRange?.to) qs.set('fechaHasta', f.fechaRange.to)
+                        const qStr = qs.toString()
+                        const labUrl = `/ordenes/${r.numero}/lab${qStr ? '?' + qStr : ''}`
+                        const detailUrl = `/ordenes/${r.numero}`
                         return (
                           <tr key={r.numero} style={rowH ? { height: rowH } : undefined}>
                             <td>
-                              <a className="order-link" href="#" onClick={e => {
+                              <a className="order-link" href={labUrl} onClick={e => {
                                 e.preventDefault()
-                                const f = filtersRef.current
-                                const qs = new URLSearchParams()
-                                if (f.area?.length) qs.set('area', f.area.map(a => a.value).join(','))
-                                if (f.fechaRange?.from) qs.set('fechaDesde', f.fechaRange.from)
-                                if (f.fechaRange?.to) qs.set('fechaHasta', f.fechaRange.to)
-                                const qStr = qs.toString()
-                                navigate(`/ordenes/${r.numero}/lab${qStr ? '?' + qStr : ''}`)
+                                navigate(labUrl)
                               }}>{r.numero}</a>
                             </td>
-                            <td className="cell-proc" title={r.procedencia || ''}>{r.procedencia || <span className="cell-muted">—</span>}</td>
+                            {muestrasMap && (
+                              <td className="td-muestras">
+                                {(muestrasMap[r.id] || []).map((m, i) => (
+                                  <span key={i} className="muestra-badge"
+                                    title={`${m.barcode} · ${m.tipo_muestra || ''} · ${m.contenedor || ''} · ${m.status_nombre || ''}`}>
+                                    <span className="dot" style={{ background: m.contenedor_color || '#94a3b8' }} />
+                                    {(m.barcode || '').slice(-8)}
+                                  </span>
+                                ))}
+                                {!(muestrasMap[r.id]?.length) && <span className="cell-muted">—</span>}
+                              </td>
+                            )}
+                            <td className="cell-proc">
+                              {r.procedencia ? (
+                                <RichHoverCard type="procedencia" data={{ nombre: r.procedencia, countHoy: procCounts[r.procedencia_id] || 0 }}>
+                                  {r.procedencia}
+                                </RichHoverCard>
+                              ) : <span className="cell-muted">—</span>}
+                            </td>
                             <td className="cell-proc" title={r.servicioMedico || ''}>{r.servicioMedico || <span className="cell-muted">—</span>}</td>
-                            <td className="cell-name">{r.paciente || '—'}</td>
+                            <td className="cell-name">
+                              {r.paciente ? (
+                                <RichHoverCard type="paciente" data={{ nombre: r.paciente, cedula: r.cedula, fechaNac: r.pac_fecha_nac, sexo: r.pac_sexo, telefono: r.pac_telefono, email: r.pac_email }}>
+                                  {r.paciente}
+                                </RichHoverCard>
+                              ) : '—'}
+                            </td>
                             <td className="cell-date">
                               {r.fecha
                                 ? new Date(r.fecha).toLocaleString('es-MX', {
@@ -591,17 +626,9 @@ export default function Ordenes() {
                             })}
                             <td>
                               <div className="action-icons">
-                                <div className="action-icon ai-view lab-tip"   data-tip="Ver orden" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoEye /></div>
-                                <div className="action-icon ai-bar lab-tip"    data-tip="Código de barras" onClick={() => navigate(`/ordenes/${r.numero}`)}><IcoBarcode /></div>
-                                <div className="action-icon ai-edit lab-tip"   data-tip="Analizar" onClick={() => {
-                                  const f = filtersRef.current
-                                  const qs = new URLSearchParams()
-                                  if (f.area?.length) qs.set('area', f.area.map(a => a.value).join(','))
-                                  if (f.fechaRange?.from) qs.set('fechaDesde', f.fechaRange.from)
-                                  if (f.fechaRange?.to) qs.set('fechaHasta', f.fechaRange.to)
-                                  const qStr = qs.toString()
-                                  navigate(`/ordenes/${r.numero}/lab${qStr ? '?' + qStr : ''}`)
-                                }}><IcoEdit /></div>
+                                <a className="action-icon ai-view lab-tip" href={detailUrl} data-tip="Ver orden" onClick={e => { e.preventDefault(); navigate(detailUrl) }}><IcoEye /></a>
+                                <div className="action-icon ai-bar lab-tip"    data-tip="Código de barras" onClick={() => navigate(detailUrl)}><IcoBarcode /></div>
+                                <a className="action-icon ai-edit lab-tip" href={labUrl} data-tip="Analizar" onClick={e => { e.preventDefault(); navigate(labUrl) }}><IcoEdit /></a>
                                 <div className={`action-icon ai-result lab-tip${r.status_id >= 4 ? '' : ' ai-disabled'}`} data-tip={r.status_id >= 4 ? 'Descargar resultados PDF' : 'Sin resultados validados'} onClick={() => { if (r.status_id >= 4) window.open(`/api/ordenes/${r.numero}/resultados-pdf`, '_blank') }}><IcoDownload /></div>
                                 <div className={`action-icon ai-print lab-tip${r.status_id >= 4 ? '' : ' ai-disabled'}`} data-tip={r.status_id >= 4 ? 'Imprimir resultados' : 'Sin resultados validados'} onClick={() => { if (r.status_id >= 4) window.open(`/ordenes/${r.numero}/resultados`, '_blank') }}><IcoPrint /></div>
                               </div>
@@ -640,9 +667,26 @@ export default function Ordenes() {
 
         {/* ── RIGHT PANEL (dashboard) ── */}
         <aside className="ordenes-dashboard">
+          <SmartWelcomeCard
+            user={user}
+            bioanalistaAreas={bioanalistaAreas}
+            onConfirm={() => {}}
+            onCustomize={() => {
+              // Scroll to area progress and open picker
+              const el = document.querySelector('.dash-area-settings-btn')
+              if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => el.click(), 400) }
+            }}
+          />
+          <AreaInsightsCard bioanalistaAreas={bioanalistaAreas} />
           <DashboardProgress data={dashboard?.progreso} onClickStatus={handleProgressClick} />
           <DashboardStatusChart data={dashboard?.porStatus} onClickBar={handleStatusBarClick} />
-          <DashboardAreaProgress data={dashboard?.porArea} />
+          <DashboardAreaProgress
+            data={dashboard?.porArea}
+            visibleAreaIds={areaPrefs.visibleAreaIds}
+            bioanalistaAreaIds={bioanalistaAreas.map(a => a.id)}
+            onChangeVisibleAreas={areaPrefs.setVisibleAreaIds}
+            isCustomized={areaPrefs.isCustomized}
+          />
         </aside>
 
       </div>

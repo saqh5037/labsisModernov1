@@ -160,10 +160,24 @@ router.get('/me', requireAuth, async (req, res) => {
       }
     }
 
-    res.json({ user: req.user, permisos })
+    // Áreas asignadas al bioanalista (si aplica)
+    let bioanalistaAreas = []
+    try {
+      const areasResult = await pool.query(`
+        SELECT a.id, a.area AS nombre
+        FROM bioanalista b
+        JOIN bioanalista_has_area bha ON bha.bioanalista_id = b.id
+        JOIN area a ON bha.area_id = a.id
+        WHERE b.usuario_id = $1
+        ORDER BY a.area
+      `, [req.user.userId])
+      bioanalistaAreas = areasResult.rows
+    } catch { /* no es bioanalista o tabla no existe */ }
+
+    res.json({ user: req.user, permisos, bioanalistaAreas })
   } catch (err) {
     console.error('Error en /me:', err)
-    res.json({ user: req.user, permisos: {} })
+    res.json({ user: req.user, permisos: {}, bioanalistaAreas: [] })
   }
 })
 

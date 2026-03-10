@@ -136,7 +136,12 @@ router.get('/', async (req, res) => {
         ot.status_id,
         so.status,
         so.color,
-        ot.num_ingreso
+        ot.num_ingreso,
+        ot.procedencia_id,
+        p.fecha_nacimiento AS pac_fecha_nac,
+        p.sexo AS pac_sexo,
+        p.telefono AS pac_telefono,
+        p.email AS pac_email
       FROM orden_trabajo ot
       LEFT JOIN paciente p ON ot.paciente_id = p.id
       LEFT JOIN procedencia proc ON ot.procedencia_id = proc.id
@@ -202,6 +207,41 @@ router.get('/', async (req, res) => {
       }
     }
 
+    // When checkpoint filter is active, fetch muestras for returned OTs
+    let muestras = null
+    const { checkpoint } = req.query
+    if (checkpoint && ordenes.length > 0) {
+      const otIds = ordenes.map(o => o.id)
+      const mResult = await pool.query(`
+        SELECT m.id, m.barcode, m.orden_id,
+               tm.nombre AS tipo_muestra,
+               tc.nombre AS contenedor, tc.abreviatura AS contenedor_abrev, tc.color AS contenedor_color,
+               sm.codigo AS status_codigo, sm.status AS status_nombre,
+               m.muestra_recibida
+        FROM muestra m
+        LEFT JOIN tipo_muestra tm ON m.tipo_muestra_id = tm.id
+        LEFT JOIN tipo_contenedor tc ON m.tipo_contenedor_id = tc.id
+        LEFT JOIN status_muestra sm ON m.status_muestra_id = sm.id
+        WHERE m.orden_id = ANY($1)
+        ORDER BY m.barcode
+      `, [otIds])
+
+      muestras = {}
+      for (const r of mResult.rows) {
+        if (!muestras[r.orden_id]) muestras[r.orden_id] = []
+        muestras[r.orden_id].push({
+          barcode: r.barcode,
+          tipo_muestra: r.tipo_muestra,
+          contenedor: r.contenedor,
+          contenedor_abrev: r.contenedor_abrev,
+          contenedor_color: r.contenedor_color,
+          status_codigo: r.status_codigo,
+          status_nombre: r.status_nombre,
+          recibida: r.muestra_recibida,
+        })
+      }
+    }
+
     res.json({
       ordenes,
       total,
@@ -209,6 +249,7 @@ router.get('/', async (req, res) => {
       limit: parseInt(limit),
       totalPages: Math.ceil(total / parseInt(limit)),
       ...(areaStatuses && { areaStatuses }),
+      ...(muestras && { muestras }),
     })
   } catch (err) {
     console.error('Error en /api/ordenes:', err)
@@ -382,9 +423,9 @@ router.get('/lab/areas', async (_req, res) => {
 // ── GET /api/ordenes/lab/queue ── Cola de órdenes pendientes con filtros
 router.get('/lab/queue', async (req, res) => {
   try {
-    const { area, fechaDesde, fechaHasta, transmitido, estado, checkpoint, page = '1', limit = '50' } = req.query
+    const { area, fechaDesde, fechaHasta, transmitido, estado, checkpoint, numIngreso, page = '1', limit = '100' } = req.query
     const pageNum = Math.max(1, parseInt(page) || 1)
-    const limitNum = Math.min(200, Math.max(1, parseInt(limit) || 50))
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 100))
     const conditions = [`ot.status_id NOT IN (4, 6, 7)`]
     const params = []
     let idx = 1
@@ -413,6 +454,11 @@ router.get('/lab/queue', async (req, res) => {
       conditions.push(`NOT EXISTS (SELECT 1 FROM prueba_orden po3 WHERE po3.orden_id = ot.id AND po3.status_id NOT IN (4,7))`)
     }
 
+    if (numIngreso) {
+      params.push(`%${numIngreso}%`)
+      conditions.push(`ot.num_ingreso ILIKE $${idx++}`)
+    }
+
     if (checkpoint) {
       params.push(parseInt(checkpoint))
       conditions.push(`ot.id IN (
@@ -427,27 +473,43 @@ router.get('/lab/queue', async (req, res) => {
       ? '' // Don't require pending when filtering for validated
       : 'HAVING SUM(CASE WHEN po.status_id NOT IN (4,7) THEN 1 ELSE 0 END) > 0'
 
+    // Count total matching rows (without LIMIT/OFFSET)
+    const countIdx = idx
+    const countResult = await pool.query(`
+      SELECT COUNT(*) FROM (
+        SELECT ot.id
+        FROM orden_trabajo ot
+        JOIN paciente p ON ot.paciente_id = p.id
+        JOIN prueba_orden po ON po.orden_id = ot.id
+        WHERE ${conditions.join(' AND ')}
+        GROUP BY ot.id
+        ${havingClause}
+      ) sub
+    `, params)
+    const totalCount = parseInt(countResult.rows[0].count)
+
     const result = await pool.query(`
-      SELECT ot.numero, ot.fecha, ot.stat,
+      SELECT ot.numero, ot.fecha, ot.stat, ot.num_ingreso,
              p.nombre || ' ' || p.apellido AS paciente,
              p.sexo, p.fecha_nacimiento,
              COUNT(po.id)::int AS total_pruebas,
              SUM(CASE WHEN po.status_id IN (4,7) THEN 1 ELSE 0 END)::int AS validadas,
              SUM(CASE WHEN po.anormal = true THEN 1 ELSE 0 END)::int AS anormales,
-             array_agg(DISTINCT a.area) FILTER (WHERE a.area IS NOT NULL) AS areas
+             array_agg(DISTINCT a.area) FILTER (WHERE a.area IS NOT NULL) AS areas,
+             (SELECT string_agg(m.barcode, ', ' ORDER BY m.barcode) FROM muestra m WHERE m.orden_id = ot.id) AS barcodes
       FROM orden_trabajo ot
       JOIN paciente p ON ot.paciente_id = p.id
       JOIN prueba_orden po ON po.orden_id = ot.id
       LEFT JOIN area a ON po.area_id = a.id
       WHERE ${conditions.join(' AND ')}
-      GROUP BY ot.numero, ot.fecha, ot.stat, p.nombre, p.apellido, p.sexo, p.fecha_nacimiento
+      GROUP BY ot.id, ot.numero, ot.fecha, ot.stat, ot.num_ingreso, p.nombre, p.apellido, p.sexo, p.fecha_nacimiento
       ${havingClause}
       ORDER BY ot.stat DESC NULLS LAST, ot.fecha DESC
       LIMIT $${idx++} OFFSET $${idx++}
     `, [...params, limitNum + 1, (pageNum - 1) * limitNum])
     const hasMore = result.rows.length > limitNum
     const rows = hasMore ? result.rows.slice(0, limitNum) : result.rows
-    res.json({ rows, page: pageNum, hasMore })
+    res.json({ rows, page: pageNum, hasMore, totalCount })
   } catch (err) {
     console.error('Error en lab queue:', err)
     res.status(500).json({ error: err.message })
@@ -599,8 +661,9 @@ router.get('/:numero', async (req, res) => {
       `, [orden.id]),
       pool.query(`
         SELECT mu.id, mu.barcode, mu.cantidad, mu.muestra_recibida,
-               mu.fecha_toma_muestra,
+               mu.fecha_toma_muestra, mu.destino,
                tm.tipo AS tipo_muestra, tc.tipo AS contenedor, tc.abreviacion AS contenedor_abrev,
+               sm.status AS status_muestra,
                (SELECT string_agg(UPPER(SUBSTRING(pr2.nombre, 1, 8)), ', ' ORDER BY pr2.nombre)
                 FROM prueba_orden po2
                 JOIN prueba pr2 ON po2.prueba_id = pr2.id
@@ -610,6 +673,7 @@ router.get('/:numero', async (req, res) => {
         FROM muestra mu
         LEFT JOIN tipo_muestra tm ON mu.tipo_muestra_id = tm.id
         LEFT JOIN tipo_contenedor tc ON mu.tipo_contenedor_id = tc.id
+        LEFT JOIN status_muestra sm ON mu.status_muestra_id = sm.id
         WHERE mu.orden_id = $1
         ORDER BY mu.id
       `, [orden.id]),
@@ -801,7 +865,7 @@ router.get('/:numero/lab', async (req, res) => {
 
     // 1. Datos de la orden + paciente (enriquecido)
     const otResult = await pool.query(`
-      SELECT ot.id, ot.numero, ot.fecha, ot.stat,
+      SELECT ot.id, ot.numero, ot.fecha, ot.stat, ot.num_ingreso,
              ot.observaciones AS ot_observaciones,
              ot.informacion_clinica, ot.embarazada, ot.semanas_embarazo,
              ot.peso, ot.estatura, ot.medico, ot.numero_solicitud,
@@ -1090,7 +1154,8 @@ router.get('/:numero/lab', async (req, res) => {
         medico: ot.medico || null,
         numero_solicitud: ot.numero_solicitud || null,
         fecha_toma_muestra: ot.fecha_toma_muestra || null,
-        fecha_estimada_entrega: ot.fecha_estimada_entrega || null
+        fecha_estimada_entrega: ot.fecha_estimada_entrega || null,
+        num_ingreso: ot.num_ingreso || null
       },
       paciente: {
         nombre: ot.paciente_nombre, ci: ot.ci_paciente, sexo: ot.sexo,
