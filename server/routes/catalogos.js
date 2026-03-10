@@ -98,7 +98,7 @@ router.get('/laboratorio', async (_req, res) => {
       'configuracion_especial'
     ]
     // Optional columns — only in some installations (EG has ot_list_ci_paciente, LAPI doesn't)
-    const optCols = ['ot_list_ci_paciente']
+    const optCols = ['ot_list_ci_paciente', 'ot_list_departamento_laboratorio', 'ot_list_cap']
     for (const col of optCols) {
       const check = await pool.query(
         `SELECT 1 FROM information_schema.columns WHERE table_name = 'laboratorio' AND column_name = $1`, [col]

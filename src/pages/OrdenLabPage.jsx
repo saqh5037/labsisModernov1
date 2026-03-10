@@ -314,11 +314,12 @@ const ValidationPanel = ({ validation, onSelect }) => {
   )
 }
 
-export default function OrdenLabPage() {
+export default function OrdenLabPage({ mode } = {}) {
   const { numero } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const isValidation = !numero
+  const isAnalizar = mode === 'analizar'
+  const isValidation = !numero && !isAnalizar
   const validation = useValidationMode(isValidation)
 
   const [data, setData] = useState(null)
@@ -349,14 +350,15 @@ export default function OrdenLabPage() {
   const [queueLoading, setQueueLoading] = useState(false)
   const [queuePage, setQueuePage] = useState(1)
   const [queueHasMore, setQueueHasMore] = useState(false)
+  const [queueTotalCount, setQueueTotalCount] = useState(0)
   const [queueFilters, setQueueFilters] = useState({
     checkpoint: searchParams.get('checkpoint') || '',
     area: searchParams.get('area') || '',
     fechaDesde: searchParams.get('fechaDesde') || '',
     fechaHasta: searchParams.get('fechaHasta') || '',
-    transmitido: '', estado: ''
+    transmitido: '', estado: '', numIngreso: ''
   })
-  const [showQueueFilters, setShowQueueFilters] = useState(false)
+  const [showQueueFilters, setShowQueueFilters] = useState(isAnalizar)
   const [queueExpanded, setQueueExpanded] = useState(false)
   const [labAreas, setLabAreas] = useState([])
   const [checkpointList, setCheckpointList] = useState([])
@@ -467,6 +469,7 @@ export default function OrdenLabPage() {
     getLabQueue(clean).then(r => {
       setQueue(prev => append ? [...prev, ...r.rows] : r.rows)
       setQueueHasMore(r.hasMore)
+      setQueueTotalCount(r.totalCount || 0)
       setQueuePage(page)
     }).catch(() => { if (!append) setQueue([]) }).finally(() => setQueueLoading(false))
   }, [queueFilters])
@@ -1027,6 +1030,11 @@ export default function OrdenLabPage() {
               else document.documentElement.requestFullscreen?.()
             }}>⛶ Completa</button>
           </>
+        ) : isAnalizar ? (
+          <>
+            <button className="ot-nav-back" onClick={() => navigate('/ordenes')}><IcoBack /> Órdenes</button>
+            <span className="lab-vb-title">Analizar Resultados</span>
+          </>
         ) : (
           <button className="ot-nav-back" onClick={() => navigate(`/ordenes/${numero}`)}><IcoBack /> Orden {numero}</button>
         )}
@@ -1081,12 +1089,12 @@ export default function OrdenLabPage() {
         <div className="ot-center"><div className="od-spinner" /> Cargando resultados...</div>
       )}
 
-      {!loading && !data && !isValidation && (
+      {!loading && !data && !isValidation && !isAnalizar && (
         <div className="ot-center">Orden no encontrada</div>
       )}
 
-      {/* Validation mode: show 3col even without data, for the left panel */}
-      {((!loading && data) || (isValidation && !loading)) && (
+      {/* Show 3col for: loaded data, validation mode, or analizar mode */}
+      {((!loading && data) || ((isValidation || isAnalizar) && !loading)) && (
         <div className="lab-3col">
           {/* ══ LEFT: Queue or Validation Panel ══ */}
           {isValidation ? (
@@ -1181,6 +1189,28 @@ export default function OrdenLabPage() {
               )}
             </div>
 
+            {/* Checkpoint — always visible and prominent in analizar mode */}
+            {isAnalizar && (
+              <div className="lab-checkpoint-hero">
+                <label className="lab-checkpoint-label">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                    <path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                  </svg>
+                  CheckPoint
+                </label>
+                <select
+                  className="lab-checkpoint-select"
+                  value={queueFilters.checkpoint}
+                  onChange={e => { setQueueFilters(f => ({ ...f, checkpoint: e.target.value })); setTimeout(() => loadQueue({ ...queueFilters, checkpoint: e.target.value }), 0) }}
+                  autoFocus
+                >
+                  <option value="">— Selecciona CheckPoint —</option>
+                  {checkpointList.map(cp => <option key={cp.id} value={cp.id}>{cp.descripcion}</option>)}
+                </select>
+              </div>
+            )}
+
             {/* Filter toggle + filters */}
             <div style={{ padding: '0 8px' }}>
               <button className="lab-queue-filter-toggle" onClick={() => setShowQueueFilters(!showQueueFilters)}>
@@ -1200,6 +1230,10 @@ export default function OrdenLabPage() {
                     <option value="">Todas</option>
                     {labAreas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
                   </select>
+
+                  <label>Núm. ingreso</label>
+                  <input type="text" placeholder="00000" value={queueFilters.numIngreso || ''}
+                    onChange={e => setQueueFilters(f => ({ ...f, numIngreso: e.target.value }))} />
 
                   <label>Desde</label>
                   <input type="date" value={queueFilters.fechaDesde}
@@ -1221,7 +1255,7 @@ export default function OrdenLabPage() {
                     <option value="validado">Validados</option>
                   </select>
 
-                  <button className="lab-queue-filter-apply" onClick={() => loadQueue()}>Buscar</button>
+                  <button className="lab-queue-filter-apply" onClick={() => { loadQueue(); setShowQueueFilters(false) }}>Buscar</button>
                 </div>
               )}
             </div>
@@ -1242,6 +1276,9 @@ export default function OrdenLabPage() {
                 }
                 return (
                   <div key={q.numero} className={`lab-queue-item ${isCurrent ? 'active' : ''}`} onClick={queueNav}>
+                    {q.barcodes && (
+                      <div className="lab-queue-barcode" title={q.barcodes}>{q.barcodes}</div>
+                    )}
                     <div className="lab-queue-item-top">
                       <span className="lab-queue-pac" title={q.paciente}>{q.paciente}</span>
                       {q.stat && <span className="lab-tag lab-tag-stat" title="STAT — Orden urgente">S</span>}
@@ -1249,11 +1286,9 @@ export default function OrdenLabPage() {
                     </div>
                     <div className="lab-queue-item-bot">
                       <span className="lab-queue-ord" title="Número de orden">{q.numero}</span>
+                      {q.num_ingreso && <span className="lab-queue-ingreso" title="Núm. ingreso">{q.num_ingreso}</span>}
                       <span className="lab-queue-pct" title={`${q.validadas} de ${q.total_pruebas} validadas (${pct}%)`}>{q.validadas}/{q.total_pruebas}</span>
                     </div>
-                    {q.areas?.length > 0 && (
-                      <div className="lab-queue-areas">{q.areas.map(a => <span key={a} className="lab-queue-area-tag">{a}</span>)}</div>
-                    )}
                     <div className="lab-queue-bar">
                       <div className="lab-queue-bar-fill" style={{ width: `${pct}%` }} />
                     </div>
@@ -1262,8 +1297,11 @@ export default function OrdenLabPage() {
               })}
               {queueHasMore && !queueLoading && (
                 <button className="lab-queue-load-more" onClick={() => loadQueue(null, queuePage + 1, true)}>
-                  Cargar más ({queue.length} cargadas)
+                  Cargar más ({queue.length} de {queueTotalCount.toLocaleString()})
                 </button>
+              )}
+              {!queueHasMore && queueTotalCount > 0 && (
+                <div className="lab-queue-total-hint">{queue.length} de {queueTotalCount.toLocaleString()} órdenes</div>
               )}
             </div>
           </div>
@@ -1284,6 +1322,7 @@ export default function OrdenLabPage() {
                     <span className="lab-tag">{data.paciente.sexo === 'M' ? 'M' : 'F'}</span>
                     <span className="lab-tag">{calcAge(data.paciente.fecha_nacimiento)}</span>
                     <span className="lab-tag">{fmtDate(data.paciente.fecha_nacimiento)}</span>
+                    {data.orden.num_ingreso && <span className="lab-tag">Ing: {data.orden.num_ingreso}</span>}
                     {data.paciente.num_historia && <span className="lab-tag">HC: {data.paciente.num_historia}</span>}
                     {data.paciente.vip && <span className="lab-tag lab-tag-vip lab-tip" data-tip="Paciente VIP — atención prioritaria">VIP</span>}
                   </span>
@@ -1964,6 +2003,24 @@ export default function OrdenLabPage() {
             </div>
           )}
           </>
+          ) : isAnalizar ? (
+            /* Analizar mode: hero checkpoint prompt */
+            <div className="lab-center-col lab-analizar-hero">
+              <div className="lab-hero-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 3h6v8l4 8H5l4-8V3z" /><line x1="9" y1="3" x2="15" y2="3" />
+                </svg>
+              </div>
+              <div className="lab-hero-title">Selecciona una orden de la cola</div>
+              <div className="lab-hero-sub">
+                Usa el filtro de <strong>CheckPoint</strong> en la cola izquierda para cargar las órdenes con muestras recibidas en tu estación de trabajo.
+              </div>
+              <div className="lab-hero-steps">
+                <div className="lab-hero-step"><span className="lab-hero-step-num">1</span>Selecciona un CheckPoint</div>
+                <div className="lab-hero-step"><span className="lab-hero-step-num">2</span>Haz clic en una orden</div>
+                <div className="lab-hero-step"><span className="lab-hero-step-num">3</span>Valida resultados</div>
+              </div>
+            </div>
           ) : (
             /* Validation mode: empty center + right when no muestra selected */
             <div className="lab-center-col" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-4)', fontSize: 14 }}>

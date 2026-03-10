@@ -25,7 +25,8 @@ export default function PacienteListPage() {
 
     setLoading(true)
     try {
-      const params = { page: p, limit: 25 }
+      const limit = 10
+      const params = { page: p, limit }
       if (searchQ && searchQ.trim()) {
         params.q = searchQ.trim()
       } else {
@@ -196,72 +197,34 @@ export default function PacienteListPage() {
           </div>
         )}
 
-        {/* ═══ Mini-Dashboard — Demographic Stats ═══ */}
+        {/* ═══ Mini-Dashboard — Compact Stats Strip ═══ */}
         {stats && (
-          <div className="pac-stats-grid">
-            {/* Card 1: Total Pacientes */}
-            <div className="pac-stat-card pac-stat-card--primary">
-              <div className="pac-stat-icon pac-stat-icon--primary">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
-                </svg>
-              </div>
-              <span className="pac-stat-label">Total Pacientes</span>
-              <span className="pac-stat-value">{stats.total.toLocaleString()}</span>
-              <span className="pac-stat-sub">{stats.activos.toLocaleString()} activos</span>
+          <div className="pac-stats-strip">
+            <div className="pac-strip-item pac-strip--primary">
+              <span className="pac-strip-num">{stats.total.toLocaleString()}</span>
+              <span className="pac-strip-label">pacientes</span>
+              <span className="pac-strip-sub">{stats.activos.toLocaleString()} activos</span>
             </div>
-
-            {/* Card 2: Genero M/F con barra ratio */}
-            <div className="pac-stat-card pac-stat-card--gender">
-              <div className="pac-stat-icon pac-stat-icon--gender">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 00-16 0"/>
-                </svg>
-              </div>
-              <span className="pac-stat-label">Género</span>
-              <div className="pac-stat-gender-row">
-                <span className="pac-stat-gender-m">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="10" cy="14" r="5"/><line x1="19" y1="5" x2="13.6" y2="10.4"/><polyline points="19 5 19 10"/><polyline points="14 5 19 5"/></svg>
-                  {stats.masculino.toLocaleString()}
-                </span>
-                <span className="pac-stat-gender-f">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="8" r="5"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
-                  {stats.femenino.toLocaleString()}
-                </span>
-              </div>
-              <div className="pac-stat-ratio-bar">
-                <div className="pac-stat-ratio-m" style={{ width: `${pct(stats.masculino, stats.masculino + stats.femenino)}%` }} />
-                <div className="pac-stat-ratio-f" style={{ width: `${pct(stats.femenino, stats.masculino + stats.femenino)}%` }} />
-              </div>
-              <div className="pac-stat-ratio-labels">
-                <span>{pct(stats.masculino, stats.masculino + stats.femenino)}% M</span>
-                <span>{pct(stats.femenino, stats.masculino + stats.femenino)}% F</span>
+            <div className="pac-strip-sep" />
+            <div className="pac-strip-item pac-strip--gender">
+              <span className="pac-strip-num pac-strip-m">♂ {stats.masculino.toLocaleString()}</span>
+              <span className="pac-strip-num pac-strip-f">♀ {stats.femenino.toLocaleString()}</span>
+              <div className="pac-strip-ratio">
+                <div className="pac-strip-ratio-m" style={{ width: `${pct(stats.masculino, stats.masculino + stats.femenino)}%` }} />
+                <div className="pac-strip-ratio-f" style={{ width: `${pct(stats.femenino, stats.masculino + stats.femenino)}%` }} />
               </div>
             </div>
-
-            {/* Card 3: Menores de edad */}
-            <div className="pac-stat-card pac-stat-card--minors">
-              <div className="pac-stat-icon pac-stat-icon--minors">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
-                </svg>
-              </div>
-              <span className="pac-stat-label">Menores de edad</span>
-              <span className="pac-stat-value">{stats.menores.toLocaleString()}</span>
-              <span className="pac-stat-sub">{pct(stats.menores, stats.total)}% del total</span>
+            <div className="pac-strip-sep" />
+            <div className="pac-strip-item pac-strip--minors">
+              <span className="pac-strip-num">{stats.menores.toLocaleString()}</span>
+              <span className="pac-strip-label">menores</span>
+              <span className="pac-strip-sub">{pct(stats.menores, stats.total)}%</span>
             </div>
-
-            {/* Card 4: VIP */}
-            <div className="pac-stat-card pac-stat-card--vip">
-              <div className="pac-stat-icon pac-stat-icon--vip">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
-              </div>
-              <span className="pac-stat-label">VIP</span>
-              <span className="pac-stat-value">{stats.vip.toLocaleString()}</span>
-              <span className="pac-stat-sub">{stats.empresa.toLocaleString()} empresa</span>
+            <div className="pac-strip-sep" />
+            <div className="pac-strip-item pac-strip--vip">
+              <span className="pac-strip-num">{stats.vip.toLocaleString()}</span>
+              <span className="pac-strip-label">VIP</span>
+              <span className="pac-strip-sub">{stats.empresa.toLocaleString()} empresa</span>
             </div>
           </div>
         )}
@@ -271,14 +234,14 @@ export default function PacienteListPage() {
           <table className="rg-table">
             <thead>
               <tr>
-                <th style={{ width: '10%' }}>CI</th>
-                <th style={{ width: '28%' }}>Nombre</th>
-                <th style={{ width: '5%' }}>Edad</th>
-                <th style={{ width: '14%' }}>Telefono</th>
-                <th style={{ width: '18%' }}>Email</th>
-                <th style={{ width: '6%' }}>OTs</th>
-                <th style={{ width: '10%' }}>Estado</th>
-                <th style={{ width: '9%', textAlign: 'center' }}>Accion</th>
+                <th style={{ width: '12%' }}>CI</th>
+                <th style={{ width: '30%' }}>Nombre</th>
+                <th style={{ width: '6%' }}>Edad</th>
+                <th style={{ width: '14%' }}>Teléfono</th>
+                <th style={{ width: '16%' }}>Email</th>
+                <th style={{ width: '5%' }}>OTs</th>
+                <th style={{ width: '9%' }}>Estado</th>
+                <th style={{ width: '8%', textAlign: 'center' }}>Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -354,7 +317,7 @@ export default function PacienteListPage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
             <span className="pg-info">
-              {(page - 1) * 25 + 1}-{Math.min(page * 25, total)} de {total.toLocaleString()}
+              {(page - 1) * 10 + 1}-{Math.min(page * 10, total)} de {total.toLocaleString()}
             </span>
           </div>
         )}

@@ -214,17 +214,55 @@ export default function OrdenDetallePage() {
           <div className="ot-center">Orden no encontrada</div>
         ) : (
           <>
-            {/* ═══ TÍTULO ═══ */}
-            <div className="ot-panel-header">
-              <span className="ot-panel-title">Orden de Trabajo {numero}</span>
-              <span className="ot-header-badges">
+            {/* ═══ HEADER COMPACTO ═══ */}
+            <div className="ot-compact-header">
+              <div className="ot-compact-left">
+                <span className="ot-compact-num">#{numero}</span>
+                <span className="ot-compact-sep">|</span>
+                <span className="ot-compact-patient">{data.paciente}</span>
+                <span className="ot-compact-ci">({data.ci_paciente || '—'})</span>
+                <span className="ot-compact-sep">|</span>
+                <span className="ot-compact-demo">{calcAge(data.fecha_nacimiento)} · {data.sexo === 'M' ? 'M' : data.sexo === 'F' ? 'F' : '—'}</span>
+              </div>
+              <div className="ot-compact-right">
                 {data.stat && <span className="ot-stat-badge">STAT</span>}
                 <span className="ot-status-badge" style={{ background: badge.bg, color: badge.text }}>
                   {data.entregada && <span className="ot-check">✓</span>}
                   {data.status}
                 </span>
-              </span>
+                <span className="ot-compact-date">{fmtDate(data.fecha)}</span>
+                {data.procedencia && <span className="ot-compact-proc">[{data.proc_codigo}] {data.procedencia}</span>}
+              </div>
             </div>
+
+            {/* ═══ DATOS SECUNDARIOS ═══ */}
+            <div className="ot-detail-grid">
+              <R l="Num Ingreso:" v={data.num_ingreso || '—'} />
+              <R l="Servicio Médico:" v={data.servicio_medico || '—'} />
+              <R l="Doctor:" v={data.medico_nombre?.trim() || ''}
+                link={!data.medico_nombre?.trim()} linkText="Agregar Doctor"
+                onClick={() => setDoctorOpen(true)} />
+              <R l="Departamento:" v={data.departamento || '—'} />
+              <R l="Habitación:" v={data.habitacion || '—'} />
+              <R l="Precio:" v={data.precio != null ? `$ ${Number(data.precio).toFixed(2)}` : '$ 0.00'} />
+              <R l="Creado por:" v={data.usuario_registro || '—'} />
+              <R l="Fecha Toma:" v={data.fecha_toma_muestra ? fmtDateTime(data.fecha_toma_muestra) : ''}
+                link linkText={data.fecha_toma_muestra ? fmtDateTime(data.fecha_toma_muestra) : 'Agregar Fecha'}
+                onClick={() => setFechaTomaOpen(true)} />
+              {(data.observaciones || data.informacion_clinica) && (
+                <>
+                  {data.observaciones && <Rf l="Observaciones:" v={data.observaciones} />}
+                  <Rf l="Info. Clínica:" v={data.informacion_clinica || ''}
+                    link linkText={data.informacion_clinica ? 'Ver' : 'Anexar'}
+                    onClick={() => { setInfoClinicaText(data.informacion_clinica || ''); setInfoClinicaOpen(true) }} />
+                </>
+              )}
+            </div>
+            {labConfig?.show_stat && !data.stat && (
+              <div className="ot-est-stat-link" onClick={() => setStatOpen(true)}>
+                <IcoPlus /> Agregar STAT (Urgencia) a Requisición
+              </div>
+            )}
 
             {/* ═══ TABS ═══ */}
             <div className="ot-tab-row">
@@ -237,60 +275,20 @@ export default function OrdenDetallePage() {
             <div className="ot-panel">
               {tab === 'general' && (
                 <div className="ot-two-col">
-                  {/* ── IZQUIERDA 70% ── */}
+                  {/* ── IZQUIERDA 70%: Pruebas y contacto ── */}
                   <div className="ot-left">
-                    <div className="ot-patient-card">
-                      <div className="ot-pname">{data.paciente}</div>
-                      <div className="ot-pid">{data.ci_paciente} <span className="ot-pid-icon" title="Ver paciente">↗</span></div>
-                      <div className="ot-pdemo">
-                        <span>Expediente: <strong>{data.num_historia || '---'}</strong></span>
-                        <span>Edad: <strong>{calcAge(data.fecha_nacimiento)}</strong></span>
-                        <span>Fecha de Nacimiento: <strong>{fmtDate(data.fecha_nacimiento)}</strong></span>
-                        <span>Sexo: <strong>{data.sexo === 'M' ? 'Masculino' : data.sexo === 'F' ? 'Femenino' : '—'}</strong></span>
+                    {(data.telefono || data.email) && (
+                      <div className="ot-pcontact" style={{ marginBottom: 10 }}>
+                        {data.telefono && <span className="lab-tip" data-tip="Teléfono"><IcoPhone /> {data.telefono}</span>}
+                        {data.telefono_celular && <span className="lab-tip" data-tip="Celular"><IcoPhone /> {data.telefono_celular}</span>}
+                        {data.email && <span className="lab-tip" data-tip="Email"><IcoMail /> {data.email}</span>}
                       </div>
-                      {(data.telefono || data.email) && (
-                        <div className="ot-pcontact">
-                          {data.telefono && <span className="lab-tip" data-tip="Teléfono"><IcoPhone /> {data.telefono}</span>}
-                          {data.telefono_celular && <span className="lab-tip" data-tip="Celular"><IcoPhone /> {data.telefono_celular}</span>}
-                          {data.email && <span className="lab-tip" data-tip="Email"><IcoMail /> {data.email}</span>}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="ot-section-label">Datos de la Orden</div>
-                    <div className="ot-fg">
-                      <R l="Fecha:" v={fmtDateTime(data.fecha)} />
-                      <R l="Número Ingreso:" v={data.num_ingreso || '—'} />
-                      <R l="Precio:" v={data.precio != null ? `$ ${Number(data.precio).toFixed(2)}` : '$ 0.00'} />
-                      <R l="Procedencia:" v={data.procedencia ? `[${data.proc_codigo || ''}] ${data.procedencia}` : '—'} />
-                      <R l="Departamento:" v={data.departamento || '—'} />
-                      <R l="Servicio Médico:" v={data.servicio_medico || '—'} />
-                      <R l="Habitación:" v={data.habitacion || ''} />
-                      <R l="Doctor:" v={data.medico_nombre?.trim() || ''}
-                        link={!data.medico_nombre?.trim()} linkText="Agregar Doctor"
-                        onClick={() => setDoctorOpen(true)} />
-                    </div>
-
-                    <div className="ot-sep" />
-
-                    <div className="ot-section-label">Información Adicional</div>
-                    <div className="ot-fg">
-                      <Rf l="Observaciones:" v={data.observaciones || ''} />
-                      <Rf l="Info. Clínica:" v={data.informacion_clinica || ''}
-                        link linkText={data.informacion_clinica ? 'Ver' : 'Anexar Información Clínica'}
-                        onClick={() => { setInfoClinicaText(data.informacion_clinica || ''); setInfoClinicaOpen(true) }} />
-                      <Rf l="Cubículo Toma:" v="" />
-                      <R l="Creado por:" v={data.usuario_registro || '—'} />
-                      <R l="Fecha Toma:" v={data.fecha_toma_muestra ? fmtDateTime(data.fecha_toma_muestra) : ''}
-                        link linkText={data.fecha_toma_muestra ? fmtDateTime(data.fecha_toma_muestra) : 'Agregar Fecha'}
-                        onClick={() => setFechaTomaOpen(true)} />
-                    </div>
-
-                    <div className="ot-sep" />
-                    <div className="ot-fg"><Rf l="Diagnóstico:" v="" /></div>
-                    {labConfig?.show_stat && !data.stat && (
-                      <div className="ot-est-stat-link" onClick={() => setStatOpen(true)}>
-                        <IcoPlus /> Agregar STAT (Urgencia) a Requisición
+                    )}
+                    {!data.observaciones && !data.informacion_clinica && (
+                      <div className="ot-fg" style={{ marginBottom: 8 }}>
+                        <Rf l="Info. Clínica:" v=""
+                          link linkText="Anexar Información Clínica"
+                          onClick={() => { setInfoClinicaText(''); setInfoClinicaOpen(true) }} />
                       </div>
                     )}
                   </div>
@@ -396,6 +394,7 @@ export default function OrdenDetallePage() {
                 <thead>
                   <tr>
                     <th>Muestra</th><th>Contenedor</th><th>Destino</th>
+                    <th>Estado</th>
                     <th>Código de Barras</th><th>Cantidad</th>
                     <th className="text-center">Imprimir</th>
                   </tr>
@@ -403,9 +402,13 @@ export default function OrdenDetallePage() {
                 <tbody>
                   {(data.muestras || []).map(mu => (
                     <tr key={mu.id}>
-                      <td className="ot-mu-t">{mu.tipo_muestra || '—'}</td>
+                      <td className="ot-mu-t">
+                        {mu.tipo_muestra || '—'}
+                        {mu.muestra_recibida && <span className="ot-mu-received" title="Muestra recibida">✓</span>}
+                      </td>
                       <td>{mu.contenedor || '—'}</td>
-                      <td>—</td>
+                      <td>{mu.destino || '—'}</td>
+                      <td>{mu.status_muestra ? <span className="badge-sm badge-sm-info">{mu.status_muestra}</span> : '—'}</td>
                       <td>
                         <span className="ot-mu-bc">{mu.barcode}</span>
                         {mu.nomenclatura && <div className="ot-mu-nom" title={mu.nomenclatura}>{mu.nomenclatura}</div>}

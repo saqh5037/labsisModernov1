@@ -84,6 +84,7 @@ export default function App() {
                 <Route path="/pacientes/nuevo" element={<PacienteEditPage />} />
                 <Route path="/pacientes/:id" element={<PacienteDetallePage />} />
                 <Route path="/pacientes/:id/editar" element={<PacienteEditPage />} />
+                <Route path="/analizar" element={<OrdenLabPage mode="analizar" />} />
                 <Route path="/validacion" element={<OrdenLabPage />} />
                 <Route path="/trazabilidad" element={<TrazabilidadPage />} />
                 <Route path="/trazabilidad/:checkpointId" element={<TrazabilidadScanPage />} />

@@ -9,6 +9,7 @@ export default function PacienteDetallePage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('ordenes')
   const [showObsModal, setShowObsModal] = useState(false)
+  const [tabFilter, setTabFilter] = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -281,79 +282,108 @@ export default function PacienteDetallePage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="ot-tab-row">
-        <button className={`ot-tab-btn ${activeTab === 'ordenes' ? 'active' : ''}`} onClick={() => setActiveTab('ordenes')}>
-          Órdenes ({counts.ordenes || ordenes.length})
-        </button>
-        <button className={`ot-tab-btn ${activeTab === 'presupuestos' ? 'active' : ''}`} onClick={() => setActiveTab('presupuestos')}>
-          Presupuestos ({counts.presupuestos || presupuestos.length})
-        </button>
-        <button className={`ot-tab-btn ${activeTab === 'historial' ? 'active' : ''}`} onClick={() => setActiveTab('historial')}>
-          Historial ({historial.length})
-        </button>
+      {/* Tabs + filtro dinámico */}
+      <div className="pac-tab-bar">
+        <div className="ot-tab-row" style={{ flex: 1, borderBottom: 'none' }}>
+          <button className={`ot-tab-btn ${activeTab === 'ordenes' ? 'active' : ''}`} onClick={() => { setActiveTab('ordenes'); setTabFilter('') }}>
+            Órdenes ({counts.ordenes || ordenes.length})
+          </button>
+          <button className={`ot-tab-btn ${activeTab === 'presupuestos' ? 'active' : ''}`} onClick={() => { setActiveTab('presupuestos'); setTabFilter('') }}>
+            Presupuestos ({counts.presupuestos || presupuestos.length})
+          </button>
+          <button className={`ot-tab-btn ${activeTab === 'historial' ? 'active' : ''}`} onClick={() => { setActiveTab('historial'); setTabFilter('') }}>
+            Historial ({historial.length})
+          </button>
+        </div>
+        <div className="pac-tab-filter">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Filtrar..."
+            value={tabFilter}
+            onChange={e => setTabFilter(e.target.value)}
+          />
+          {tabFilter && (
+            <button className="pac-tab-filter-clear" onClick={() => setTabFilter('')}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tab: Ordenes */}
-      {activeTab === 'ordenes' && (
-        <div className="pac-tab-content">
-          {ordenes.length === 0 ? (
-            <p className="pac-empty">Este paciente no tiene órdenes de trabajo</p>
-          ) : (
-            <table className="pac-table">
-              <thead>
-                <tr>
-                  <th>Número</th>
-                  <th>Fecha</th>
-                  <th>Status</th>
-                  <th>Procedencia</th>
-                  <th>Pruebas</th>
-                  <th style={{ width: 80 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {ordenes.map(ot => (
-                  <tr key={ot.id} onClick={() => navigate(`/ordenes/${ot.numero}`)}>
-                    <td className="pac-cell-ci">{ot.numero}</td>
-                    <td>{fmtDate(ot.fecha)}</td>
-                    <td>
-                      <span className={`pac-status-badge ${statusClass(ot.color)}`}>
-                        {ot.status}
-                      </span>
-                    </td>
-                    <td>{ot.procedencia || '—'}</td>
-                    <td>{ot.total_pruebas}</td>
-                    <td className="pac-cell-actions">
-                      <button
-                        className="pac-action-icon"
-                        title="Ver orden"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/ordenes/${ot.numero}`) }}
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10"/>
-                          <polyline points="12 16 16 12 12 8"/>
-                          <line x1="8" y1="12" x2="16" y2="12"/>
-                        </svg>
-                      </button>
-                      <button
-                        className="pac-action-icon"
-                        title="Lab / Resultados"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/ordenes/${ot.numero}/lab`) }}
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/>
-                          <path d="M8.5 2h7"/>
-                          <path d="M14.5 16h-5"/>
-                        </svg>
-                      </button>
-                    </td>
+      {activeTab === 'ordenes' && (() => {
+        const q = tabFilter.toLowerCase().trim()
+        const filtered = q
+          ? ordenes.filter(ot =>
+              String(ot.numero).includes(q) ||
+              (ot.status || '').toLowerCase().includes(q) ||
+              (ot.procedencia || '').toLowerCase().includes(q) ||
+              fmtDate(ot.fecha).includes(q)
+            )
+          : ordenes
+        return (
+          <div className="pac-tab-content">
+            {filtered.length === 0 ? (
+              <p className="pac-empty">{q ? `Sin resultados para "${tabFilter}"` : 'Este paciente no tiene órdenes de trabajo'}</p>
+            ) : (
+              <table className="pac-table">
+                <thead>
+                  <tr>
+                    <th>Número</th>
+                    <th>Fecha</th>
+                    <th>Status</th>
+                    <th>Procedencia</th>
+                    <th>Pruebas</th>
+                    <th style={{ width: 80 }}></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+                </thead>
+                <tbody>
+                  {filtered.map(ot => (
+                    <tr key={ot.id} onClick={() => navigate(`/ordenes/${ot.numero}`)}>
+                      <td className="pac-cell-ci">{ot.numero}</td>
+                      <td>{fmtDate(ot.fecha)}</td>
+                      <td>
+                        <span className={`pac-status-badge ${statusClass(ot.color)}`}>
+                          {ot.status}
+                        </span>
+                      </td>
+                      <td>{ot.procedencia || '—'}</td>
+                      <td>{ot.total_pruebas}</td>
+                      <td className="pac-cell-actions">
+                        <button
+                          className="pac-action-icon"
+                          title="Ver orden"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/ordenes/${ot.numero}`) }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 16 16 12 12 8"/>
+                            <line x1="8" y1="12" x2="16" y2="12"/>
+                          </svg>
+                        </button>
+                        <button
+                          className="pac-action-icon"
+                          title="Lab / Resultados"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/ordenes/${ot.numero}/lab`) }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/>
+                            <path d="M8.5 2h7"/>
+                            <path d="M14.5 16h-5"/>
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Tab: Presupuestos */}
       {activeTab === 'presupuestos' && (
