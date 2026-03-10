@@ -217,10 +217,11 @@ export async function getMyAreaInsights() {
   return res.json()
 }
 
-export async function getAreaReporte(rango = 'semana', fechaDesde, fechaHasta) {
+export async function getAreaReporte(rango = 'semana', fechaDesde, fechaHasta, areaIds) {
   const params = new URLSearchParams({ rango })
   if (fechaDesde) params.set('fechaDesde', fechaDesde)
   if (fechaHasta) params.set('fechaHasta', fechaHasta)
+  if (areaIds?.length > 0) params.set('areaIds', areaIds.join(','))
   const res = await fetch(`${BASE}/insights/mi-area/reporte?${params}`)
   await throwIfError(res)
   return res.json()

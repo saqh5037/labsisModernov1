@@ -138,14 +138,16 @@ router.get('/mi-area/reporte', async (req, res) => {
     const userId = req.user?.userId
     if (!userId) return res.json({ reporte: null })
 
-    const { rango = 'semana', fechaDesde, fechaHasta } = req.query
+    const { rango = 'semana', fechaDesde, fechaHasta, areaIds: areaIdsParam } = req.query
 
-    // 1. Obtener áreas del bioanalista
+    // 1. Obtener áreas del bioanalista (with coordinador info)
     const areasResult = await pool.query(`
-      SELECT a.id, a.area AS nombre
+      SELECT a.id, a.area AS nombre,
+             bc.nombre || ' ' || bc.apellido AS coordinador
       FROM bioanalista b
       JOIN bioanalista_has_area bha ON bha.bioanalista_id = b.id
       JOIN area a ON bha.area_id = a.id
+      LEFT JOIN bioanalista bc ON a.bioanalista_id = bc.id
       WHERE b.usuario_id = $1
       ORDER BY a.area
     `, [userId])
@@ -154,8 +156,15 @@ router.get('/mi-area/reporte', async (req, res) => {
       return res.json({ reporte: null })
     }
 
-    const areaIds = areasResult.rows.map(a => a.id)
-    const areas = areasResult.rows
+    // FASE 1A: areaIds parameter filter (intersection with user's areas)
+    const allAreaIds = areasResult.rows.map(a => a.id)
+    const requestedIds = areaIdsParam
+      ? areaIdsParam.split(',').map(Number).filter(id => allAreaIds.includes(id))
+      : null
+    const areaIds = requestedIds?.length > 0 ? requestedIds : allAreaIds
+    const areas = requestedIds?.length > 0
+      ? areasResult.rows.filter(a => requestedIds.includes(a.id))
+      : areasResult.rows
 
     // Calculate date range
     const now = new Date()
@@ -201,114 +210,178 @@ router.get('/mi-area/reporte', async (req, res) => {
 
     const equipoIds = equiposResult.rows.map(eq => eq.id)
 
-    // A) Volumen por día del periodo
-    const volumenResult = await pool.query(`
-      SELECT ot.fecha::date AS dia,
-             COUNT(DISTINCT ot.id) AS ordenes,
-             COUNT(po.id) AS pruebas_total,
-             COUNT(CASE WHEN po.status_id IN (4,7) THEN 1 END) AS validadas,
-             COUNT(CASE WHEN po.anormal = true OR po.critico = true THEN 1 END) AS con_alarma
-      FROM orden_trabajo ot
-      JOIN prueba_orden po ON po.orden_id = ot.id
-      JOIN area a ON po.area_id = a.id
-      WHERE ot.fecha >= $2 AND ot.fecha < $3
-        AND ot.status_id NOT IN (5,6)
-        AND a.id = ANY($1)
-      GROUP BY ot.fecha::date
-      ORDER BY dia
-    `, [areaIds, sd, ed])
+    // Run independent queries in parallel with Promise.all
+    const [volumenResult, qcTrendResult, raccoResult, alarmasResults, rendimientoResult, muestrasPipelineResult, tatResult] = await Promise.all([
+      // A) Volumen por día del periodo
+      pool.query(`
+        SELECT ot.fecha::date AS dia,
+               COUNT(DISTINCT ot.id) AS ordenes,
+               COUNT(po.id) AS pruebas_total,
+               COUNT(CASE WHEN po.status_id IN (4,7) THEN 1 END) AS validadas,
+               COUNT(CASE WHEN po.anormal = true OR po.critico = true THEN 1 END) AS con_alarma
+        FROM orden_trabajo ot
+        JOIN prueba_orden po ON po.orden_id = ot.id
+        JOIN area a ON po.area_id = a.id
+        WHERE ot.fecha >= $2 AND ot.fecha < $3
+          AND ot.status_id NOT IN (5,6)
+          AND a.id = ANY($1)
+        GROUP BY ot.fecha::date
+        ORDER BY dia
+      `, [areaIds, sd, ed]),
 
-    // B) QC Trend por equipo
-    let qcTrend = []
-    if (equipoIds.length > 0) {
-      const qcResult = await pool.query(`
-        SELECT nc.equipo_sistema_id, es.nombre_s AS equipo,
-               rc.fecha::date AS dia,
-               ROUND(AVG(CASE WHEN nc.std_deviation > 0
-                 THEN ABS(rc.valor - nc.mean) / nc.std_deviation
-                 ELSE NULL END)::numeric, 2) AS z_avg
-        FROM resultado_control rc
-        JOIN nivel_control nc ON rc.nivel_control_id = nc.id
-        JOIN equipo_sistema es ON nc.equipo_sistema_id = es.id
-        WHERE nc.equipo_sistema_id = ANY($1)
-          AND rc.activo = true AND nc.activo = true
-          AND rc.fecha >= $2 AND rc.fecha < $3
-        GROUP BY nc.equipo_sistema_id, es.nombre_s, rc.fecha::date
-        ORDER BY nc.equipo_sistema_id, dia
-      `, [equipoIds, sd, ed])
-      qcTrend = qcResult.rows
+      // B) QC Trend por equipo
+      equipoIds.length > 0
+        ? pool.query(`
+            SELECT nc.equipo_sistema_id, es.nombre_s AS equipo,
+                   rc.fecha::date AS dia,
+                   ROUND(AVG(CASE WHEN nc.std_deviation > 0
+                     THEN ABS(rc.valor - nc.mean) / nc.std_deviation
+                     ELSE NULL END)::numeric, 2) AS z_avg
+            FROM resultado_control rc
+            JOIN nivel_control nc ON rc.nivel_control_id = nc.id
+            JOIN equipo_sistema es ON nc.equipo_sistema_id = es.id
+            WHERE nc.equipo_sistema_id = ANY($1)
+              AND rc.activo = true AND nc.activo = true
+              AND rc.fecha >= $2 AND rc.fecha < $3
+            GROUP BY nc.equipo_sistema_id, es.nombre_s, rc.fecha::date
+            ORDER BY nc.equipo_sistema_id, dia
+          `, [equipoIds, sd, ed])
+        : Promise.resolve({ rows: [] }),
+
+      // C) Resumen RACCO por tipo_registro
+      equipoIds.length > 0
+        ? Promise.all([
+            pool.query(`
+              SELECT br.tipo_registro, COUNT(*) AS total
+              FROM bitacora_racco br
+              WHERE br.equipo_sistema_id = ANY($1)
+                AND br.fecha >= $2 AND br.fecha < $3
+              GROUP BY br.tipo_registro
+              ORDER BY total DESC
+            `, [equipoIds, sd, ed]),
+            pool.query(`
+              SELECT br.id, br.tipo_registro, br.fecha, br.observaciones,
+                     es.nombre_s AS equipo, u.nombre || ' ' || u.apellido AS registrado_por
+              FROM bitacora_racco br
+              JOIN equipo_sistema es ON br.equipo_sistema_id = es.id
+              LEFT JOIN usuario u ON br.usuario_id = u.id
+              WHERE br.equipo_sistema_id = ANY($1)
+                AND br.fecha >= $2 AND br.fecha < $3
+              ORDER BY br.fecha DESC
+              LIMIT 5
+            `, [equipoIds, sd, ed])
+          ])
+        : Promise.resolve([{ rows: [] }, { rows: [] }]),
+
+      // D) Alarmas del periodo
+      equipoIds.length > 0
+        ? Promise.all([
+            pool.query(`
+              SELECT COUNT(*) AS total,
+                     COUNT(CASE WHEN ae.leido = true THEN 1 END) AS leidas,
+                     COUNT(CASE WHEN ae.leido = false THEN 1 END) AS no_leidas
+              FROM alarma_equipo_sistema ae
+              WHERE ae.equipo_sistema_id = ANY($1)
+                AND ae.fecha >= $2 AND ae.fecha < $3
+            `, [equipoIds, sd, ed]),
+            pool.query(`
+              SELECT es.nombre_s AS equipo, COUNT(*) AS total
+              FROM alarma_equipo_sistema ae
+              JOIN equipo_sistema es ON ae.equipo_sistema_id = es.id
+              WHERE ae.equipo_sistema_id = ANY($1)
+                AND ae.fecha >= $2 AND ae.fecha < $3
+              GROUP BY es.nombre_s
+              ORDER BY total DESC
+              LIMIT 5
+            `, [equipoIds, sd, ed])
+          ])
+        : Promise.resolve([{ rows: [{ total: '0', leidas: '0', no_leidas: '0' }] }, { rows: [] }]),
+
+      // E) Rendimiento por área
+      pool.query(`
+        SELECT a.id AS area_id, a.area,
+               COUNT(po.id) AS pruebas_total,
+               COUNT(CASE WHEN po.status_id IN (4,7) THEN 1 END) AS validadas,
+               COUNT(CASE WHEN po.anormal = true OR po.critico = true THEN 1 END) AS con_alarma
+        FROM orden_trabajo ot
+        JOIN prueba_orden po ON po.orden_id = ot.id
+        JOIN area a ON po.area_id = a.id
+        WHERE ot.fecha >= $2 AND ot.fecha < $3
+          AND ot.status_id NOT IN (5,6)
+          AND a.id = ANY($1)
+        GROUP BY a.id, a.area
+        ORDER BY a.area
+      `, [areaIds, sd, ed]),
+
+      // F2) Muestras Pipeline por status
+      pool.query(`
+        SELECT sm.id AS status_id, sm.status, COUNT(DISTINCT m.id) AS total
+        FROM muestra m
+        JOIN orden_trabajo ot ON m.orden_id = ot.id
+        JOIN status_muestra sm ON m.status_muestra_id = sm.id
+        WHERE ot.fecha >= $2 AND ot.fecha < $3
+          AND ot.status_id NOT IN (5,6)
+          AND EXISTS (SELECT 1 FROM prueba_orden po WHERE po.orden_id = ot.id AND po.area_id = ANY($1))
+        GROUP BY sm.id, sm.status ORDER BY sm.id
+      `, [areaIds, sd, ed]),
+
+      // F4) TAT Monitor
+      pool.query(`
+        SELECT a.id AS area_id, a.area,
+          a.rango_tiempo_incumplimiento_critico AS tat_critico,
+          a.rango_tiempo_incumplimiento_riesgo AS tat_riesgo,
+          AVG(EXTRACT(EPOCH FROM (po.fecha_validacion - ot.fecha))/60)::int AS avg_tat_min,
+          PERCENTILE_CONT(0.90) WITHIN GROUP (
+            ORDER BY EXTRACT(EPOCH FROM (po.fecha_validacion - ot.fecha))/60
+          )::int AS p90_tat_min,
+          COUNT(CASE WHEN a.rango_tiempo_incumplimiento_critico IS NOT NULL
+            AND EXTRACT(EPOCH FROM (po.fecha_validacion - ot.fecha))/60
+              <= a.rango_tiempo_incumplimiento_critico THEN 1 END)::float
+            / NULLIF(COUNT(po.fecha_validacion),0) * 100 AS pct_sla
+        FROM orden_trabajo ot
+        JOIN prueba_orden po ON po.orden_id = ot.id
+        JOIN area a ON po.area_id = a.id
+        WHERE ot.fecha >= $2 AND ot.fecha < $3 AND a.id = ANY($1)
+          AND po.fecha_validacion IS NOT NULL AND ot.status_id NOT IN (5,6)
+        GROUP BY a.id, a.area, a.rango_tiempo_incumplimiento_critico, a.rango_tiempo_incumplimiento_riesgo
+      `, [areaIds, sd, ed])
+    ])
+
+    // Unpack parallel results
+    const qcTrend = qcTrendResult.rows
+
+    const raccoUnpacked = Array.isArray(raccoResult) ? raccoResult : [raccoResult, { rows: [] }]
+    const racco = { counts: raccoUnpacked[0].rows, recientes: raccoUnpacked[1].rows }
+
+    const alarmasUnpacked = Array.isArray(alarmasResults) ? alarmasResults : [alarmasResults, { rows: [] }]
+    const alarmaRow = alarmasUnpacked[0].rows[0]
+    const alarmasData = {
+      total: parseInt(alarmaRow.total),
+      leidas: parseInt(alarmaRow.leidas),
+      noLeidas: parseInt(alarmaRow.no_leidas),
+      topEquipos: alarmasUnpacked[1].rows
     }
 
-    // C) Resumen RACCO por tipo_registro
-    let racco = { counts: [], recientes: [] }
+    // F3) Equipment Workload (depends on equipoIds, run after Promise.all)
+    let equipoWorkload = []
     if (equipoIds.length > 0) {
-      const raccoCountsResult = await pool.query(`
-        SELECT br.tipo_registro, COUNT(*) AS total
-        FROM bitacora_racco br
-        WHERE br.equipo_sistema_id = ANY($1)
-          AND br.fecha >= $2 AND br.fecha < $3
-        GROUP BY br.tipo_registro
-        ORDER BY total DESC
-      `, [equipoIds, sd, ed])
-      const raccoRecientesResult = await pool.query(`
-        SELECT br.id, br.tipo_registro, br.fecha, br.observaciones,
-               es.nombre_s AS equipo, u.nombre || ' ' || u.apellido AS registrado_por
-        FROM bitacora_racco br
-        JOIN equipo_sistema es ON br.equipo_sistema_id = es.id
-        LEFT JOIN usuario u ON br.usuario_id = u.id
-        WHERE br.equipo_sistema_id = ANY($1)
-          AND br.fecha >= $2 AND br.fecha < $3
-        ORDER BY br.fecha DESC
-        LIMIT 5
-      `, [equipoIds, sd, ed])
-      racco = { counts: raccoCountsResult.rows, recientes: raccoRecientesResult.rows }
-    }
-
-    // D) Alarmas del periodo
-    let alarmasData = { total: 0, leidas: 0, noLeidas: 0, topEquipos: [] }
-    if (equipoIds.length > 0) {
-      const alarmasResult = await pool.query(`
-        SELECT COUNT(*) AS total,
-               COUNT(CASE WHEN ae.leido = true THEN 1 END) AS leidas,
-               COUNT(CASE WHEN ae.leido = false THEN 1 END) AS no_leidas
-        FROM alarma_equipo_sistema ae
-        WHERE ae.equipo_sistema_id = ANY($1)
-          AND ae.fecha >= $2 AND ae.fecha < $3
-      `, [equipoIds, sd, ed])
-      const topResult = await pool.query(`
-        SELECT es.nombre_s AS equipo, COUNT(*) AS total
-        FROM alarma_equipo_sistema ae
-        JOIN equipo_sistema es ON ae.equipo_sistema_id = es.id
-        WHERE ae.equipo_sistema_id = ANY($1)
-          AND ae.fecha >= $2 AND ae.fecha < $3
-        GROUP BY es.nombre_s
-        ORDER BY total DESC
-        LIMIT 5
-      `, [equipoIds, sd, ed])
-      const row = alarmasResult.rows[0]
-      alarmasData = {
-        total: parseInt(row.total),
-        leidas: parseInt(row.leidas),
-        noLeidas: parseInt(row.no_leidas),
-        topEquipos: topResult.rows
+      try {
+        const eqWLResult = await pool.query(`
+          SELECT es.id, es.nombre_s AS equipo,
+            COUNT(*) AS programadas,
+            COUNT(CASE WHEN mes.fecha_recepcion_resultado IS NOT NULL THEN 1 END) AS completadas,
+            COUNT(CASE WHEN mes.fecha_recepcion_resultado IS NULL THEN 1 END) AS pendientes
+          FROM muestra_equipo_sistema_status mes
+          JOIN equipo_sistema es ON mes.equipo_sistema_id = es.id
+          WHERE es.id = ANY($1) AND mes.fecha_programacion >= $2 AND mes.fecha_programacion < $3
+          GROUP BY es.id, es.nombre_s ORDER BY pendientes DESC
+        `, [equipoIds, sd, ed])
+        equipoWorkload = eqWLResult.rows
+      } catch (e) {
+        // Table may not exist in all environments
+        console.warn('Equipment workload query skipped:', e.message)
       }
     }
-
-    // E) Rendimiento por área
-    const rendimientoResult = await pool.query(`
-      SELECT a.id AS area_id, a.area,
-             COUNT(po.id) AS pruebas_total,
-             COUNT(CASE WHEN po.status_id IN (4,7) THEN 1 END) AS validadas,
-             COUNT(CASE WHEN po.anormal = true OR po.critico = true THEN 1 END) AS con_alarma
-      FROM orden_trabajo ot
-      JOIN prueba_orden po ON po.orden_id = ot.id
-      JOIN area a ON po.area_id = a.id
-      WHERE ot.fecha >= $2 AND ot.fecha < $3
-        AND ot.status_id NOT IN (5,6)
-        AND a.id = ANY($1)
-      GROUP BY a.id, a.area
-      ORDER BY a.area
-    `, [areaIds, sd, ed])
 
     // F) Cápsulas resumen
     const totalOrdenes = volumenResult.rows.reduce((s, r) => s + parseInt(r.ordenes), 0)
@@ -319,10 +392,45 @@ router.get('/mi-area/reporte', async (req, res) => {
     const equiposQcFuera = [...new Set(qcTrend.filter(q => parseFloat(q.z_avg) > 2).map(q => q.equipo))].length
     const totalRacco = racco.counts.reduce((s, r) => s + parseInt(r.total), 0)
 
+    // G) Smart Alerts
+    const smartAlerts = []
+
+    // QC Drift: equipo with z > 2 for 3+ consecutive days
+    const byEquipoQC = {}
+    for (const row of qcTrend) {
+      if (!byEquipoQC[row.equipo_sistema_id]) byEquipoQC[row.equipo_sistema_id] = { nombre: row.equipo, days: [] }
+      byEquipoQC[row.equipo_sistema_id].days.push({ dia: row.dia, z: parseFloat(row.z_avg) })
+    }
+    for (const [, eq] of Object.entries(byEquipoQC)) {
+      let consecutive = 0
+      for (const d of eq.days) {
+        if (d.z > 2) { consecutive++; if (consecutive >= 3) break } else consecutive = 0
+      }
+      if (consecutive >= 3) {
+        smartAlerts.push({ type: 'qc_drift', severity: 'critical', message: `${eq.nombre}: z > 2 por ${consecutive} días consecutivos`, icon: 'alert-triangle' })
+      }
+    }
+
+    // Alarmas sin leer
+    if (alarmasData.noLeidas > 0) {
+      smartAlerts.push({ type: 'alarmas_unread', severity: 'warning', message: `${alarmasData.noLeidas} alarma${alarmasData.noLeidas !== 1 ? 's' : ''} sin leer`, icon: 'bell' })
+    }
+
+    // Validación baja
+    if (pctValidacion < 50 && totalPruebas > 0) {
+      smartAlerts.push({ type: 'low_validation', severity: 'warning', message: `Validación al ${pctValidacion}% — por debajo del umbral`, icon: 'check-circle' })
+    }
+
+    // Sin actividad
+    if (totalOrdenes === 0) {
+      smartAlerts.push({ type: 'no_activity', severity: 'info', message: 'Sin órdenes en el periodo seleccionado', icon: 'info' })
+    }
+
     res.json({
       reporte: {
         rango, startDate: sd, endDate: ed,
         areas,
+        allAreas: areasResult.rows,
         capsulas: {
           ordenes: totalOrdenes,
           pruebas: totalPruebas,
@@ -339,6 +447,10 @@ router.get('/mi-area/reporte', async (req, res) => {
         alarmas: alarmasData,
         rendimiento: rendimientoResult.rows,
         equipos: equiposResult.rows,
+        smartAlerts,
+        muestrasPipeline: muestrasPipelineResult.rows,
+        equipoWorkload,
+        tatMonitor: tatResult.rows,
       }
     })
   } catch (err) {

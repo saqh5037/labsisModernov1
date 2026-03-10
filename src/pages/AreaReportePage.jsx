@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getAreaReporte } from '../services/api'
+import useDashAreaPrefs from '../hooks/useDashAreaPrefs'
 
 const RANGOS = [
   { key: 'hoy', label: 'Hoy' },
@@ -36,29 +37,194 @@ function fmtWeekday(d) {
   return new Date(s + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'short' })
 }
 
-/* ── Area Chips ── */
-function AreaChips({ areas }) {
-  const [expanded, setExpanded] = useState(false)
-  if (!areas || areas.length === 0) return null
-  const MAX = 6
-  const show = expanded ? areas : areas.slice(0, MAX)
-  const more = areas.length - MAX
+/* ── formatTat helper ── */
+function formatTat(minutes) {
+  if (minutes == null) return '—'
+  const mins = parseInt(minutes)
+  if (mins < 60) return `${mins}m`
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return m > 0 ? `${h}h ${m}m` : `${h}h`
+}
+
+/* ── Area Chips (interactive) ── */
+function AreaChips({ allAreas, selectedIds, onToggle, onSelectAll, onSelectMine, mineIds, onSave, isCustomized }) {
+  if (!allAreas || allAreas.length === 0) return null
 
   return (
-    <div className="arpt-area-chips">
-      {show.map(a => (
-        <span key={a.id} className="arpt-area-chip">{a.nombre}</span>
+    <div className="arpt-area-chips-wrap">
+      <div className="arpt-area-chips">
+        {allAreas.map(a => {
+          const active = !selectedIds || selectedIds.includes(a.id)
+          return (
+            <button key={a.id}
+              className={`arpt-area-chip ${active ? 'arpt-area-chip--active' : 'arpt-area-chip--inactive'}`}
+              onClick={() => onToggle(a.id)}
+              title={a.coordinador ? `Coord: ${a.coordinador}` : undefined}>
+              {a.nombre}
+            </button>
+          )
+        })}
+      </div>
+      <div className="arpt-area-actions">
+        <button className="arpt-area-action-btn" onClick={onSelectAll}>Todas</button>
+        <button className="arpt-area-action-btn" onClick={onSelectMine}>Mis áreas</button>
+        {isCustomized && (
+          <button className="arpt-area-action-btn arpt-area-action-btn--save" onClick={onSave}>
+            Guardar
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ── Smart Alerts Banner ── */
+function SmartAlertsBanner({ alerts }) {
+  if (!alerts || alerts.length === 0) return null
+
+  const severityColor = { critical: '#dc2626', warning: '#f59e0b', info: '#3b82f6' }
+  const severityIcon = {
+    'alert-triangle': 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
+    'bell': 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9',
+    'check-circle': 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+    'info': 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+  }
+
+  return (
+    <div className="arpt-alerts-banner">
+      {alerts.map((a, i) => (
+        <div key={i} className={`arpt-alert-card arpt-alert-card--${a.severity}`}>
+          <div className="arpt-alert-icon" style={{ color: severityColor[a.severity] }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d={severityIcon[a.icon] || severityIcon['info']} />
+            </svg>
+          </div>
+          <span className="arpt-alert-msg">{a.message}</span>
+        </div>
       ))}
-      {!expanded && more > 0 && (
-        <button className="arpt-area-chip arpt-area-chip--more" onClick={() => setExpanded(true)}>
-          +{more} más
-        </button>
-      )}
-      {expanded && areas.length > MAX && (
-        <button className="arpt-area-chip arpt-area-chip--more" onClick={() => setExpanded(false)}>
-          ver menos
-        </button>
-      )}
+    </div>
+  )
+}
+
+/* ── Muestras Pipeline ── */
+function MuestrasPipeline({ data }) {
+  if (!data || data.length === 0) return <div className="arpt-empty">Sin datos de muestras</div>
+
+  const total = data.reduce((s, d) => s + parseInt(d.total), 0)
+  const colors = ['#94a3b8', '#60a5fa', '#3b82f6', '#f59e0b', '#16a34a']
+
+  return (
+    <div className="arpt-pipeline">
+      <div className="arpt-pipeline-bar">
+        {data.map((d, i) => {
+          const pct = total > 0 ? (parseInt(d.total) / total) * 100 : 0
+          if (pct === 0) return null
+          return (
+            <div key={d.status_id} className="arpt-pipeline-segment"
+              style={{ width: `${Math.max(pct, 3)}%`, background: colors[i % colors.length] }}
+              title={`${d.status}: ${d.total}`}>
+              {pct >= 8 && <span className="arpt-pipeline-seg-label">{d.total}</span>}
+            </div>
+          )
+        })}
+      </div>
+      <div className="arpt-pipeline-legend">
+        {data.map((d, i) => (
+          <div key={d.status_id} className="arpt-pipeline-legend-item">
+            <span className="arpt-pipeline-dot" style={{ background: colors[i % colors.length] }} />
+            <span className="arpt-pipeline-legend-text">{d.status}</span>
+            <strong>{d.total}</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── Equipment Workload Grid ── */
+function EquipmentWorkloadGrid({ data }) {
+  if (!data || data.length === 0) return <div className="arpt-empty">Sin datos de equipos</div>
+
+  return (
+    <div className="arpt-eq-grid">
+      {data.map(eq => {
+        const prog = parseInt(eq.programadas)
+        const comp = parseInt(eq.completadas)
+        const pend = parseInt(eq.pendientes)
+        const pct = prog > 0 ? Math.round((comp / prog) * 100) : 0
+        const circumference = 2 * Math.PI * 20
+        const color = pct >= 80 ? '#16a34a' : pct >= 50 ? '#f59e0b' : '#dc2626'
+
+        return (
+          <div key={eq.id} className="arpt-eq-card">
+            <div className="arpt-eq-ring-wrap">
+              <svg viewBox="0 0 48 48" className="arpt-eq-ring">
+                <circle cx="24" cy="24" r="20" fill="none" stroke="var(--border-light, rgba(0,0,0,0.08))" strokeWidth="4" />
+                <circle cx="24" cy="24" r="20" fill="none" stroke={color} strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={circumference - (circumference * pct / 100)}
+                  transform="rotate(-90 24 24)"
+                  style={{ transition: 'stroke-dashoffset 600ms ease' }} />
+              </svg>
+              <span className="arpt-eq-ring-pct" style={{ color }}>{pct}%</span>
+            </div>
+            <div className="arpt-eq-info">
+              <span className="arpt-eq-name">{eq.equipo}</span>
+              <span className="arpt-eq-detail">{comp}/{prog} completadas</span>
+              {pend > 5 && <span className="arpt-eq-badge-pending">{pend} pend.</span>}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ── TAT Monitor ── */
+function TATMonitor({ data }) {
+  if (!data || data.length === 0) return <div className="arpt-empty">Sin datos TAT</div>
+
+  return (
+    <div className="arpt-tat-grid">
+      {data.map(t => {
+        const hasSla = t.tat_critico != null
+        const pctSla = t.pct_sla != null ? Math.round(t.pct_sla) : null
+        const slaColor = pctSla >= 80 ? '#16a34a' : pctSla >= 50 ? '#f59e0b' : '#dc2626'
+        const circumference = 2 * Math.PI * 24
+
+        return (
+          <div key={t.area_id} className="arpt-tat-card">
+            <div className="arpt-tat-header">
+              <span className="arpt-tat-area">{t.area}</span>
+            </div>
+            <div className="arpt-tat-body">
+              {hasSla && pctSla != null ? (
+                <div className="arpt-tat-ring-wrap">
+                  <svg viewBox="0 0 56 56" className="arpt-tat-ring">
+                    <circle cx="28" cy="28" r="24" fill="none" stroke="var(--border-light, rgba(0,0,0,0.08))" strokeWidth="4" />
+                    <circle cx="28" cy="28" r="24" fill="none" stroke={slaColor} strokeWidth="4"
+                      strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={circumference - (circumference * pctSla / 100)}
+                      transform="rotate(-90 28 28)"
+                      style={{ transition: 'stroke-dashoffset 600ms ease' }} />
+                  </svg>
+                  <span className="arpt-tat-ring-pct" style={{ color: slaColor }}>{pctSla}%</span>
+                </div>
+              ) : null}
+              <div className="arpt-tat-values">
+                <div className="arpt-tat-main">{formatTat(t.avg_tat_min)}</div>
+                <div className="arpt-tat-sub">promedio</div>
+                {t.p90_tat_min != null && (
+                  <div className="arpt-tat-p90">P90: {formatTat(t.p90_tat_min)}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -80,7 +246,7 @@ function HeroStat({ icon, value, label, color, accent }) {
 }
 
 /* ── Cápsulas Grid (hero stats) ── */
-function CapsulasGrid({ c }) {
+function CapsulasGrid({ c, tatAvg }) {
   const stats = [
     { label: 'Órdenes', value: c.ordenes, icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', color: 'var(--accent, #3b82f6)' },
     { label: 'Pruebas', value: `${c.validadas}/${c.pruebas}`, icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z', color: c.pruebas > 0 && c.validadas / c.pruebas >= 0.8 ? '#16a34a' : 'var(--accent, #3b82f6)' },
@@ -89,6 +255,16 @@ function CapsulasGrid({ c }) {
     { label: 'Alarmas', value: c.alarmasNoLeidas, icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', color: c.alarmasNoLeidas > 0 ? '#dc2626' : 'var(--text-3, #94a3b8)', accent: c.alarmasNoLeidas > 0 },
     { label: 'RACCO', value: c.raccoEventos, icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z', color: 'var(--text-3, #94a3b8)' },
   ]
+
+  if (tatAvg != null) {
+    stats.push({
+      label: 'TAT Prom',
+      value: formatTat(tatAvg),
+      icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+      color: tatAvg <= 120 ? '#16a34a' : tatAvg <= 240 ? '#f59e0b' : '#dc2626',
+      accent: tatAvg > 240,
+    })
+  }
 
   return (
     <div className="arpt-hero-stats">
@@ -247,7 +423,7 @@ function QCTrendSection({ data }) {
                 </span>
                 {Math.abs(drift) > 0.5 && (
                   <span className="arpt-qc-drift">
-                    {drift > 0 ? '↗' : '↘'} drift
+                    {drift > 0 ? '\u2197' : '\u2198'} drift
                   </span>
                 )}
                 <span className="arpt-qc-lastz">z={lastZ.toFixed(1)}</span>
@@ -268,10 +444,10 @@ function RaccoSection({ racco }) {
   if (counts.length === 0 && recientes.length === 0) return <div className="arpt-empty">Sin eventos RACCO</div>
 
   const tipoIcons = {
-    'Mantenimiento': '🔧',
-    'Calibración': '🎯',
-    'Control': '✅',
-    'Limpieza': '🧹',
+    'Mantenimiento': '\uD83D\uDD27',
+    'Calibración': '\uD83C\uDFAF',
+    'Control': '\u2705',
+    'Limpieza': '\uD83E\uDDF9',
   }
 
   return (
@@ -280,7 +456,7 @@ function RaccoSection({ racco }) {
         <div className="arpt-racco-pills">
           {counts.map(c => (
             <div key={c.tipo_registro} className="arpt-racco-pill">
-              <span className="arpt-racco-pill-icon">{tipoIcons[c.tipo_registro] || '📋'}</span>
+              <span className="arpt-racco-pill-icon">{tipoIcons[c.tipo_registro] || '\uD83D\uDCCB'}</span>
               <span className="arpt-racco-pill-tipo">{c.tipo_registro}</span>
               <span className="arpt-racco-pill-num">{c.total}</span>
             </div>
@@ -424,8 +600,10 @@ function RendimientoSection({ rendimiento }) {
    Main Page Component
    ════════════════════════════════════════════════════════════ */
 export default function AreaReportePage() {
-  const { bioanalistaAreas } = useAuth()
+  const { user, bioanalistaAreas } = useAuth()
   const hasBioAreas = bioanalistaAreas && bioanalistaAreas.length > 0
+
+  const { visibleAreaIds, setVisibleAreaIds, isCustomized } = useDashAreaPrefs(user?.id, bioanalistaAreas)
 
   const [rango, setRango] = useState('semana')
   const [customDesde, setCustomDesde] = useState('')
@@ -433,12 +611,20 @@ export default function AreaReportePage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedAreaIds, setSelectedAreaIds] = useState(null) // null = all
 
-  const fetchData = useCallback(async (r, desde, hasta) => {
+  // Initialize selectedAreaIds from visibleAreaIds once data loads
+  useEffect(() => {
+    if (visibleAreaIds && !selectedAreaIds) {
+      setSelectedAreaIds(visibleAreaIds)
+    }
+  }, [visibleAreaIds]) // eslint-disable-line
+
+  const fetchData = useCallback(async (r, desde, hasta, areaIds) => {
     setLoading(true)
     setError(null)
     try {
-      const res = await getAreaReporte(r, desde, hasta)
+      const res = await getAreaReporte(r, desde, hasta, areaIds)
       setData(res.reporte)
     } catch (err) {
       setError(err.message)
@@ -450,11 +636,34 @@ export default function AreaReportePage() {
   useEffect(() => {
     if (!hasBioAreas) { setLoading(false); return }
     if (rango === 'custom') return
-    fetchData(rango)
-  }, [rango, hasBioAreas, fetchData])
+    fetchData(rango, undefined, undefined, selectedAreaIds)
+  }, [rango, hasBioAreas, fetchData, selectedAreaIds])
 
   const handleApplyCustom = () => {
-    if (customDesde && customHasta) fetchData('custom', customDesde, customHasta)
+    if (customDesde && customHasta) fetchData('custom', customDesde, customHasta, selectedAreaIds)
+  }
+
+  const handleAreaToggle = (areaId) => {
+    setSelectedAreaIds(prev => {
+      const allIds = data?.allAreas?.map(a => a.id) || bioanalistaAreas.map(a => a.id)
+      const current = prev || allIds
+      if (current.includes(areaId)) {
+        const next = current.filter(id => id !== areaId)
+        return next.length > 0 ? next : current // don't allow empty
+      }
+      return [...current, areaId]
+    })
+  }
+
+  const handleSelectAll = () => setSelectedAreaIds(null)
+
+  const handleSelectMine = () => {
+    const mineIds = bioanalistaAreas.map(a => a.id)
+    setSelectedAreaIds(mineIds)
+  }
+
+  const handleSavePrefs = () => {
+    setVisibleAreaIds(selectedAreaIds)
   }
 
   if (!hasBioAreas) {
@@ -472,7 +681,7 @@ export default function AreaReportePage() {
 
   return (
     <div className="arpt-page">
-      {/* ─── Hero Header ─── */}
+      {/* --- Hero Header --- */}
       <div className="arpt-hero">
         <div className="arpt-hero-top">
           <Link to="/ordenes" className="arpt-back">
@@ -502,67 +711,125 @@ export default function AreaReportePage() {
           onApply={handleApplyCustom} />
 
         {/* Area chips */}
-        {data?.areas && <AreaChips areas={data.areas} />}
+        {(data?.allAreas || data?.areas) && (
+          <AreaChips
+            allAreas={data?.allAreas || data?.areas}
+            selectedIds={selectedAreaIds}
+            onToggle={handleAreaToggle}
+            onSelectAll={handleSelectAll}
+            onSelectMine={handleSelectMine}
+            mineIds={bioanalistaAreas.map(a => a.id)}
+            onSave={handleSavePrefs}
+            isCustomized={isCustomized || (selectedAreaIds !== null)}
+          />
+        )}
       </div>
 
       {loading && <div className="arpt-loading"><div className="spinner" /></div>}
       {error && <div className="arpt-error">{error}</div>}
 
-      {!loading && !error && data && (
-        <div className="arpt-content">
-          {/* ─── Hero Stats ─── */}
-          <CapsulasGrid c={data.capsulas} />
+      {!loading && !error && data && (() => {
+        // compute average TAT from tatMonitor data
+        const tatAvg = data.tatMonitor?.length > 0
+          ? Math.round(data.tatMonitor.reduce((s, t) => s + (parseInt(t.avg_tat_min) || 0), 0) / data.tatMonitor.length)
+          : null
 
-          {/* ─── Row: Volume + QC ─── */}
-          <div className="arpt-grid-2">
-            <div className="arpt-card arpt-card--vol">
-              <h3 className="arpt-card-title">
-                Volumen Diario
-                <span className="arpt-card-title-badge">{data.volumenDiario?.length || 0} días</span>
-              </h3>
-              <VolumenChart data={data.volumenDiario} />
-            </div>
-            <div className="arpt-card arpt-card--qc">
-              <h3 className="arpt-card-title">
-                Control de Calidad
-                <span className="arpt-card-title-badge">{Object.keys(
-                  data.qcTrend.reduce((acc, r) => { acc[r.equipo_sistema_id] = 1; return acc }, {})
-                ).length} equipos</span>
-              </h3>
-              <QCTrendSection data={data.qcTrend} />
-            </div>
-          </div>
+        return (
+          <div className="arpt-content">
+            {/* --- Hero Stats --- */}
+            <CapsulasGrid c={data.capsulas} tatAvg={tatAvg} />
 
-          {/* ─── Row: RACCO + Alarmas ─── */}
-          <div className="arpt-grid-2">
-            <div className="arpt-card">
-              <h3 className="arpt-card-title">
-                Bitácora RACCO
-                {data.racco.counts.length > 0 && (
+            {/* --- Smart Alerts --- */}
+            <SmartAlertsBanner alerts={data.smartAlerts} />
+
+            {/* --- Muestras Pipeline --- */}
+            {data.muestrasPipeline?.length > 0 && (
+              <div className="arpt-card">
+                <h3 className="arpt-card-title">
+                  Pipeline de Muestras
                   <span className="arpt-card-title-badge">
-                    {data.racco.counts.reduce((s, c) => s + parseInt(c.total), 0)} eventos
+                    {data.muestrasPipeline.reduce((s, d) => s + parseInt(d.total), 0)} muestras
                   </span>
-                )}
-              </h3>
-              <RaccoSection racco={data.racco} />
-            </div>
-            <div className="arpt-card">
-              <h3 className="arpt-card-title">
-                Alarmas
-                {data.alarmas.noLeidas > 0 && (
-                  <span className="arpt-card-title-badge arpt-card-title-badge--warn">
-                    {data.alarmas.noLeidas} sin leer
-                  </span>
-                )}
-              </h3>
-              <AlertasSection alarmas={data.alarmas} />
-            </div>
-          </div>
+                </h3>
+                <MuestrasPipeline data={data.muestrasPipeline} />
+              </div>
+            )}
 
-          {/* ─── Rendimiento ─── */}
-          <RendimientoSection rendimiento={data.rendimiento} />
-        </div>
-      )}
+            {/* --- Row: Volume + QC --- */}
+            <div className="arpt-grid-2">
+              <div className="arpt-card arpt-card--vol">
+                <h3 className="arpt-card-title">
+                  Volumen Diario
+                  <span className="arpt-card-title-badge">{data.volumenDiario?.length || 0} días</span>
+                </h3>
+                <VolumenChart data={data.volumenDiario} />
+              </div>
+              <div className="arpt-card arpt-card--qc">
+                <h3 className="arpt-card-title">
+                  Control de Calidad
+                  <span className="arpt-card-title-badge">{Object.keys(
+                    data.qcTrend.reduce((acc, r) => { acc[r.equipo_sistema_id] = 1; return acc }, {})
+                  ).length} equipos</span>
+                </h3>
+                <QCTrendSection data={data.qcTrend} />
+              </div>
+            </div>
+
+            {/* --- Row: Equipment Workload + TAT Monitor --- */}
+            {(data.equipoWorkload?.length > 0 || data.tatMonitor?.length > 0) && (
+              <div className="arpt-grid-2">
+                {data.equipoWorkload?.length > 0 && (
+                  <div className="arpt-card">
+                    <h3 className="arpt-card-title">
+                      Carga de Equipos
+                      <span className="arpt-card-title-badge">{data.equipoWorkload.length} equipos</span>
+                    </h3>
+                    <EquipmentWorkloadGrid data={data.equipoWorkload} />
+                  </div>
+                )}
+                {data.tatMonitor?.length > 0 && (
+                  <div className="arpt-card">
+                    <h3 className="arpt-card-title">
+                      TAT Monitor
+                      <span className="arpt-card-title-badge">{data.tatMonitor.length} áreas</span>
+                    </h3>
+                    <TATMonitor data={data.tatMonitor} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- Row: RACCO + Alarmas --- */}
+            <div className="arpt-grid-2">
+              <div className="arpt-card">
+                <h3 className="arpt-card-title">
+                  Bitácora RACCO
+                  {data.racco.counts.length > 0 && (
+                    <span className="arpt-card-title-badge">
+                      {data.racco.counts.reduce((s, c) => s + parseInt(c.total), 0)} eventos
+                    </span>
+                  )}
+                </h3>
+                <RaccoSection racco={data.racco} />
+              </div>
+              <div className="arpt-card">
+                <h3 className="arpt-card-title">
+                  Alarmas
+                  {data.alarmas.noLeidas > 0 && (
+                    <span className="arpt-card-title-badge arpt-card-title-badge--warn">
+                      {data.alarmas.noLeidas} sin leer
+                    </span>
+                  )}
+                </h3>
+                <AlertasSection alarmas={data.alarmas} />
+              </div>
+            </div>
+
+            {/* --- Rendimiento --- */}
+            <RendimientoSection rendimiento={data.rendimiento} />
+          </div>
+        )
+      })()}
     </div>
   )
 }
